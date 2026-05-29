@@ -1,0 +1,8 @@
+{
+  "runtime": "sherpa_onnx_online",
+  "locale": "tr-TR",
+  "model_type": "whisper",
+  "encoder": "encoder.onnx",
+  "decoder": "decoder.onnx",
+  "tokens": "tokens.txt"
+}

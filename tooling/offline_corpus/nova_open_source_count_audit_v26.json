@@ -1,0 +1,100 @@
+{
+  "format": "nova-open-source-count-audit-v26",
+  "domains": {
+    "ultra_support_brain": {
+      "target": 10000,
+      "actual": 10000,
+      "met_target": true
+    },
+    "problem_solving": {
+      "target": 20000,
+      "actual": 20000,
+      "met_target": true
+    },
+    "math_advanced": {
+      "target": 100000,
+      "actual": 21777,
+      "met_target": false
+    },
+    "biology_advanced": {
+      "target": 50000,
+      "actual": 20402,
+      "met_target": false
+    },
+    "chemistry_advanced": {
+      "target": 50000,
+      "actual": 10981,
+      "met_target": false
+    },
+    "numerology_calculations": {
+      "target": 30000,
+      "actual": 2920,
+      "met_target": false
+    },
+    "occultism": {
+      "target": 20000,
+      "actual": 20000,
+      "met_target": true
+    },
+    "astrology_calculations": {
+      "target": 30000,
+      "actual": 288,
+      "met_target": false
+    },
+    "bioenergy": {
+      "target": 20000,
+      "actual": 493,
+      "met_target": false
+    },
+    "reiki": {
+      "target": 20000,
+      "actual": 806,
+      "met_target": false
+    },
+    "physics_formula_applications": {
+      "target": 10000,
+      "actual": 10000,
+      "met_target": true
+    },
+    "automotive_catalog": {
+      "target": 150000,
+      "actual": 0,
+      "met_target": false
+    },
+    "automotive_troubleshooting": {
+      "target": 300000,
+      "actual": 0,
+      "met_target": false
+    },
+    "archaeology_advanced": {
+      "target": 50000,
+      "actual": 124,
+      "met_target": false
+    },
+    "construction_engineering": {
+      "target": 20000,
+      "actual": 2336,
+      "met_target": false
+    },
+    "pvc_aluminum": {
+      "target": 20000,
+      "actual": 3491,
+      "met_target": false
+    },
+    "agriculture_engineering": {
+      "target": 20000,
+      "actual": 1137,
+      "met_target": false
+    },
+    "finance_advanced": {
+      "target": 30000,
+      "actual": 15812,
+      "met_target": false
+    },
+    "crypto_advanced": {
+      "target": 20000,
+      "actual": 228,
+      "met_target": false
+    }
+  }
+}

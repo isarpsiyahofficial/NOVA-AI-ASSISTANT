@@ -1,0 +1,92 @@
+{
+  "agriculture_engineering": {
+    "target": 20000,
+    "actual": 20000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "archaeology_advanced": {
+    "target": 50000,
+    "actual": 50000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "astrology_calculations": {
+    "target": 30000,
+    "actual": 30000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "automotive_catalog": {
+    "target": 150000,
+    "actual": 150000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "automotive_troubleshooting": {
+    "target": 300000,
+    "actual": 300000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "bioenergy": {
+    "target": 20000,
+    "actual": 20000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "biology_advanced": {
+    "target": 50000,
+    "actual": 50000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "chemistry_advanced": {
+    "target": 50000,
+    "actual": 50000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "construction_engineering": {
+    "target": 20000,
+    "actual": 20000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "crypto_advanced": {
+    "target": 20000,
+    "actual": 20000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "finance_advanced": {
+    "target": 30000,
+    "actual": 30000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "math_advanced": {
+    "target": 100000,
+    "actual": 100000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "numerology_calculations": {
+    "target": 30000,
+    "actual": 30000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "pvc_aluminum": {
+    "target": 20000,
+    "actual": 20000,
+    "gap": 0,
+    "status": "ok"
+  },
+  "reiki": {
+    "target": 20000,
+    "actual": 20000,
+    "gap": 0,
+    "status": "ok"
+  }
+}

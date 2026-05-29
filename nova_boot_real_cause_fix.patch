@@ -1,0 +1,202 @@
+diff -ruN /tmp/orig_patch_src/android/app/src/main/kotlin/com/example/nova/MainActivity.kt /tmp/nova_patch/android/app/src/main/kotlin/com/example/nova/MainActivity.kt
+--- /tmp/orig_patch_src/android/app/src/main/kotlin/com/example/nova/MainActivity.kt	2026-04-26 16:17:29.110862254 +0000
++++ /tmp/nova_patch/android/app/src/main/kotlin/com/example/nova/MainActivity.kt	2026-04-26 16:17:19.274130157 +0000
+@@ -555,7 +555,8 @@
+                                 return@execute
+                             }
+                             val prepared = prepareModelFileSafely(applicationContext)
+-                            result.success(
++                            finishAiResultOnMain(
++                                result,
+                                 mapOf(
+                                     "success" to prepared.success,
+                                     "message" to prepared.message,
+diff -ruN /tmp/orig_patch_src/android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt /tmp/nova_patch/android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt
+--- /tmp/orig_patch_src/android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt	2026-04-26 16:17:29.031729658 +0000
++++ /tmp/nova_patch/android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt	2026-04-26 16:16:53.198888203 +0000
+@@ -2,6 +2,8 @@
+ 
+ import android.content.Context
+ import android.content.Intent
++import android.os.Handler
++import android.os.Looper
+ import io.flutter.embedding.engine.FlutterEngine
+ import io.flutter.plugin.common.EventChannel
+ import io.flutter.plugin.common.MethodCall
+@@ -11,6 +13,8 @@
+     private val context: Context,
+ ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
+     private val engine by lazy { NovaStreamingAsrEngineProvider.get(context) }
++    private val mainHandler = Handler(Looper.getMainLooper())
++    @Volatile
+     private var sink: EventChannel.EventSink = null
+ 
+     private fun stopForegroundServiceSafely() {
+@@ -86,22 +90,31 @@
+     }
+ 
+     private fun emit(type: String, payload: NovaStreamingAsrResult, message: String) {
+-        sink?.success(
+-            mapOf(
+-                "type" to type,
+-                "transcript" to mapOf(
+-                    "text" to payload.text,
+-                    "isFinal" to payload.isFinal,
+-                    "confidence" to payload.confidence.toDouble(),
+-                    "segmentId" to payload.segmentId,
+-                    "startMs" to payload.startMs,
+-                    "endMs" to payload.endMs,
+-                    "locale" to payload.locale,
+-                ),
+-                "message" to message,
+-                "createdAt" to java.time.Instant.now().toString(),
+-            )
++        val event = mapOf(
++            "type" to type,
++            "transcript" to mapOf(
++                "text" to payload.text,
++                "isFinal" to payload.isFinal,
++                "confidence" to payload.confidence.toDouble(),
++                "segmentId" to payload.segmentId,
++                "startMs" to payload.startMs,
++                "endMs" to payload.endMs,
++                "locale" to payload.locale,
++            ),
++            "message" to message,
++            "createdAt" to java.time.Instant.now().toString(),
+         )
++
++        // Flutter EventSink must run on Android main thread.
++        // Streaming ASR emits from a worker thread; direct sink.success()
++        // crashes setup with @UiThread violation.
++        mainHandler.post {
++            try {
++                sink?.success(event)
++            } catch (_: Throwable) {
++                // Listener may be cancelled during setup/app shutdown.
++            }
++        }
+     }
+ 
+     companion object {
+diff -ruN /tmp/orig_patch_src/lib/services/local_model/local_model_service.dart /tmp/nova_patch/lib/services/local_model/local_model_service.dart
+--- /tmp/orig_patch_src/lib/services/local_model/local_model_service.dart	2026-04-26 16:17:29.159787788 +0000
++++ /tmp/nova_patch/lib/services/local_model/local_model_service.dart	2026-04-26 16:17:06.774860322 +0000
+@@ -86,17 +86,40 @@
+   bool get hasRealPercent => percent != null && percent! >= 0 && percent! <= 100;
+ 
+   factory LocalModelBootProgress.fromMap(Map<dynamic, dynamic> map) {
+-    final rawPercent = map['percent'];
+-    final parsedPercent = rawPercent is num  rawPercent.toInt() : null;
++    final parsedPercent = _safeInt(map['percent']);
+     return LocalModelBootProgress(
+-      phase: (map['phase'] as String  'unknown').trim(),
+-      percent: parsedPercent != null && parsedPercent >= 0  parsedPercent.clamp(0, 100).toInt() : null,
+-      message: (map['message'] as String  '').trim(),
+-      critical: map['critical'] == true,
++      phase: _safeString(map['phase'], fallback: 'unknown'),
++      percent: parsedPercent != null && parsedPercent >= 0
++           parsedPercent.clamp(0, 100).toInt()
++          : null,
++      message: _safeString(map['message']),
++      critical: _safeBool(map['critical']),
+       receivedAt: DateTime.now(),
+     );
+   }
+ 
++  static String _safeString(dynamic value, {String fallback = ''}) {
++    final text = value?.toString().trim()  '';
++    return text.isEmpty  fallback : text;
++  }
++
++  static int _safeInt(dynamic value) {
++    if (value is int) return value;
++    if (value is num) return value.toInt();
++    if (value is String) return int.tryParse(value.trim());
++    return null;
++  }
++
++  static bool _safeBool(dynamic value) {
++    if (value is bool) return value;
++    if (value is num) return value != 0;
++    if (value is String) {
++      final normalized = value.trim().toLowerCase();
++      return normalized == 'true' || normalized == '1' || normalized == 'yes';
++    }
++    return false;
++  }
++
+   String get displayMessage {
+     final base = message.trim().isEmpty  phase : message.trim();
+     if (hasRealPercent) return '$base (%$percent)';
+@@ -151,13 +174,20 @@
+         'prepareLocalModelForBoot',
+       ).timeout(const Duration(minutes: 20));
+       final map = Map<String, dynamic>.from(raw  const <String, dynamic>{});
+-      final success = map['success'] == true;
++      final success = LocalModelBootProgress._safeBool(map['success']);
++      final parsedPercent = LocalModelBootProgress._safeInt(map['percent']);
+       final progress = LocalModelBootProgress(
+-        phase: (map['phase'] as String  (success  'model_file_ready' : 'model_prepare_failed')).trim(),
+-        percent: ((map['percent'] as num?)?.toInt()  -1) >= 0
+-             ((map['percent'] as num).toInt()).clamp(0, 100).toInt()
++        phase: LocalModelBootProgress._safeString(
++          map['phase'],
++          fallback: success  'model_file_ready' : 'model_prepare_failed',
++        ),
++        percent: parsedPercent != null && parsedPercent >= 0
++             parsedPercent.clamp(0, 100).toInt()
+             : null,
+-        message: (map['message'] as String  (success  'Yerel model dosyasÄ± hazÄ±r.' : 'Yerel model dosyasÄ± hazÄ±rlanamadÄ±.')).trim(),
++        message: LocalModelBootProgress._safeString(
++          map['message'],
++          fallback: success  'Yerel model dosyasÄ± hazÄ±r.' : 'Yerel model dosyasÄ± hazÄ±rlanamadÄ±.',
++        ),
+         critical: !success,
+         receivedAt: DateTime.now(),
+       );
+@@ -183,19 +213,23 @@
+         'verifyLocalBrainKernelForBoot',
+       ).timeout(const Duration(minutes: 20));
+       final map = Map<String, dynamic>.from(raw  const <String, dynamic>{});
+-      final success = map['success'] == true;
+-      final phase = (map['phase'] as String  (success  'brain_kernel_verified' : 'brain_kernel_failed')).trim();
+-      final rawPercent = (map['percent'] as num?)?.toInt();
++      final success = LocalModelBootProgress._safeBool(map['success']);
++      final phase = LocalModelBootProgress._safeString(
++        map['phase'],
++        fallback: success  'brain_kernel_verified' : 'brain_kernel_failed',
++      );
++      final rawPercent = LocalModelBootProgress._safeInt(map['percent']);
+       final progress = LocalModelBootProgress(
+         phase: phase,
+         percent: rawPercent != null && rawPercent >= 0
+              rawPercent.clamp(0, 100).toInt()
+             : (success  100 : null),
+-        message: (map['message'] as String 
+-                (success
+-                     'Nova tek beyin Ã§ekirdeÄŸi doÄŸrulandÄ±.'
+-                    : 'Nova tek beyin Ã§ekirdeÄŸi doÄŸrulanamadÄ±.'))
+-            .trim(),
++        message: LocalModelBootProgress._safeString(
++          map['message'],
++          fallback: success
++               'Nova tek beyin Ã§ekirdeÄŸi doÄŸrulandÄ±.'
++              : 'Nova tek beyin Ã§ekirdeÄŸi doÄŸrulanamadÄ±.',
++        ),
+         critical: !success,
+         receivedAt: DateTime.now(),
+       );
+@@ -364,9 +398,9 @@
+       );
+       final map = Map<String, dynamic>.from(raw  const <String, dynamic>{});
+       return LocalModelState(
+-        ready: map['ready'] as bool  false,
+-        message: (map['message'] as String  '').trim(),
+-        path: (map['path'] as String  '').trim(),
++        ready: LocalModelBootProgress._safeBool(map['ready']),
++        message: LocalModelBootProgress._safeString(map['message']),
++        path: LocalModelBootProgress._safeString(map['path']),
+       );
+     } on PlatformException catch (e) {
+       return LocalModelState(

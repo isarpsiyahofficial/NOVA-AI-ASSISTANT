@@ -1,0 +1,2709 @@
+--- a/lib/services/speech/tts_service.dart
++++ b/lib/services/speech/tts_service.dart
+@@ -4,7 +4,9 @@
+ 
+ import '../../core/voice/voice_profile.dart';
+ import '../../core/voice/voice_profile_service.dart';
++import '../../core/self_repair/nova_runtime_signal.dart';
+ import '../audio_runtime/nova_native_audio_bridge_service.dart';
++import '../self_repair/nova_runtime_signal_service.dart';
+ 
+ class TtsService {
+   final VoiceProfileService voiceProfileService;
+@@ -14,7 +16,7 @@
+ 
+   static bool _initialized = false;
+   static String _currentLanguage = 'tr-TR';
+-  static double _currentSpeechRate = 0.66;
++  static double _currentSpeechRate = 0.54;
+   static double _currentPitch = 1.0;
+   static Future<void> _operationQueue = Future<void>.value();
+   static DateTime _lastNativeCapabilityCheckAt;
+@@ -98,7 +100,7 @@
+     return _enqueue(() async {
+       await _ensureInitialized();
+ 
+-      final normalized = value.clamp(0.52, 0.78);
++      final normalized = value.clamp(0.44, 0.62);
+       _currentSpeechRate = normalized;
+ 
+       try {
+@@ -111,7 +113,7 @@
+     return _enqueue(() async {
+       await _ensureInitialized();
+ 
+-      final normalized = value.clamp(0.94, 1.08);
++      final normalized = value.clamp(0.96, 1.12);
+       _currentPitch = normalized;
+ 
+       try {
+@@ -354,17 +356,17 @@
+     double pitch = _currentPitch;
+ 
+     if (lowered.contains('?')) {
+-      rate = (rate * 0.92).clamp(0.62, 0.88);
++      rate = (rate * 0.92).clamp(0.44, 0.62);
+       pitch = (pitch * 1.04).clamp(0.94, 1.12);
+     } else if (lowered.contains('!')) {
+-      rate = (rate * 0.96).clamp(0.64, 0.90);
++      rate = (rate * 0.96).clamp(0.44, 0.62);
+       pitch = (pitch * 1.05).clamp(0.94, 1.12);
+     } else if (lowered.contains(',') || lowered.contains(';') || lowered.contains(':')) {
+-      rate = (rate * 0.95).clamp(0.64, 0.90);
++      rate = (rate * 0.95).clamp(0.44, 0.62);
+     }
+ 
+     if (lowered.contains('efendim') || lowered.contains('patron')) {
+-      rate = (rate * 0.96).clamp(0.62, 0.88);
++      rate = (rate * 0.96).clamp(0.44, 0.62);
+       pitch = (pitch * 1.02).clamp(0.94, 1.10);
+     }
+ 
+@@ -408,8 +410,9 @@
+         final latency = latencyRaw is num  latencyRaw : (num.tryParse(latencyRaw?.toString()  '')  500);
+         final requiresNetwork = networkRaw == true || networkRaw?.toString().toLowerCase() == 'true';
+         final isMaleLike = _isMaleLikeVoiceName(name);
+-
+-        if (_isTurkishLocale(localeCode) && isMaleLike) {
++        final isBlockedDefault = _isDefaultOrRoboticVoiceName(name);
++
++        if (_isTurkishLocale(localeCode) && (isMaleLike || isBlockedDefault)) {
+           continue;
+         }
+ 
+@@ -457,11 +460,23 @@
+         debugPrint("NOVA_TTS_VOICE_CANDIDATE selected=${selected['name']} locale=${selected['locale']} requireFemaleForTurkish=$requireFemaleForTurkish");
+         final selectedName = (selected['name'] as String  '').toLowerCase();
+         final selectedMale = _isMaleLikeVoiceName(selectedName);
+-        final acceptedFemale = _isFemaleLikeVoiceName(selectedName) && !selectedMale;
+-        if (_isTurkishLocale(localeCode) && requireFemaleForTurkish && selectedMale) {
++        final selectedDefaultOrRobotic = _isDefaultOrRoboticVoiceName(selectedName);
++        final acceptedFemale = _isFemaleLikeVoiceName(selectedName) && !selectedMale && !selectedDefaultOrRobotic;
++        if (_isTurkishLocale(localeCode) &&
++            requireFemaleForTurkish &&
++            (selectedMale || selectedDefaultOrRobotic || !acceptedFemale)) {
+           _verifiedTurkishPlatformVoiceReady = false;
+-          _verifiedTurkishPlatformVoiceName = ''; 
+-          debugPrint("NOVA_TTS_VOICE_REJECTED selected=$selectedName reason=turkish_male_blocked");
++          _verifiedTurkishPlatformVoiceName = '';
++          unawaited(NovaRuntimeSignalService.instance.record(
++            kind: NovaRuntimeSignalKind.tts,
++            level: NovaRuntimeSignalLevel.warning,
++            code: 'tts_turkish_female_voice_not_verified',
++            message: 'TÃ¼rkÃ§e kadÄ±n TTS sesi doÄŸrulanamadÄ±; erkek/default/robotik ses engellendi.',
++            technicalDetails:
++                'selected=$selectedName male=$selectedMale defaultOrRobotic=$selectedDefaultOrRobotic acceptedFemale=$acceptedFemale',
++            selfRepairCandidate: true,
++          ));
++          debugPrint("NOVA_TTS_VOICE_REJECTED selected=$selectedName reason=turkish_female_required");
+           return false;
+         }
+         await _flutterTts.setVoice(
+--- a/lib/services/tts/nova_tts_service.dart
++++ b/lib/services/tts/nova_tts_service.dart
+@@ -85,8 +85,8 @@
+     }
+ 
+     await ttsService.setLanguage(localeCode);
+-    final baseRate = settings.speechRate > 0  settings.speechRate.clamp(0.48, 0.64) : 0.56;
+-    final basePitch = settings.speechPitch > 0  settings.speechPitch.clamp(0.98, 1.12) : 1.04;
++    final baseRate = settings.speechRate > 0  settings.speechRate.clamp(0.44, 0.58) : 0.52;
++    final basePitch = settings.speechPitch > 0  settings.speechPitch.clamp(0.98, 1.12) : 1.05;
+ 
+     final emotionHint = _inferEmotionHint(prepared, personaMode.mode);
+     final fused = emotionProsodyFuserService.fuse(
+@@ -192,9 +192,9 @@
+       case 'serious':
+         return 0.96;
+       case 'animated':
+-        return 1.04;
++        return 1.02;
+       case 'happy':
+-        return 1.02;
++        return 1.01;
+       case 'curious':
+         return 1.0;
+       default:
+--- a/lib/ui/onboarding/nova_first_run_setup_page.dart
++++ b/lib/ui/onboarding/nova_first_run_setup_page.dart
+@@ -9,6 +9,7 @@
+ import '../../core/behavior/nova_persona.dart';
+ import '../../core/behavior/response_style.dart';
+ import '../../core/memory/memory_types.dart';
++import '../../core/self_repair/nova_runtime_signal.dart';
+ import '../../core/runtime/nova_identity_rollout_models.dart';
+ import '../../services/api/api_service.dart';
+ import '../../services/identity/device_owner_identity_service.dart';
+@@ -22,9 +23,28 @@
+ import '../../services/local_model/local_model_service.dart';
+ import '../../services/settings/nova_settings_service.dart';
+ import '../../services/security/nova_security_quarantine_service.dart';
++import '../../services/self_repair/nova_runtime_signal_service.dart';
+ import '../../services/stt/nova_speech_to_text_service.dart' show NovaSpeechToTextService, NovaSttMode;
+ import '../../services/tts/nova_tts_service.dart' show NovaTtsMode;
+ import '../../services/tts/nova_tts_service.dart' show NovaTtsService;
++import '../../presentation/self_repair/self_repair_control_page.dart';
++import '../../services/self_repair/nova_self_diagnostic_service.dart';
++import '../../services/self_repair/nova_self_recognition_service.dart';
++import '../../services/self_repair/nova_self_repair_coordinator_service.dart';
++import '../../services/self_repair/nova_self_repair_orchestrator_service.dart';
++import '../../services/self_repair/nova_repair_trace_service.dart';
++import '../../services/self_repair/nova_self_repair_report_service.dart';
++import '../../services/self_repair/nova_self_repair_security_service.dart';
++import '../../services/self_repair/nova_self_repair_settings_service.dart';
++import '../../services/self_repair/nova_self_repair_command_service.dart';
++import '../../services/self_repair/nova_capability_runtime_registry_service.dart';
++import '../../services/self_repair/nova_capability_manifest_service.dart';
++import '../../services/self_repair/nova_capability_probe_service.dart';
++import '../../services/self_repair/nova_capability_catalog_service.dart';
++import '../../services/self_repair/nova_repair_validation_service.dart';
++import '../../services/self_repair/nova_repair_resolution_memory_service.dart';
++import '../../services/system/nova_background_bridge_service.dart';
++import '../../services/self_repair/nova_controlled_restart_service.dart';
+ import '../widgets/nova_core_orb.dart';
+ 
+ class NovaFirstRunSetupPage extends StatefulWidget {
+@@ -620,12 +640,20 @@
+     var text = input.replaceAll(RegExp(r'\s+'), ' ').trim();
+     if (text.isEmpty) return text;
+     text = text.replaceAllMapped(
+-      RegExp(r'%\s*(\d{1,3})(?:[.]|,) ?'),
++      RegExp(r'%(\s*)(\d{1,3})(?:[.,](?:\s|$))?'),
++      (match) => 'yÃ¼zde ${match.group(2)} ',
++    );
++    text = text.replaceAllMapped(
++      RegExp(r'\b[Yy]Ã¼zde\s+(\d{1,3})(?:[.,](?:\s|$))?'),
+       (match) => 'yÃ¼zde ${match.group(1)} ',
+     );
+     text = text.replaceAllMapped(
+-      RegExp(r'YÃ¼zde\s+(\d{1,3})(?:[.]|,) ?', caseSensitive: false),
+-      (match) => 'yÃ¼zde ${match.group(1)} ',
++      RegExp(r'\b(\d{1,3})\s*\.\s*c[Ä±iuÃ¼]\b', caseSensitive: false),
++      (match) => match.group(1)  '',
++    );
++    text = text.replaceAllMapped(
++      RegExp(r'\b(\d{1,3})\s*c[Ä±iuÃ¼]\b', caseSensitive: false),
++      (match) => match.group(1)  '',
+     );
+     text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+     return text;
+@@ -642,6 +670,13 @@
+     if (lower.isEmpty) return true;
+     if (lower.length <= 1) return true;
+     if (RegExp(r'^[\[\(].*[\]\)]$').hasMatch(lower)) return true;
++    if (RegExp(r'^[^a-zA-ZÃ§ÄŸÄ±Ã¶ÅŸÃ¼Ã‡ÄÄ°Ã–ÅÃœ0-9]+$', unicode: true).hasMatch(lower)) {
++      return true;
++    }
++    final compact = lower.replaceAll(
++      RegExp(r'[^a-zA-ZÃ§ÄŸÄ±Ã¶ÅŸÃ¼0-9]+', unicode: true),
++      '',
++    );
+     const blockedFragments = <String>[
+       'mÃ¼zik Ã§alÄ±yor',
+       'muzik caliyor',
+@@ -655,9 +690,47 @@
+       'background music',
+       'music playing',
+       'playing music',
++      'hÄ±ÅŸÄ±rtÄ±',
++      'hisirti',
++      'cÄ±zÄ±rtÄ±',
++      'cizirti',
++      'gÃ¼rÃ¼ltÃ¼',
++      'gurultu',
++      'nefes',
++      'uÄŸultu',
++      'ugultu',
++      'sessizlik',
++      'anlaÅŸÄ±lmÄ±yor',
++      'anlasilmiyor',
++      'bilinmeyen ses',
++      'unknown sound',
++      'noise',
++      'static',
+     ];
+     for (final fragment in blockedFragments) {
+       if (lower == fragment || lower.contains(fragment)) return true;
++    }
++    if (compact.length <= 2) return true;
++    final words = lower
++        .split(RegExp(r'\s+'))
++        .where((e) => e.trim().isNotEmpty)
++        .toList(growable: false);
++    if (words.length == 1) {
++      final one = words.first;
++      const filler = <String>{
++        'Ä±Ä±',
++        'ee',
++        'aaa',
++        'hmm',
++        'hm',
++        'ha',
++        'he',
++        'hÄ±',
++        'hi',
++        'ah',
++        'eh',
++      };
++      if (filler.contains(one)) return true;
+     }
+     return false;
+   }
+@@ -682,13 +755,14 @@
+   void _handleLocalModelBootProgress(LocalModelBootProgress progress) {
+     if (!mounted) return;
+     _lastBootProgress = progress;
+-    final text = progress.hasRealPercent
+-         '${progress.message} %${progress.percent}'
+-        : progress.message;
+     if (progress.phase == 'brain_kernel_verified') {
+       _brainKernelVerified = true;
+     }
+-    final visibleText = _normalizeSetupPercentSpeech(text.trim().isEmpty  progress.phase : text);
++    final message = _sanitizeModelBootMessage(progress);
++    final text = progress.hasRealPercent  '$message %${progress.percent}' : message;
++    final visibleText = _normalizeSetupPercentSpeech(
++      text.trim().isEmpty  progress.phase : text,
++    );
+     setState(() {
+       _statusText = visibleText;
+       if (progress.critical) {
+@@ -699,21 +773,46 @@
+       }
+     });
+ 
++    unawaited(NovaRuntimeSignalService.instance.record(
++      kind: NovaRuntimeSignalKind.localModel,
++      level: progress.critical
++           NovaRuntimeSignalLevel.error
++          : NovaRuntimeSignalLevel.info,
++      code: 'local_model_${progress.phase}',
++      message: visibleText,
++      technicalDetails:
++          'phase=${progress.phase} percent=${progress.percent  -1} critical=${progress.critical}',
++      selfRepairCandidate: progress.critical,
++      metadata: <String, dynamic>{
++        'phase': progress.phase,
++        'percent': progress.percent,
++        'critical': progress.critical,
++        'source': 'setup_boot_progress',
++      },
++    ));
++
+     final shouldSpeakPercent = progress.hasRealPercent &&
++        progress.percent != null &&
+         (progress.percent == 0 ||
+             progress.percent == 100 ||
+             _lastSpokenModelPercent == null ||
+-            (progress.percent! - _lastSpokenModelPercent!).abs() >= 20);
++            (progress.percent! - _lastSpokenModelPercent!).abs() >= 25);
+     final shouldSpeakPhase = !progress.hasRealPercent &&
+         progress.phase != _lastSpokenModelPhase &&
+         (progress.phase == 'native_model_loading' ||
+             progress.phase == 'native_model_timeout' ||
+-            progress.phase == 'native_model_failed');
+-
+-    final shouldSuppressAfterKernel = _brainKernelVerified && progress.phase != 'brain_kernel_verified';
+-    final alreadyNarratedKernel = progress.phase == 'brain_kernel_verified' && _brainKernelVerifiedNarrated;
+-
+-    if (!shouldSuppressAfterKernel && !alreadyNarratedKernel && (shouldSpeakPercent || shouldSpeakPhase)) {
++            progress.phase == 'native_model_failed' ||
++            progress.phase == 'model_prepare_failed' ||
++            progress.phase == 'brain_kernel_failed');
++
++    final shouldSuppressAfterKernel =
++        _brainKernelVerified && progress.phase != 'brain_kernel_verified';
++    final alreadyNarratedKernel =
++        progress.phase == 'brain_kernel_verified' && _brainKernelVerifiedNarrated;
++
++    if (!shouldSuppressAfterKernel &&
++        !alreadyNarratedKernel &&
++        (shouldSpeakPercent || shouldSpeakPhase)) {
+       _lastSpokenModelPercent = progress.percent;
+       _lastSpokenModelPhase = progress.phase;
+       if (progress.phase == 'brain_kernel_verified') {
+@@ -721,10 +820,38 @@
+       }
+       _lastBootNarrationAt = DateTime.now();
+       final spoken = progress.hasRealPercent
+-           '${progress.message} yÃ¼zde ${progress.percent} tamamlandÄ±'
+-          : progress.message;
+-      _speakSetupBootNarration(spoken, reason: 'local_model_boot_progress_${progress.phase}');
+-    }
++           '$message yÃ¼zde ${progress.percent} tamamlandÄ±'
++          : message;
++      _speakSetupBootNarration(
++        spoken,
++        reason: 'local_model_boot_progress_${progress.phase}',
++      );
++    }
++  }
++
++  String _sanitizeModelBootMessage(LocalModelBootProgress progress) {
++    var message = progress.message.trim().isEmpty
++         progress.phase
++        : progress.message.trim();
++    message = message
++        .replaceAll(
++          RegExp('yerel dÃ¼ÅŸÃ¼nme motoru gerÃ§ek cevap Ã¼retti', caseSensitive: false),
++          'Yerel beyin doÄŸrulandÄ±',
++        )
++        .replaceAll(
++          RegExp('local thinking engine produced real response', caseSensitive: false),
++          'Yerel beyin doÄŸrulandÄ±',
++        )
++        .replaceAll(
++          RegExp('brain kernel verified', caseSensitive: false),
++          'Tek beyin Ã§ekirdeÄŸi doÄŸrulandÄ±',
++        )
++        .replaceAll(RegExp(r'\s+'), ' ')
++        .trim();
++    if (progress.phase == 'brain_kernel_verified') {
++      return 'Tek beyin Ã§ekirdeÄŸi doÄŸrulandÄ±';
++    }
++    return message;
+   }
+ 
+ 
+@@ -757,6 +884,10 @@
+       return;
+     }
+     if (event.isFinal) {
++      if (_isLikelySetupNoiseTranscript(normalized)) {
++        debugPrint('NOVA_SETUP_ASR_FINAL_REJECTED_NOISE chars=${normalized.length}');
++        return;
++      }
+       debugPrint('NOVA_SETUP_ASR_FINAL chars=${normalized.length}');
+       _recentSetupStreamingFinal = normalized;
+       _recentSetupStreamingFinalAt = DateTime.now();
+@@ -845,7 +976,10 @@
+           partialAt.isAfter(startedAt) &&
+           partialText.length >= 4 &&
+           lastPartialChangedAt != null &&
+-          DateTime.now().difference(lastPartialChangedAt!) >= stablePartialWindow) {
++          DateTime.now().difference(lastPartialChangedAt!) >= stablePartialWindow &&
++          DateTime.now().difference(startedAt) >=
++              Duration(milliseconds: (maxWait.inMilliseconds * 0.65).round()) &&
++          !_isLikelySetupNoiseTranscript(partialText)) {
+         return partialText;
+       }
+       await Future<void>.delayed(const Duration(milliseconds: 160));
+@@ -902,7 +1036,13 @@
+   }
+ 
+   String _repairOwnerNameCandidate(String input) {
+-    final normalized = _spokenIntentInterpreter.normalizeMeaning(input).trim();
++    final ownerMatch = RegExp(
++      r'(?:benim\s+)?(?:adÄ±m|ismim)\s+([A-Za-zÃ‡ÄÄ°IÃ–ÅÃœÃ§ÄŸÄ±iÃ¶ÅŸÃ¼]{2,32}(?:\s+[A-Za-zÃ‡ÄÄ°IÃ–ÅÃœÃ§ÄŸÄ±iÃ¶ÅŸÃ¼]{2,32}){0,2})',
++      caseSensitive: false,
++      unicode: true,
++    ).firstMatch(input.trim());
++    final source = ownerMatch?.group(1)?.trim()  input;
++    final normalized = _spokenIntentInterpreter.normalizeMeaning(source).trim();
+     final lower = normalized.toLowerCase();
+     const directFixes = <String, String>{
+       'yerinde': 'Ä°brahim',
+@@ -1054,14 +1194,71 @@
+   }
+ 
+   String _extractAssistantNameMeaning(String input) {
+-    final normalized = input.trim();
+-    if (normalized.isEmpty) return '';
+-    return _spokenIntentInterpreter.normalizeMeaning(
+-      _extractMeaningfulText(normalized)
+-          .replaceAll(RegExp(r'\b(adÄ±n|ismin|olsun|yap|bundan sonra|artÄ±k|sana|diye|hitap|et)\b', caseSensitive: false), '')
+-          .replaceAll(RegExp(r'\s+'), ' ')
+-          .trim(),
+-    );
++    var text = input.replaceAll(RegExp(r'\s+'), ' ').trim();
++    if (text.isEmpty) return '';
++    final patterns = <RegExp>[
++      RegExp(
++        r'(?:senin\s+)?(?:adÄ±n|ismin)\s+([A-Za-zÃ‡ÄÄ°IÃ–ÅÃœÃ§ÄŸÄ±iÃ¶ÅŸÃ¼0-9]{2,24})\s+(?:olsun|olacak|kalsÄ±n)',
++        caseSensitive: false,
++        unicode: true,
++      ),
++      RegExp(
++        r'(?:sana|seni)\s+([A-Za-zÃ‡ÄÄ°IÃ–ÅÃœÃ§ÄŸÄ±iÃ¶ÅŸÃ¼0-9]{2,24})\s+(?:diye\s+)?(?:sesleneceÄŸim|Ã§aÄŸÄ±racaÄŸÄ±m|cagiracagim|hitap edeceÄŸim|hitap edecegim)',
++        caseSensitive: false,
++        unicode: true,
++      ),
++      RegExp(
++        r'(?:bundan\s+sonra|artÄ±k|artik)\s+([A-Za-zÃ‡ÄÄ°IÃ–ÅÃœÃ§ÄŸÄ±iÃ¶ÅŸÃ¼0-9]{2,24})\s+(?:ol|olsun|diye)',
++        caseSensitive: false,
++        unicode: true,
++      ),
++    ];
++    for (final pattern in patterns) {
++      final match = pattern.firstMatch(text);
++      final candidate = match?.group(1)?.trim()  '';
++      if (_looksLikeValidAssistantName(candidate)) {
++        return _spokenIntentInterpreter.normalizeMeaning(candidate).trim();
++      }
++    }
++
++    text = _extractMeaningfulText(text)
++        .replaceAll(
++          RegExp(
++            r'\b(adÄ±n|ismin|olsun|olacak|kalsÄ±n|yap|bundan sonra|artÄ±k|artik|sana|seni|diye|hitap|et|seslen|Ã§aÄŸÄ±r|cagir)\b',
++            caseSensitive: false,
++            unicode: true,
++          ),
++          ' ',
++        )
++        .replaceAll(RegExp(r'\s+'), ' ')
++        .trim();
++    if (!_looksLikeValidAssistantName(text)) return '';
++    return _spokenIntentInterpreter.normalizeMeaning(text).trim();
++  }
++
++  bool _looksLikeValidAssistantName(String input) {
++    final value = input.trim();
++    if (value.length < 2 || value.length > 24) return false;
++    if (value.split(RegExp(r'\s+')).length > 2) return false;
++    final lower = value.toLowerCase();
++    const blocked = <String>{
++      'evet',
++      'hayÄ±r',
++      'hayir',
++      'tamam',
++      'olur',
++      'bundan',
++      'sonra',
++      'ÅŸunu',
++      'sunu',
++      'bunu',
++      'yapacaksÄ±n',
++      'yapacaksin',
++      'komut',
++      'talimat',
++    };
++    if (blocked.contains(lower)) return false;
++    return RegExp(r'^[A-Za-zÃ‡ÄÄ°IÃ–ÅÃœÃ§ÄŸÄ±iÃ¶ÅŸÃ¼0-9 ]+$', unicode: true).hasMatch(value);
+   }
+ 
+   String _normalizeVoiceId(String base) {
+@@ -1827,6 +2024,77 @@
+       unawaited(_handlePrimaryAction());
+     });
+   }
++
++  Future<void> _openSetupSelfRepairPanel() async {
++    final runtimeSignalService = NovaRuntimeSignalService.instance;
++    final runtimeRegistryService =
++        const NovaCapabilityRuntimeRegistryService();
++    final manifestService = NovaCapabilityManifestService(
++      runtimeRegistryService: runtimeRegistryService,
++    );
++    final recognitionService = NovaSelfRecognitionService(
++      manifestService: manifestService,
++      signalService: runtimeSignalService,
++    );
++    final diagnosticService = NovaSelfDiagnosticService(
++      signalService: runtimeSignalService,
++      recognitionService: recognitionService,
++    );
++    final reportService = const NovaSelfRepairReportService();
++    final settingsService = const NovaSelfRepairSettingsService();
++    final repairTraceService = NovaRepairTraceService.instance;
++    final repairValidationService = NovaRepairValidationService(
++      diagnosticService: diagnosticService,
++    );
++    const repairResolutionMemoryService =
++        NovaRepairResolutionMemoryService();
++    final capabilityProbeService = NovaCapabilityProbeService(
++      runtimeSignalService: runtimeSignalService,
++    );
++    final capabilityCatalogService = NovaCapabilityCatalogService(
++      recognitionService: recognitionService,
++      probeService: capabilityProbeService,
++    );
++    final backgroundBridgeService = const NovaBackgroundBridgeService();
++    final controlledRestartService = NovaControlledRestartService(
++      backgroundBridgeService: backgroundBridgeService,
++      ttsService: widget.ttsService,
++    );
++    final orchestratorService = NovaSelfRepairOrchestratorService(
++      ttsService: widget.ttsService,
++      backgroundBridgeService: backgroundBridgeService,
++      reportService: reportService,
++      securityService: const NovaSelfRepairSecurityService(),
++      controlledRestartService: controlledRestartService,
++      endListeningSessionAction: () async {
++        await _setupStreamingSubscription?.cancel();
++        _setupStreamingSubscription = null;
++      },
++    );
++    final coordinatorService = NovaSelfRepairCoordinatorService(
++      diagnosticService: diagnosticService,
++      orchestratorService: orchestratorService,
++      reportService: reportService,
++      settingsService: settingsService,
++      commandService: const NovaSelfRepairCommandService(),
++      capabilityCatalogService: capabilityCatalogService,
++      repairTraceService: repairTraceService,
++      repairValidationService: repairValidationService,
++      resolutionMemoryService: repairResolutionMemoryService,
++    );
++
++    if (!mounted) return;
++    await Navigator.of(context).push(
++      MaterialPageRoute<void>(
++        builder: (_) => SelfRepairControlPage(
++          coordinatorService: coordinatorService,
++          settingsService: settingsService,
++          repairTraceService: repairTraceService,
++        ),
++      ),
++    );
++  }
++
+ 
+   @override
+   void dispose() {
+@@ -1888,6 +2156,14 @@
+                   child: Column(
+                     children: [
+                       const SizedBox(height: 18),
++                      Align(
++                        alignment: Alignment.centerRight,
++                        child: IconButton.filledTonal(
++                          tooltip: 'Setup onarÄ±m paneli',
++                          onPressed: _openSetupSelfRepairPanel,
++                          icon: const Icon(Icons.healing_rounded),
++                        ),
++                      ),
+                       Text(
+                         _displayAssistantName.toUpperCase(),
+                         style: TextStyle(
+--- a/lib/services/self_repair/nova_runtime_signal_service.dart
++++ b/lib/services/self_repair/nova_runtime_signal_service.dart
+@@ -60,6 +60,17 @@
+ 
+     final current = await getAll();
+     final now = DateTime.now();
++    final healthy = _isHealthySignal(
++      level: level,
++      code: normalizedCode,
++      message: normalizedMessage,
++    );
++
++    final base = healthy
++         current
++            .where((e) => !_isSameArea(e, kind, normalizedCode))
++            .toList(growable: false)
++        : current;
+ 
+     final next = <NovaRuntimeSignal>[
+       NovaRuntimeSignal(
+@@ -73,7 +84,7 @@
+         createdAt: now,
+         metadata: metadata,
+       ),
+-      ...current,
++      ...base,
+     ];
+ 
+     await _save(_dedupe(next));
+@@ -129,6 +140,54 @@
+       final prefs = await SharedPreferences.getInstance();
+       await prefs.remove(_storageKey);
+     } catch (_) {}
++  }
++
++  bool _isHealthySignal({
++    required NovaRuntimeSignalLevel level,
++    required String code,
++    required String message,
++  }) {
++    if (level != NovaRuntimeSignalLevel.info) return false;
++    final value = '${code.toLowerCase()} ${message.toLowerCase()}';
++    const healthyTokens = <String>[
++      'healthy',
++      'ready',
++      'verified',
++      'ok',
++      'running',
++      'available',
++      'success',
++      'resolved',
++      'Ã§alÄ±ÅŸÄ±yor',
++      'calisiyor',
++      'hazÄ±r',
++      'hazir',
++      'doÄŸrulandÄ±',
++      'dogrulandi',
++      'uygun',
++      'aktif',
++    ];
++    return healthyTokens.any(value.contains);
++  }
++
++  bool _isSameArea(
++    NovaRuntimeSignal existing,
++    NovaRuntimeSignalKind kind,
++    String code,
++  ) {
++    if (existing.kind != kind) return false;
++    final a = existing.code.toLowerCase();
++    final b = code.toLowerCase();
++    String root(String value) {
++      final parts = value
++          .split('_')
++          .where((e) => e.trim().isNotEmpty)
++          .toList(growable: false);
++      if (parts.length <= 2) return value;
++      return parts.take(2).join('_');
++    }
++
++    return root(a) == root(b) || a == b;
+   }
+ 
+   List<NovaRuntimeSignal> _dedupe(List<NovaRuntimeSignal> items) {
+--- a/lib/services/self_repair/nova_self_diagnostic_service.dart
++++ b/lib/services/self_repair/nova_self_diagnostic_service.dart
+@@ -27,6 +27,10 @@
+   Future<List<NovaSystemIssue>> diagnose() async {
+     final signals = (await signalService.getAll())
+         .where((signal) => !_isNonIssueSignal(signal))
++        .where((signal) =>
++            signal.level == NovaRuntimeSignalLevel.warning ||
++            signal.level == NovaRuntimeSignalLevel.error ||
++            signal.level == NovaRuntimeSignalLevel.critical)
+         .toList(growable: false);
+     final descriptors = await recognitionService.discoverCapabilities();
+     final List<NovaSystemIssue> issues = <NovaSystemIssue>[];
+@@ -83,18 +87,44 @@
+ 
+   bool _isNonIssueSignal(NovaRuntimeSignal signal) {
+     final code = signal.code.toLowerCase().trim();
++    final message = signal.message.toLowerCase().trim();
++    final joined = '$code $message';
+     if (code == 'authorization_blocked_during_synthetic_playback') {
+       return true;
+     }
+-    if (signal.level == NovaRuntimeSignalLevel.info) {
+-      if (code.contains('healthy') ||
+-          code.endsWith('_ready') ||
+-          code.endsWith('_verified') ||
+-          code.endsWith('_ok') ||
+-          code.contains('success')) {
+-        return true;
+-      }
+-    }
++    const healthyTokens = <String>[
++      'healthy',
++      'ready',
++      'verified',
++      'ok',
++      'running',
++      'available',
++      'success',
++      'resolved',
++      'Ã§alÄ±ÅŸÄ±yor',
++      'calisiyor',
++      'hazÄ±r',
++      'hazir',
++      'doÄŸrulandÄ±',
++      'dogrulandi',
++      'aktif',
++      'uygun',
++    ];
++    final looksHealthy = healthyTokens.any(joined.contains);
++    final looksBroken = joined.contains('fail') ||
++        joined.contains('failed') ||
++        joined.contains('degraded') ||
++        joined.contains('blocked') ||
++        joined.contains('timeout') ||
++        joined.contains('error') ||
++        joined.contains('hata') ||
++        joined.contains('baÅŸarÄ±sÄ±z') ||
++        joined.contains('basarisiz') ||
++        joined.contains('engellendi') ||
++        joined.contains('zaman aÅŸÄ±mÄ±') ||
++        joined.contains('zaman asimi');
++    if (signal.level == NovaRuntimeSignalLevel.info) return true;
++    if (looksHealthy && !looksBroken) return true;
+     return false;
+   }
+ 
+--- a/lib/services/self_repair/nova_runtime_health_registry_service.dart
++++ b/lib/services/self_repair/nova_runtime_health_registry_service.dart
+@@ -9,7 +9,46 @@
+ 
+   void publish(NovaRuntimeHealthIssue issue) {
+     _issues.removeWhere((e) => e.module == issue.module && e.code == issue.code);
++    if (_isHealthyIssue(issue)) {
++      _issues.removeWhere((e) => e.module == issue.module);
++      return;
++    }
+     _issues.add(issue);
++  }
++
++  bool _isHealthyIssue(NovaRuntimeHealthIssue issue) {
++    final joined = '${issue.code.toLowerCase()} ${issue.message.toLowerCase()}';
++    const healthyTokens = <String>[
++      'healthy',
++      'ready',
++      'verified',
++      'ok',
++      'running',
++      'available',
++      'success',
++      'resolved',
++      'Ã§alÄ±ÅŸÄ±yor',
++      'calisiyor',
++      'hazÄ±r',
++      'hazir',
++      'doÄŸrulandÄ±',
++      'dogrulandi',
++      'aktif',
++    ];
++    const brokenTokens = <String>[
++      'fail',
++      'failed',
++      'degraded',
++      'blocked',
++      'timeout',
++      'error',
++      'hata',
++      'baÅŸarÄ±sÄ±z',
++      'basarisiz',
++      'engellendi',
++    ];
++    return healthyTokens.any(joined.contains) &&
++        !brokenTokens.any(joined.contains);
+   }
+ 
+   NovaRuntimeHealthSnapshot snapshot() => NovaRuntimeHealthSnapshot(createdAt: DateTime.now(), issues: List<NovaRuntimeHealthIssue>.unmodifiable(_issues));
+--- a/lib/services/local_model/local_model_service.dart
++++ b/lib/services/local_model/local_model_service.dart
+@@ -1,6 +1,8 @@
+ import 'dart:async';
+ 
+ import 'package:flutter/services.dart';
++
++import '../../core/self_repair/nova_runtime_signal.dart';
+ 
+ import '../../core/ai/ai_request.dart';
+ import '../../core/ai/ai_response.dart';
+@@ -19,6 +21,7 @@
+ import '../runtime/nova_corpus_install_service.dart';
+ import '../security/nova_autonomous_security_orchestrator_service.dart';
+ import '../security/nova_prompt_affect_security_service.dart';
++import '../self_repair/nova_runtime_signal_service.dart';
+ 
+ class LocalModelState {
+   final bool ready;
+@@ -161,10 +164,33 @@
+       if (call.method != 'onLocalModelBootProgress') return null;
+       final args = call.arguments;
+       if (args is Map) {
+-        _bootProgressController.add(LocalModelBootProgress.fromMap(args));
++        final progress = LocalModelBootProgress.fromMap(args);
++        _recordStaticLocalModelSignal(progress);
++        _bootProgressController.add(progress);
+       }
+       return null;
+     });
++  }
++
++
++  static void _recordStaticLocalModelSignal(LocalModelBootProgress progress) {
++    unawaited(NovaRuntimeSignalService.instance.record(
++      kind: NovaRuntimeSignalKind.localModel,
++      level: progress.critical
++           NovaRuntimeSignalLevel.error
++          : NovaRuntimeSignalLevel.info,
++      code: 'local_model_${progress.phase}',
++      message: progress.displayMessage,
++      technicalDetails:
++          'phase=${progress.phase} percent=${progress.percent  -1} critical=${progress.critical}',
++      selfRepairCandidate: progress.critical,
++      metadata: <String, dynamic>{
++        'phase': progress.phase,
++        'percent': progress.percent,
++        'critical': progress.critical,
++        'source': 'native_boot_progress_event',
++      },
++    ));
+   }
+ 
+   Future<LocalModelBootProgress> prepareForBoot() async {
+@@ -191,6 +217,7 @@
+         critical: !success,
+         receivedAt: DateTime.now(),
+       );
++      _recordLocalModelSignal(progress);
+       _bootProgressController.add(progress);
+       return progress;
+     } catch (e) {
+@@ -201,6 +228,7 @@
+         critical: true,
+         receivedAt: DateTime.now(),
+       );
++      _recordLocalModelSignal(progress);
+       _bootProgressController.add(progress);
+       return progress;
+     }
+@@ -233,6 +261,7 @@
+         critical: !success,
+         receivedAt: DateTime.now(),
+       );
++      _recordLocalModelSignal(progress);
+       _bootProgressController.add(progress);
+       return progress;
+     } catch (e) {
+@@ -243,6 +272,7 @@
+         critical: true,
+         receivedAt: DateTime.now(),
+       );
++      _recordLocalModelSignal(progress);
+       _bootProgressController.add(progress);
+       return progress;
+     }
+@@ -390,6 +420,26 @@
+     return text.trim();
+   }
+ 
++  void _recordLocalModelSignal(LocalModelBootProgress progress) {
++    unawaited(NovaRuntimeSignalService.instance.record(
++      kind: NovaRuntimeSignalKind.localModel,
++      level: progress.critical
++           NovaRuntimeSignalLevel.error
++          : NovaRuntimeSignalLevel.info,
++      code: 'local_model_${progress.phase}',
++      message: progress.displayMessage,
++      technicalDetails:
++          'phase=${progress.phase} percent=${progress.percent  -1} critical=${progress.critical}',
++      selfRepairCandidate: progress.critical,
++      metadata: <String, dynamic>{
++        'phase': progress.phase,
++        'percent': progress.percent,
++        'critical': progress.critical,
++        'source': 'local_model_service',
++      },
++    ));
++  }
++
+   Future<LocalModelState> getState() async {
+     _ensureBootProgressHandler();
+     try {
+--- a/lib/core/system/nova_power_mode.dart
++++ b/lib/core/system/nova_power_mode.dart
+@@ -11,11 +11,12 @@
+ 
+   bool get allowsWakeWord =>
+       this == NovaPowerMode.fullyOn ||
++      this == NovaPowerMode.batterySaver ||
+       this == NovaPowerMode.passiveSleep ||
+       this == NovaPowerMode.limbo ||
+-      this == NovaPowerMode.batterySaver;
++      this == NovaPowerMode.fullyShutdown;
+ 
+-  bool get allowsPriorityCalls => this != NovaPowerMode.fullyShutdown;
++  bool get allowsPriorityCalls => true;
+ 
+   bool get allowsOnlyWakeAndPriorityCalls =>
+       this == NovaPowerMode.passiveSleep || this == NovaPowerMode.limbo;
+@@ -26,7 +27,7 @@
+   bool get shouldKeepCompanionReady =>
+       this == NovaPowerMode.fullyOn ||
+       this == NovaPowerMode.batterySaver ||
+-      this == NovaPowerMode.limbo;
++      this == NovaPowerMode.fullyShutdown;
+ 
+   bool get allowsSelfRepairDiagnostics => this == NovaPowerMode.fullyOn;
+ 
+--- a/lib/services/system/nova_power_gate_service.dart
++++ b/lib/services/system/nova_power_gate_service.dart
+@@ -9,7 +9,8 @@
+   });
+ 
+   bool shouldAllowVoiceProcessing() {
+-    return powerService.mode != NovaPowerMode.fullyShutdown;
++    return powerService.mode == NovaPowerMode.fullyOn ||
++        powerService.mode == NovaPowerMode.batterySaver;
+   }
+ 
+   bool shouldAllowWakeWord() {
+--- a/lib/core/contacts/nova_contact.dart
++++ b/lib/core/contacts/nova_contact.dart
+@@ -20,7 +20,9 @@
+   final String emergencyInstruction;
+   final String whiteLieInstruction;
+   final String quickReplyInstruction;
++  final bool allowEmergencyWake;
+   final bool autoTakeNotes;
++  final bool allowNightAutoCall;
+   final bool preferSpeakerMode;
+   final bool allowNovaSmallTalk;
+   final bool isProtectedIdentity;
+@@ -45,7 +47,9 @@
+     this.emergencyInstruction = '',
+     this.whiteLieInstruction = '',
+     this.quickReplyInstruction = '',
+-    this.autoTakeNotes = true,
++    this.allowEmergencyWake = false,
++    this.autoTakeNotes = false,
++    this.allowNightAutoCall = false,
+     this.preferSpeakerMode = true,
+     this.allowNovaSmallTalk = true,
+     this.isProtectedIdentity = false,
+@@ -71,7 +75,9 @@
+     String emergencyInstruction,
+     String whiteLieInstruction,
+     String quickReplyInstruction,
++    bool allowEmergencyWake,
+     bool autoTakeNotes,
++    bool allowNightAutoCall,
+     bool preferSpeakerMode,
+     bool allowNovaSmallTalk,
+     bool isProtectedIdentity,
+@@ -95,7 +101,9 @@
+         emergencyInstruction: emergencyInstruction  this.emergencyInstruction,
+         whiteLieInstruction: whiteLieInstruction  this.whiteLieInstruction,
+         quickReplyInstruction: quickReplyInstruction  this.quickReplyInstruction,
++        allowEmergencyWake: allowEmergencyWake  this.allowEmergencyWake,
+         autoTakeNotes: autoTakeNotes  this.autoTakeNotes,
++        allowNightAutoCall: allowNightAutoCall  this.allowNightAutoCall,
+         preferSpeakerMode: preferSpeakerMode  this.preferSpeakerMode,
+         allowNovaSmallTalk: allowNovaSmallTalk  this.allowNovaSmallTalk,
+         isProtectedIdentity: isProtectedIdentity  this.isProtectedIdentity,
+@@ -121,13 +129,17 @@
+         'emergencyInstruction': emergencyInstruction,
+         'whiteLieInstruction': whiteLieInstruction,
+         'quickReplyInstruction': quickReplyInstruction,
++        'allowEmergencyWake': allowEmergencyWake,
+         'autoTakeNotes': autoTakeNotes,
++        'allowNightAutoCall': allowNightAutoCall,
+         'preferSpeakerMode': preferSpeakerMode,
+         'allowNovaSmallTalk': allowNovaSmallTalk,
+         'isProtectedIdentity': isProtectedIdentity,
+       };
+ 
+-  bool get allowsCallHandling => canReceiveAutoCallHandling;
++  bool get allowsCallHandling => isAuthorizedToUseNova && canReceiveAutoCallHandling;
++  bool get allowsNightAutoHandling => allowsCallHandling && allowNightAutoCall;
++  bool get allowsEmergencyWakeForCaller => allowsCallHandling && allowEmergencyWake;
+ 
+   factory NovaContact.fromMap(Map<String, dynamic> map) {
+     final roleKey = (map['role'] as String  'friend').trim();
+@@ -155,7 +167,9 @@
+       emergencyInstruction: (map['emergencyInstruction'] as String  '').trim(),
+       whiteLieInstruction: (map['whiteLieInstruction'] as String  '').trim(),
+       quickReplyInstruction: (map['quickReplyInstruction'] as String  '').trim(),
+-      autoTakeNotes: map['autoTakeNotes'] as bool  true,
++      allowEmergencyWake: map['allowEmergencyWake'] as bool  false,
++      autoTakeNotes: map['autoTakeNotes'] as bool  false,
++      allowNightAutoCall: map['allowNightAutoCall'] as bool  false,
+       preferSpeakerMode: map['preferSpeakerMode'] as bool  true,
+       allowNovaSmallTalk: map['allowNovaSmallTalk'] as bool  true,
+       isProtectedIdentity: map['isProtectedIdentity'] as bool  false,
+--- a/lib/services/contacts/nova_contact_service.dart
++++ b/lib/services/contacts/nova_contact_service.dart
+@@ -110,7 +110,9 @@
+           emergencyInstruction: current?.emergencyInstruction  '',
+           whiteLieInstruction: current?.whiteLieInstruction  '',
+           quickReplyInstruction: current?.quickReplyInstruction  '',
+-          autoTakeNotes: current?.autoTakeNotes  true,
++          allowEmergencyWake: current?.allowEmergencyWake  false,
++          autoTakeNotes: current?.autoTakeNotes  false,
++          allowNightAutoCall: current?.allowNightAutoCall  false,
+           preferSpeakerMode: current?.preferSpeakerMode  true,
+           allowNovaSmallTalk: current?.allowNovaSmallTalk  true,
+           isProtectedIdentity: current?.isProtectedIdentity  false,
+@@ -190,7 +192,7 @@
+           emergencyInstruction: current?.emergencyInstruction  '',
+           whiteLieInstruction: current?.whiteLieInstruction  '',
+           quickReplyInstruction: current?.quickReplyInstruction  '',
+-          autoTakeNotes: current?.autoTakeNotes  true,
++          autoTakeNotes: current?.autoTakeNotes  false,
+           preferSpeakerMode: current?.preferSpeakerMode  true,
+           allowNovaSmallTalk: current?.allowNovaSmallTalk  true,
+           isProtectedIdentity: current?.isProtectedIdentity  false,
+--- a/lib/pages/call/call_contact_control_page.dart
++++ b/lib/pages/call/call_contact_control_page.dart
+@@ -100,6 +100,17 @@
+       _isSyncing = false;
+       _syncMessage = result.message;
+     });
++
++    final firstSelected = selected.first;
++    final imported = result.contacts
++        .where((contact) =>
++            contact.phoneNumber.trim() == firstSelected.phoneNumber.trim() ||
++            contact.displayName.trim().toLowerCase() ==
++                firstSelected.displayName.trim().toLowerCase())
++        .toList(growable: false);
++    if (imported.isNotEmpty) {
++      await _editContactCustomization(imported.first);
++    }
+   }
+ 
+   Future<List<DeviceContactEntry>?> _pickDeviceContacts(
+@@ -291,7 +302,9 @@
+     final emergencyController = TextEditingController(text: contact.emergencyInstruction);
+     final whiteLieController = TextEditingController(text: contact.whiteLieInstruction);
+     final quickReplyController = TextEditingController(text: contact.quickReplyInstruction);
++    var allowEmergencyWake = contact.allowEmergencyWake;
+     var autoTakeNotes = contact.autoTakeNotes;
++    var allowNightAutoCall = contact.allowNightAutoCall;
+     var preferSpeakerMode = contact.preferSpeakerMode;
+     var allowSmallTalk = contact.allowNovaSmallTalk;
+ 
+@@ -391,9 +404,27 @@
+                       const SizedBox(height: 12),
+                       SwitchListTile(
+                         contentPadding: EdgeInsets.zero,
++                        title: const Text('Acil durumda kullanÄ±cÄ±yÄ± uyandÄ±rabilir'),
++                        subtitle: const Text(
++                          'Sadece kayÄ±tlÄ± ve Ã§aÄŸrÄ± yetkisi aÃ§Ä±k kiÅŸilerde geÃ§erlidir.',
++                        ),
++                        value: allowEmergencyWake,
++                        onChanged: (value) => setModalState(() => allowEmergencyWake = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
+                         title: const Text('Ã‡aÄŸrÄ± notu alabilir'),
+                         value: autoTakeNotes,
+                         onChanged: (value) => setModalState(() => autoTakeNotes = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Gece modu otomatik cevap izni'),
++                        subtitle: const Text(
++                          'Bu aÃ§Ä±k deÄŸilse gece modunda bile normal telefon akÄ±ÅŸÄ± korunur.',
++                        ),
++                        value: allowNightAutoCall,
++                        onChanged: (value) => setModalState(() => allowNightAutoCall = value),
+                       ),
+                       SwitchListTile(
+                         contentPadding: EdgeInsets.zero,
+@@ -427,7 +458,9 @@
+                         emergencyInstruction: emergencyController.text.trim(),
+                         whiteLieInstruction: whiteLieController.text.trim(),
+                         quickReplyInstruction: quickReplyController.text.trim(),
++                        allowEmergencyWake: allowEmergencyWake,
+                         autoTakeNotes: autoTakeNotes,
++                        allowNightAutoCall: allowNightAutoCall,
+                         preferSpeakerMode: preferSpeakerMode,
+                         allowNovaSmallTalk: allowSmallTalk,
+                       ),
+--- a/lib/ui/call/call_contact_control_page.dart
++++ b/lib/ui/call/call_contact_control_page.dart
+@@ -29,10 +29,16 @@
+   final TextEditingController _nameController = TextEditingController();
+   final TextEditingController _phoneController = TextEditingController();
+   final TextEditingController _customRoleController = TextEditingController();
+-  final TextEditingController _persistentMessageController =
+-      TextEditingController();
++  final TextEditingController _persistentMessageController = TextEditingController();
+ 
+   ContactRole _selectedRole = ContactRole.friend;
++  String _selectedCloseness = 'normal';
++
++  static const Color _creamSurface = Color(0xFFFFF3EA);
++  static const Color _creamCard = Color(0xFFFFF8F1);
++  static const Color _creamBorder = Color(0xFFE7CFC4);
++  static const Color _reactorRed = Color(0xFFED2C2E);
++  static const Color _deepRed = Color(0xFF5E0A0C);
+ 
+   @override
+   void initState() {
+@@ -71,41 +77,51 @@
+     if (entries.isEmpty) {
+       setState(() {
+         _isSyncing = false;
+-        _syncMessage =
+-            'SeÃ§ilebilir rehber kiÅŸisi bulunamadÄ± ya da kiÅŸi izni verilmedi.';
++        _syncMessage = 'Rehberden seÃ§ilebilir kiÅŸi alÄ±namadÄ±. Ä°zinleri kontrol edin efendim.';
+       });
+       return;
+     }
+ 
+-    final selected = await _showSelectableContactsDialog(entries);
++    final selected = await _pickDeviceContacts(entries);
+     if (!mounted) return;
+ 
+     if (selected == null || selected.isEmpty) {
+       setState(() {
+         _isSyncing = false;
+-        _syncMessage = 'KiÅŸi seÃ§imi yapÄ±lmadÄ±.';
++        _syncMessage = 'Rehberden kiÅŸi seÃ§imi iptal edildi.';
+       });
+       return;
+     }
+ 
+-    final result =
+-        await widget.contactService.mergeSelectedDeviceContacts(selected);
++    final result = await widget.contactService.mergeSelectedDeviceContacts(selected);
+     if (!mounted) return;
+     setState(() {
+       _contacts = result.contacts;
+       _isSyncing = false;
+       _syncMessage = result.message;
+     });
+-  }
+-
+-  Future<List<DeviceContactEntry>?> _showSelectableContactsDialog(
++
++    final firstSelected = selected.first;
++    final imported = result.contacts
++        .where((contact) =>
++            contact.phoneNumber.trim() == firstSelected.phoneNumber.trim() ||
++            contact.displayName.trim().toLowerCase() ==
++                firstSelected.displayName.trim().toLowerCase())
++        .toList(growable: false);
++    if (imported.isNotEmpty) {
++      await _editContactCustomization(imported.first);
++    }
++  }
++
++  Future<List<DeviceContactEntry>?> _pickDeviceContacts(
+     List<DeviceContactEntry> entries,
+   ) async {
++    final selectedIds = <String>{};
++    String query = '';
++
+     return showDialog<List<DeviceContactEntry>>(
+       context: context,
+       builder: (context) {
+-        final selectedIds = <String>{};
+-        String query = '';
+         return StatefulBuilder(
+           builder: (context, setModalState) {
+             final filtered = entries.where((entry) {
+@@ -133,11 +149,11 @@
+                     SizedBox(
+                       height: 320,
+                       child: ListView.builder(
++                        shrinkWrap: true,
+                         itemCount: filtered.length,
+                         itemBuilder: (context, index) {
+                           final entry = filtered[index];
+-                          final id =
+-                              entry.id.isEmpty  entry.phoneNumber : entry.id;
++                          final id = entry.id.isEmpty  entry.phoneNumber : entry.id;
+                           final checked = selectedIds.contains(id);
+                           return CheckboxListTile(
+                             value: checked,
+@@ -167,8 +183,7 @@
+                 FilledButton(
+                   onPressed: () {
+                     final selected = entries.where((entry) {
+-                      final id =
+-                          entry.id.isEmpty  entry.phoneNumber : entry.id;
++                      final id = entry.id.isEmpty  entry.phoneNumber : entry.id;
+                       return selectedIds.contains(id);
+                     }).toList(growable: false);
+                     Navigator.of(context).pop(selected);
+@@ -198,10 +213,9 @@
+       displayName: name,
+       phoneNumber: phone,
+       role: _selectedRole,
+-      customRoleLabel: _selectedRole == ContactRole.custom
+-           _customRoleController.text.trim()
+-          : null,
++      customRoleLabel: _selectedRole == ContactRole.custom  _customRoleController.text.trim() : null,
+       persistentOwnerMessage: _persistentMessageController.text.trim(),
++      closenessLevel: _selectedCloseness,
+       isVoiceKnown: false,
+       isAuthorizedToUseNova: false,
+       canReceiveAutoCallHandling: false,
+@@ -215,21 +229,266 @@
+       _customRoleController.clear();
+       _persistentMessageController.clear();
+       _selectedRole = ContactRole.friend;
++      _selectedCloseness = 'normal';
+       _syncMessage = 'KiÅŸi manuel olarak eklendi.';
+     });
+   }
+ 
+-  Future<void> _toggleCallHandling(
+-    NovaContact contact,
+-    bool allowCallHandling,
+-  ) async {
++  Future<void> _toggleAuthority(NovaContact contact, {bool allowUse, bool allowCallHandling}) async {
++    if (contact.isProtectedIdentity && allowUse == false) return;
+     final updated = contact.copyWith(
+-      canReceiveAutoCallHandling: allowCallHandling,
++      isAuthorizedToUseNova: allowUse  contact.isAuthorizedToUseNova,
++      canReceiveAutoCallHandling: allowCallHandling  contact.canReceiveAutoCallHandling,
+     );
+     final result = await widget.contactService.updateContact(updated);
+     if (!mounted) return;
+     setState(() {
+       _contacts = result;
++    });
++  }
++
++
++  Future<void> _changeContactRole(NovaContact contact, ContactRole role) async {
++    String customRoleLabel = contact.customRoleLabel;
++    if (role == ContactRole.custom) {
++      customRoleLabel = await _askCustomRelationshipLabel(initialValue: contact.customRoleLabel  contact.relationshipLabel);
++      if (customRoleLabel == null) {
++        return;
++      }
++    }
++    final updated = await widget.contactService.updateContact(
++      contact.copyWith(
++        role: role,
++        customRoleLabel: role == ContactRole.custom  customRoleLabel.trim() : null,
++        relationshipLabel: role == ContactRole.custom  customRoleLabel.trim() : role.label,
++      ),
++    );
++    if (!mounted) return;
++    setState(() {
++      _contacts = updated;
++      _syncMessage = '${contact.displayName} iÃ§in yakÄ±nlÄ±k rolÃ¼ gÃ¼ncellendi.';
++    });
++  }
++
++  Future<String?> _askCustomRelationshipLabel({String initialValue = ''}) async {
++    final controller = TextEditingController(text: initialValue);
++    final result = await showDialog<String>(
++      context: context,
++      builder: (context) => AlertDialog(
++        title: const Text('Ã–zel yakÄ±nlÄ±k yazÄ±sÄ±'),
++        content: TextField(
++          controller: controller,
++          decoration: const InputDecoration(
++            labelText: 'Ã–rn: Patronum, Kuzenim, EniÅŸtem',
++            border: OutlineInputBorder(),
++          ),
++        ),
++        actions: [
++          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('VazgeÃ§')),
++          FilledButton(onPressed: () => Navigator.of(context).pop(controller.text.trim()), child: const Text('Kaydet')),
++        ],
++      ),
++    );
++    controller.dispose();
++    return result;
++  }
++
++
++  Future<void> _editContactCustomization(NovaContact contact) async {
++    final openingController = TextEditingController(text: contact.callOpeningInstruction);
++    final questionsController = TextEditingController(text: contact.expectedCallerQuestions);
++    final allowedController = TextEditingController(text: contact.allowedResponseScope);
++    final blockedController = TextEditingController(text: contact.blockedResponseScope);
++    final emergencyController = TextEditingController(text: contact.emergencyInstruction);
++    final whiteLieController = TextEditingController(text: contact.whiteLieInstruction);
++    final quickReplyController = TextEditingController(text: contact.quickReplyInstruction);
++    var allowEmergencyWake = contact.allowEmergencyWake;
++    var autoTakeNotes = contact.autoTakeNotes;
++    var allowNightAutoCall = contact.allowNightAutoCall;
++    var preferSpeakerMode = contact.preferSpeakerMode;
++    var allowSmallTalk = contact.allowNovaSmallTalk;
++
++    final result = await showDialog<NovaContact>(
++      context: context,
++      builder: (context) {
++        return StatefulBuilder(
++          builder: (context, setModalState) {
++            return AlertDialog(
++              title: Text('${contact.spokenDisplayName} iÃ§in Ã§aÄŸrÄ± Ã¶zelleÅŸtirme'),
++              content: SizedBox(
++                width: 520,
++                child: SingleChildScrollView(
++                  child: Column(
++                    mainAxisSize: MainAxisSize.min,
++                    children: [
++                      const Text(
++                        'Nova bu kiÅŸiyle konuÅŸurken bu alanlarÄ± hotpath/tek omurga baÄŸlamÄ±na ekler. Yetki ve gÃ¼venlik sÄ±nÄ±rlarÄ± aÅŸÄ±lmaz.',
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: openingController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Ã–zel aÃ§Ä±lÄ±ÅŸ / karÅŸÄ±lama',
++                          hintText: 'Ã–rn: Annem ararsa daha sÄ±cak karÅŸÄ±la ve panik yapmamasÄ±nÄ± sÃ¶yle.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: questionsController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Bu kiÅŸi ne sorabilir?',
++                          hintText: 'Ã–rn: Nerede olduÄŸumu, uyanÄ±p uyanmadÄ±ÄŸÄ±mÄ±, acil dÃ¶nÃ¼ÅŸ isteyebilir.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: allowedController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Nova hangi konularda cevap verebilir?',
++                          hintText: 'Ã–rn: UyuduÄŸumu, mÃ¼sait olmadÄ±ÄŸÄ±mÄ±, not alabileceÄŸini sÃ¶yleyebilir.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: blockedController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Nova hangi konulara girmesin?',
++                          hintText: 'Ã–rn: Konum, Ã¶zel mesajlar, finansal bilgiler, kiÅŸisel detaylar.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: emergencyController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Acil durumda ne yapsÄ±n?',
++                          hintText: 'Ã–rn: Acil derse Ä±srarlÄ± uyandÄ±rma baÅŸlat, notu Ã¶ne Ã§Ä±kar.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: whiteLieController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Sosyal uygun cevap Ã§izgisi',
++                          hintText: 'Ã–rn: Uyuyorum/duÅŸtayÄ±m/araÃ§ kullanÄ±yorum gibi owner tarafÄ±ndan izinli uygun cevaplar.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: quickReplyController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'HazÄ±r kÄ±sa yanÄ±t / kapat ve yanÄ±tla metni',
++                          hintText: 'Ã–rn: Åu an mÃ¼sait deÄŸilim, acilse Nova not alsÄ±n.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Acil durumda kullanÄ±cÄ±yÄ± uyandÄ±rabilir'),
++                        subtitle: const Text(
++                          'Sadece kayÄ±tlÄ± ve Ã§aÄŸrÄ± yetkisi aÃ§Ä±k kiÅŸilerde geÃ§erlidir.',
++                        ),
++                        value: allowEmergencyWake,
++                        onChanged: (value) => setModalState(() => allowEmergencyWake = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Ã‡aÄŸrÄ± notu alabilir'),
++                        value: autoTakeNotes,
++                        onChanged: (value) => setModalState(() => autoTakeNotes = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Gece modu otomatik cevap izni'),
++                        subtitle: const Text(
++                          'Bu aÃ§Ä±k deÄŸilse gece modunda bile normal telefon akÄ±ÅŸÄ± korunur.',
++                        ),
++                        value: allowNightAutoCall,
++                        onChanged: (value) => setModalState(() => allowNightAutoCall = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('HoparlÃ¶r modu tercihli'),
++                        value: preferSpeakerMode,
++                        onChanged: (value) => setModalState(() => preferSpeakerMode = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('KÄ±sa companion sohbetine izin ver'),
++                        value: allowSmallTalk,
++                        onChanged: (value) => setModalState(() => allowSmallTalk = value),
++                      ),
++                    ],
++                  ),
++                ),
++              ),
++              actions: [
++                TextButton(
++                  onPressed: () => Navigator.of(context).pop(),
++                  child: const Text('VazgeÃ§'),
++                ),
++                FilledButton(
++                  onPressed: () {
++                    Navigator.of(context).pop(
++                      contact.copyWith(
++                        callOpeningInstruction: openingController.text.trim(),
++                        expectedCallerQuestions: questionsController.text.trim(),
++                        allowedResponseScope: allowedController.text.trim(),
++                        blockedResponseScope: blockedController.text.trim(),
++                        emergencyInstruction: emergencyController.text.trim(),
++                        whiteLieInstruction: whiteLieController.text.trim(),
++                        quickReplyInstruction: quickReplyController.text.trim(),
++                        allowEmergencyWake: allowEmergencyWake,
++                        autoTakeNotes: autoTakeNotes,
++                        allowNightAutoCall: allowNightAutoCall,
++                        preferSpeakerMode: preferSpeakerMode,
++                        allowNovaSmallTalk: allowSmallTalk,
++                      ),
++                    );
++                  },
++                  child: const Text('Kaydet'),
++                ),
++              ],
++            );
++          },
++        );
++      },
++    );
++
++    openingController.dispose();
++    questionsController.dispose();
++    allowedController.dispose();
++    blockedController.dispose();
++    emergencyController.dispose();
++    whiteLieController.dispose();
++    quickReplyController.dispose();
++
++    if (result == null) return;
++    final updated = await widget.contactService.updateContact(result);
++    if (!mounted) return;
++    setState(() {
++      _contacts = updated;
++      _syncMessage = '${contact.spokenDisplayName} iÃ§in Ã§aÄŸrÄ± Ã¶zelleÅŸtirmesi gÃ¼ncellendi.';
+     });
+   }
+ 
+@@ -245,9 +504,14 @@
+   Widget build(BuildContext context) {
+     final hasDeviceBridge = widget.deviceContactsBridgeService != null;
+     return Scaffold(
++      backgroundColor: _creamSurface,
+       appBar: AppBar(
+-        title: const Text('Ã‡aÄŸrÄ± ve Companion KiÅŸileri'),
++        title: const Text('Ã‡aÄŸrÄ± ve Companion KiÅŸi YÃ¶netimi'),
+         centerTitle: true,
++        backgroundColor: Colors.transparent,
++        foregroundColor: _deepRed,
++        surfaceTintColor: Colors.transparent,
++        elevation: 0,
+       ),
+       body: _isLoading
+            const Center(child: CircularProgressIndicator())
+@@ -255,130 +519,70 @@
+               padding: const EdgeInsets.all(16),
+               children: [
+                 Card(
++                  color: _creamCard,
++                  surfaceTintColor: Colors.transparent,
++                  shape: RoundedRectangleBorder(
++                    borderRadius: BorderRadius.circular(22),
++                    side: const BorderSide(color: _creamBorder),
++                  ),
+                   child: Padding(
+                     padding: const EdgeInsets.all(16),
+-                    child: Column(
+-                      children: [
+-                        Text(
+-                          'Telefon Rehberi EÅŸitleme',
+-                          style: Theme.of(context).textTheme.titleLarge,
+-                        ),
+-                        const SizedBox(height: 12),
+-                        const Text(
+-                          "BurasÄ± yalnÄ±z Ã§aÄŸrÄ± sistemi ve companion iÃ§in kullanÄ±lan kiÅŸi listesidir. Burada sadece hangi kiÅŸilerin Ã§aÄŸrÄ±larÄ±na cevap verilebileceÄŸi ve hangi Ã§aÄŸrÄ±larda companion olarak devreye girilebileceÄŸi belirlenir.",
+-                        ),
+-                        const SizedBox(height: 12),
+-                        Row(
+-                          children: [
+-                            Expanded(
+-                              child: FilledButton.icon(
+-                                onPressed: !_isSyncing && hasDeviceBridge
+-                                     _syncFromDeviceContacts
+-                                    : null,
+-                                icon: const Icon(Icons.sync),
+-                                label: Text(
+-                                  _isSyncing
+-                                       'HazÄ±rlanÄ±yor...'
+-                                      : 'Rehberden SeÃ§erek Ekle',
+-                                ),
+-                              ),
+-                            ),
+-                          ],
+-                        ),
+-                        const SizedBox(height: 8),
+-                        OutlinedButton(
+-                          onPressed: hasDeviceBridge
+-                               _openAppSettingsForContacts
+-                              : null,
+-                          child: const Text('KiÅŸi Ä°zni / Uygulama AyarlarÄ±'),
+-                        ),
+-                        if (_syncMessage.trim().isNotEmpty) ...[
+-                          const SizedBox(height: 8),
+-                          Text(
+-                            _syncMessage,
+-                            style: const TextStyle(fontWeight: FontWeight.w600),
+-                          ),
+-                        ],
+-                      ],
+-                    ),
++                    child: Column(children: [
++                      Text('Telefon Rehberi EÅŸitleme', style: Theme.of(context).textTheme.titleLarge),
++                      const SizedBox(height: 12),
++                      const Text('Ã‡aÄŸrÄ± ve companion iÃ§in ortak kiÅŸi havuzu burasÄ±dÄ±r. Telefon rehberinden toplu deÄŸil, seÃ§erek kiÅŸi ekleyebilir; ardÄ±ndan Ã§aÄŸrÄ± yÃ¶netimi yetkisi verebilirsiniz.'),
++                      const SizedBox(height: 12),
++                      Row(children: [Expanded(child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: _reactorRed, foregroundColor: _creamCard), onPressed: !_isSyncing && hasDeviceBridge  _syncFromDeviceContacts : null, icon: const Icon(Icons.sync), label: Text(_isSyncing  'HazÄ±rlanÄ±yor...' : 'Rehberden SeÃ§erek Ekle')))]),
++                      const SizedBox(height: 8),
++                      OutlinedButton(style: OutlinedButton.styleFrom(foregroundColor: _deepRed, side: const BorderSide(color: _creamBorder)), onPressed: hasDeviceBridge  _openAppSettingsForContacts : null, child: const Text('KiÅŸi Ä°zni / Uygulama AyarlarÄ±')),
++                      if (_syncMessage.trim().isNotEmpty) ...[const SizedBox(height: 8), Text(_syncMessage, style: const TextStyle(fontWeight: FontWeight.w600))],
++                    ]),
+                   ),
+                 ),
+                 const SizedBox(height: 12),
+                 Card(
++                  color: _creamCard,
++                  surfaceTintColor: Colors.transparent,
++                  shape: RoundedRectangleBorder(
++                    borderRadius: BorderRadius.circular(22),
++                    side: const BorderSide(color: _creamBorder),
++                  ),
+                   child: Padding(
+                     padding: const EdgeInsets.all(16),
+-                    child: Column(
+-                      children: [
+-                        Text(
+-                          'Yeni KiÅŸi Ekle',
+-                          style: Theme.of(context).textTheme.titleLarge,
+-                        ),
++                    child: Column(children: [
++                      Text('Yeni KiÅŸi Ekle', style: Theme.of(context).textTheme.titleLarge),
++                      const SizedBox(height: 12),
++                      TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Ad', border: OutlineInputBorder())),
++                      const SizedBox(height: 12),
++                      TextField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Telefon NumarasÄ±', border: OutlineInputBorder())),
++                      const SizedBox(height: 12),
++                      DropdownButtonFormField<ContactRole>(
++                        initialValue: _selectedRole,
++                        items: ContactRole.values.map((role) => DropdownMenuItem<ContactRole>(value: role, child: Text(role.label))).toList(growable: false),
++                        onChanged: (value) { if (value == null) return; setState(() { _selectedRole = value; }); },
++                        decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
++                      ),
++                      if (_selectedRole == ContactRole.custom) ...[
+                         const SizedBox(height: 12),
+-                        TextField(
+-                          controller: _nameController,
+-                          decoration: const InputDecoration(
+-                            labelText: 'Ad',
+-                            border: OutlineInputBorder(),
+-                          ),
+-                        ),
+-                        const SizedBox(height: 12),
+-                        TextField(
+-                          controller: _phoneController,
+-                          decoration: const InputDecoration(
+-                            labelText: 'Telefon NumarasÄ±',
+-                            border: OutlineInputBorder(),
+-                          ),
+-                        ),
+-                        const SizedBox(height: 12),
+-                        DropdownButtonFormField<ContactRole>(
+-                          initialValue: _selectedRole,
+-                          items: ContactRole.values
+-                              .map(
+-                                (role) => DropdownMenuItem<ContactRole>(
+-                                  value: role,
+-                                  child: Text(role.label),
+-                                ),
+-                              )
+-                              .toList(growable: false),
+-                          onChanged: (value) {
+-                            if (value == null) return;
+-                            setState(() {
+-                              _selectedRole = value;
+-                            });
+-                          },
+-                          decoration: const InputDecoration(
+-                            labelText: 'Rol',
+-                            border: OutlineInputBorder(),
+-                          ),
+-                        ),
+-                        if (_selectedRole == ContactRole.custom) ...[
+-                          const SizedBox(height: 12),
+-                          TextField(
+-                            controller: _customRoleController,
+-                            decoration: const InputDecoration(
+-                              labelText: 'Ã–zel Rol Metni',
+-                              border: OutlineInputBorder(),
+-                            ),
+-                          ),
++                        TextField(controller: _customRoleController, decoration: const InputDecoration(labelText: 'Ã–zel Rol Metni', border: OutlineInputBorder())),
++                      ],
++                      const SizedBox(height: 12),
++                      DropdownButtonFormField<String>(
++                        initialValue: _selectedCloseness,
++                        items: const [
++                          DropdownMenuItem(value: 'very_close', child: Text('YakÄ±nlÄ±k: Ã‡ok yakÄ±n')),
++                          DropdownMenuItem(value: 'close', child: Text('YakÄ±nlÄ±k: YakÄ±n')),
++                          DropdownMenuItem(value: 'normal', child: Text('YakÄ±nlÄ±k: Normal')),
++                          DropdownMenuItem(value: 'distant', child: Text('YakÄ±nlÄ±k: Uzak')),
+                         ],
+-                        const SizedBox(height: 12),
+-                        TextField(
+-                          controller: _persistentMessageController,
+-                          decoration: const InputDecoration(
+-                            labelText: 'KalÄ±cÄ± mesaj (opsiyonel)',
+-                            border: OutlineInputBorder(),
+-                          ),
+-                        ),
+-                        const SizedBox(height: 12),
+-                        SizedBox(
+-                          width: double.infinity,
+-                          child: FilledButton(
+-                            onPressed: _addContact,
+-                            child: const Text('KiÅŸi Ekle'),
+-                          ),
+-                        ),
+-                      ],
+-                    ),
++                        onChanged: (value) { if (value == null) return; setState(() { _selectedCloseness = value; }); },
++                        decoration: const InputDecoration(labelText: 'YakÄ±nlÄ±k derecesi', border: OutlineInputBorder()),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(controller: _persistentMessageController, decoration: const InputDecoration(labelText: 'KalÄ±cÄ± mesaj (opsiyonel)', border: OutlineInputBorder())),
++                      const SizedBox(height: 12),
++                      SizedBox(width: double.infinity, child: FilledButton(style: FilledButton.styleFrom(backgroundColor: _reactorRed, foregroundColor: _creamCard), onPressed: _addContact, child: const Text('KiÅŸi Ekle'))),
++                    ]),
+                   ),
+                 ),
+                 const SizedBox(height: 12),
+@@ -391,120 +595,67 @@
+   Widget _buildContactCard(NovaContact contact) {
+     return Card(
+       margin: const EdgeInsets.only(bottom: 12),
++      color: _creamCard,
++      surfaceTintColor: Colors.transparent,
++      shape: RoundedRectangleBorder(
++        borderRadius: BorderRadius.circular(22),
++        side: const BorderSide(color: _creamBorder),
++      ),
+       child: Padding(
+         padding: const EdgeInsets.all(16),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            Row(
+-              children: [
+-                Expanded(
+-                  child: Text(
+-                    contact.displayName,
+-                    style: const TextStyle(
+-                      fontWeight: FontWeight.bold,
+-                      fontSize: 16,
+-                    ),
+-                  ),
+-                ),
+-                if (contact.isProtectedIdentity)
+-                  const Chip(
+-                    label: Text('Sabit yetki'),
+-                    avatar: Icon(Icons.verified_user, size: 18),
+-                  ),
+-              ],
++        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
++          Row(children: [
++            Expanded(child: Text(contact.displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _deepRed))),
++            PopupMenuButton<ContactRole>(
++              tooltip: 'YakÄ±nlÄ±k rolÃ¼nÃ¼ deÄŸiÅŸtir',
++              onSelected: (role) => _changeContactRole(contact, role),
++              itemBuilder: (context) => ContactRole.values
++                  .map((role) => PopupMenuItem<ContactRole>(value: role, child: Text(role.label)))
++                  .toList(growable: false),
++              icon: const Icon(Icons.edit_note),
+             ),
+-            const SizedBox(height: 8),
+-            Text('Rol: ${contact.role.label}'),
+-            Text('Telefon: ${contact.phoneNumber}'),
+-            Text('Arama metni: ${contact.incomingCallText}'),
+-            Text('Aile hitabÄ±: ${contact.relationshipSpeech}'),
+-            Text('KalÄ±cÄ± mesaj: ${contact.defaultPersistentOwnerMessage}'),
+-            const SizedBox(height: 12),
+-            SwitchListTile(
+-              contentPadding: EdgeInsets.zero,
+-              title: const Text('Ã‡aÄŸrÄ± ve companion yetkisi'),
+-              subtitle: const Text(
+-                'Bu kiÅŸi aradÄ±ÄŸÄ±nda Nova cevap verebilir ve companion devreye girebilir.',
++            if (contact.isProtectedIdentity)
++              const Chip(label: Text('Sabit yetki'), avatar: Icon(Icons.verified_user, size: 18)),
++          ]),
++          const SizedBox(height: 8),
++          Text('Rol: ${contact.role.label}${contact.role == ContactRole.custom && (contact.customRoleLabel?.trim().isNotEmpty  false)  ' â€¢ ${contact.customRoleLabel!.trim()}' : ''}'),
++          Text('Telefon: ${contact.phoneNumber}'),
++          Text('Arama metni: ${contact.incomingCallText}'),
++          Text('Aile hitabÄ±: ${contact.relationshipSpeech}'),
++          Text('YakÄ±nlÄ±k: ${contact.closenessSpeech}'),
++          Text('KalÄ±cÄ± mesaj: ${contact.defaultPersistentOwnerMessage}'),
++          Text('Ã–zelleÅŸtirme: ${contact.customizationSummary}'),
++          if (contact.callOpeningInstruction.trim().isNotEmpty)
++            Text('AÃ§Ä±lÄ±ÅŸ: ${contact.callOpeningInstruction.trim()}'),
++          if (contact.expectedCallerQuestions.trim().isNotEmpty)
++            Text('Beklenen sorular: ${contact.expectedCallerQuestions.trim()}'),
++          if (contact.allowedResponseScope.trim().isNotEmpty)
++            Text('Cevap kapsamÄ±: ${contact.allowedResponseScope.trim()}'),
++          if (contact.blockedResponseScope.trim().isNotEmpty)
++            Text('Yasak kapsam: ${contact.blockedResponseScope.trim()}'),
++          if (contact.emergencyInstruction.trim().isNotEmpty)
++            Text('Acil durum: ${contact.emergencyInstruction.trim()}'),
++          if (contact.quickReplyInstruction.trim().isNotEmpty)
++            Text('HazÄ±r yanÄ±t: ${contact.quickReplyInstruction.trim()}'),
++          const SizedBox(height: 12),
++          Align(
++            alignment: Alignment.centerLeft,
++            child: OutlinedButton.icon(
++              style: OutlinedButton.styleFrom(
++                foregroundColor: _deepRed,
++                side: const BorderSide(color: _creamBorder),
+               ),
+-              value: contact.canReceiveAutoCallHandling,
+-              onChanged: (value) => _toggleCallHandling(contact, value),
++              onPressed: () => _editContactCustomization(contact),
++              icon: const Icon(Icons.tune),
++              label: const Text('Ã–zelleÅŸtir'),
+             ),
+-            Align(
+-              alignment: Alignment.centerRight,
+-              child: TextButton(
+-                onPressed: contact.isProtectedIdentity
+-                     null
+-                    : () => _removeContact(contact.id),
+-                child: Text(contact.isProtectedIdentity  'Korunan kiÅŸi' : 'Sil'),
+-              ),
+-            ),
+-          ],
+-        ),
++          ),
++          const SizedBox(height: 8),
++          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Ã‡aÄŸrÄ± kiÅŸisi ekranÄ±nda ses yetkisi yÃ¶netilmez'), value: contact.isAuthorizedToUseNova, onChanged: contact.isProtectedIdentity  null : (value) => _toggleAuthority(contact, allowUse: value)),
++          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Ã‡aÄŸrÄ± devralma yetkisi'), value: contact.canReceiveAutoCallHandling, onChanged: (value) => _toggleAuthority(contact, allowCallHandling: value)),
++          Align(alignment: Alignment.centerRight, child: TextButton(style: TextButton.styleFrom(foregroundColor: _reactorRed), onPressed: contact.isProtectedIdentity  null : () => _removeContact(contact.id), child: Text(contact.isProtectedIdentity  'Korunan kiÅŸi' : 'Sil'))),
++        ]),
+       ),
+     );
+   }
+ }
+-
+-
+-class NovaContactRoleHint {
+-  final String role;
+-  final String openingTone;
+-  final String reminder;
+-
+-  const NovaContactRoleHint({
+-    required this.role,
+-    required this.openingTone,
+-    required this.reminder,
+-  });
+-}
+-
+-extension NovaCallContactControlHints on _CallContactControlPageState {
+-  List<NovaContactRoleHint> buildRoleHints() {
+-    return const <NovaContactRoleHint>[
+-      NovaContactRoleHint(
+-        role: 'mother',
+-        openingTone: 'daha sÄ±cak ve koruyucu',
+-        reminder: 'Mahremiyet ve rahatlatma Ã¶ncelikli olmalÄ±.',
+-      ),
+-      NovaContactRoleHint(
+-        role: 'father',
+-        openingTone: 'saygÄ±lÄ± ama yakÄ±n',
+-        reminder: 'Durum aktarÄ±mÄ±nda gereksiz detaya girme.',
+-      ),
+-      NovaContactRoleHint(
+-        role: 'spouse',
+-        openingTone: 'yakÄ±n, doÄŸal ve baÄŸlama duyarlÄ±',
+-        reminder: 'AnlamÄ± dÃ¼z aktarmak yerine duyguyu da koru.',
+-      ),
+-    ];
+-  }
+-
+-  String buildCompanionContactMemo() {
+-    final hints = buildRoleHints();
+-    return <String>[
+-      'Ã‡AÄRI REHBERÄ° BAÄLAM Ä°PUÃ‡LARI:',
+-      ...hints.map((e) => '- ${e.role}: ${e.openingTone} | ${e.reminder}'),
+-      'Kural: rol bilgisi Ã§aÄŸrÄ± zincirinde anlam aktarÄ±mÄ±na yardÄ±mcÄ± olur; yetki zincirini aÅŸmaz.',
+-    ].join('\n');
+-  }
+-}
+-
+-
+-class NovaCallContactSafetyMemo {
+-  final List<String> rules;
+-  const NovaCallContactSafetyMemo(this.rules);
+-
+-  String render() => <String>['Ã‡AÄRI KÄ°ÅÄ° GÃœVENLÄ°ÄÄ°:', ...rules.map((e) => '- $e')].join('\n');
+-}
+-
+-extension NovaCallContactSafetyExtension on _CallContactControlPageState {
+-  NovaCallContactSafetyMemo buildSafetyMemo() {
+-    return const NovaCallContactSafetyMemo(<String>[
+-      'SeÃ§ili rehber dÄ±ÅŸÄ±ndaki kiÅŸilerde companion ve otomatik Ã§aÄŸrÄ± akÄ±ÅŸÄ± aÃ§Ä±lmaz.',
+-      'Rol etiketi konuÅŸma tonuna yardÄ±m eder ama yetki atamasÄ± yerine geÃ§mez.',
+-      'Ã–zel notlar ve aile baÄŸlamÄ± kalabalÄ±k modda yÃ¼ksek sesle aÃ§Ä±lmaz.',
+-      'Ä°sim takma adÄ± kullanÄ±lsa bile asÄ±l iliÅŸki Ã§ekirdeÄŸi korunur.',
+-    ]);
+-  }
+-}
+--- a/lib/ui/contacts/call_contact_control_page.dart
++++ b/lib/ui/contacts/call_contact_control_page.dart
+@@ -1 +1,661 @@
+-export '../../pages/call/call_contact_control_page.dart';+import 'package:flutter/material.dart';
++
++import '../../core/contacts/contact_role.dart';
++import '../../core/contacts/device_contact_entry.dart';
++import '../../core/contacts/nova_contact.dart';
++import '../../services/contacts/nova_contact_service.dart';
++import '../../services/contacts/nova_device_contacts_bridge_service.dart';
++
++class CallContactControlPage extends StatefulWidget {
++  final NovaContactService contactService;
++  final NovaDeviceContactsBridgeService deviceContactsBridgeService;
++
++  const CallContactControlPage({
++    super.key,
++    required this.contactService,
++    this.deviceContactsBridgeService,
++  });
++
++  @override
++  State<CallContactControlPage> createState() => _CallContactControlPageState();
++}
++
++class _CallContactControlPageState extends State<CallContactControlPage> {
++  List<NovaContact> _contacts = const <NovaContact>[];
++  bool _isLoading = true;
++  bool _isSyncing = false;
++  String _syncMessage = '';
++
++  final TextEditingController _nameController = TextEditingController();
++  final TextEditingController _phoneController = TextEditingController();
++  final TextEditingController _customRoleController = TextEditingController();
++  final TextEditingController _persistentMessageController = TextEditingController();
++
++  ContactRole _selectedRole = ContactRole.friend;
++  String _selectedCloseness = 'normal';
++
++  static const Color _creamSurface = Color(0xFFFFF3EA);
++  static const Color _creamCard = Color(0xFFFFF8F1);
++  static const Color _creamBorder = Color(0xFFE7CFC4);
++  static const Color _reactorRed = Color(0xFFED2C2E);
++  static const Color _deepRed = Color(0xFF5E0A0C);
++
++  @override
++  void initState() {
++    super.initState();
++    _loadContacts();
++  }
++
++  @override
++  void dispose() {
++    _nameController.dispose();
++    _phoneController.dispose();
++    _customRoleController.dispose();
++    _persistentMessageController.dispose();
++    super.dispose();
++  }
++
++  Future<void> _loadContacts() async {
++    final contacts = await widget.contactService.loadContacts();
++    if (!mounted) return;
++    setState(() {
++      _contacts = contacts;
++      _isLoading = false;
++    });
++  }
++
++  Future<void> _syncFromDeviceContacts() async {
++    if (_isSyncing) return;
++    setState(() {
++      _isSyncing = true;
++      _syncMessage = '';
++    });
++
++    final entries = await widget.contactService.fetchSelectableDeviceContacts();
++    if (!mounted) return;
++
++    if (entries.isEmpty) {
++      setState(() {
++        _isSyncing = false;
++        _syncMessage = 'Rehberden seÃ§ilebilir kiÅŸi alÄ±namadÄ±. Ä°zinleri kontrol edin efendim.';
++      });
++      return;
++    }
++
++    final selected = await _pickDeviceContacts(entries);
++    if (!mounted) return;
++
++    if (selected == null || selected.isEmpty) {
++      setState(() {
++        _isSyncing = false;
++        _syncMessage = 'Rehberden kiÅŸi seÃ§imi iptal edildi.';
++      });
++      return;
++    }
++
++    final result = await widget.contactService.mergeSelectedDeviceContacts(selected);
++    if (!mounted) return;
++    setState(() {
++      _contacts = result.contacts;
++      _isSyncing = false;
++      _syncMessage = result.message;
++    });
++
++    final firstSelected = selected.first;
++    final imported = result.contacts
++        .where((contact) =>
++            contact.phoneNumber.trim() == firstSelected.phoneNumber.trim() ||
++            contact.displayName.trim().toLowerCase() ==
++                firstSelected.displayName.trim().toLowerCase())
++        .toList(growable: false);
++    if (imported.isNotEmpty) {
++      await _editContactCustomization(imported.first);
++    }
++  }
++
++  Future<List<DeviceContactEntry>?> _pickDeviceContacts(
++    List<DeviceContactEntry> entries,
++  ) async {
++    final selectedIds = <String>{};
++    String query = '';
++
++    return showDialog<List<DeviceContactEntry>>(
++      context: context,
++      builder: (context) {
++        return StatefulBuilder(
++          builder: (context, setModalState) {
++            final filtered = entries.where((entry) {
++              final q = query.trim().toLowerCase();
++              if (q.isEmpty) return true;
++              return entry.displayName.toLowerCase().contains(q) ||
++                  entry.phoneNumber.toLowerCase().contains(q);
++            }).toList(growable: false);
++
++            return AlertDialog(
++              title: const Text('Rehberden kiÅŸi seÃ§'),
++              content: SizedBox(
++                width: 420,
++                child: Column(
++                  mainAxisSize: MainAxisSize.min,
++                  children: [
++                    TextField(
++                      decoration: const InputDecoration(
++                        labelText: 'Ara',
++                        border: OutlineInputBorder(),
++                      ),
++                      onChanged: (value) => setModalState(() => query = value),
++                    ),
++                    const SizedBox(height: 12),
++                    SizedBox(
++                      height: 320,
++                      child: ListView.builder(
++                        shrinkWrap: true,
++                        itemCount: filtered.length,
++                        itemBuilder: (context, index) {
++                          final entry = filtered[index];
++                          final id = entry.id.isEmpty  entry.phoneNumber : entry.id;
++                          final checked = selectedIds.contains(id);
++                          return CheckboxListTile(
++                            value: checked,
++                            onChanged: (value) {
++                              setModalState(() {
++                                if (value == true) {
++                                  selectedIds.add(id);
++                                } else {
++                                  selectedIds.remove(id);
++                                }
++                              });
++                            },
++                            title: Text(entry.displayName),
++                            subtitle: Text(entry.phoneNumber),
++                          );
++                        },
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++              actions: [
++                TextButton(
++                  onPressed: () => Navigator.of(context).pop(),
++                  child: const Text('VazgeÃ§'),
++                ),
++                FilledButton(
++                  onPressed: () {
++                    final selected = entries.where((entry) {
++                      final id = entry.id.isEmpty  entry.phoneNumber : entry.id;
++                      return selectedIds.contains(id);
++                    }).toList(growable: false);
++                    Navigator.of(context).pop(selected);
++                  },
++                  child: const Text('SeÃ§ili KiÅŸileri Ekle'),
++                ),
++              ],
++            );
++          },
++        );
++      },
++    );
++  }
++
++  Future<void> _openAppSettingsForContacts() async {
++    final bridge = widget.deviceContactsBridgeService;
++    if (bridge == null) return;
++    await bridge.openAppSettings();
++  }
++
++  Future<void> _addContact() async {
++    final name = _nameController.text.trim();
++    final phone = _phoneController.text.trim();
++    if (name.isEmpty || phone.isEmpty) return;
++    final contact = NovaContact(
++      id: DateTime.now().millisecondsSinceEpoch.toString(),
++      displayName: name,
++      phoneNumber: phone,
++      role: _selectedRole,
++      customRoleLabel: _selectedRole == ContactRole.custom  _customRoleController.text.trim() : null,
++      persistentOwnerMessage: _persistentMessageController.text.trim(),
++      closenessLevel: _selectedCloseness,
++      isVoiceKnown: false,
++      isAuthorizedToUseNova: false,
++      canReceiveAutoCallHandling: false,
++    );
++    final updated = await widget.contactService.addContact(contact);
++    if (!mounted) return;
++    setState(() {
++      _contacts = updated;
++      _nameController.clear();
++      _phoneController.clear();
++      _customRoleController.clear();
++      _persistentMessageController.clear();
++      _selectedRole = ContactRole.friend;
++      _selectedCloseness = 'normal';
++      _syncMessage = 'KiÅŸi manuel olarak eklendi.';
++    });
++  }
++
++  Future<void> _toggleAuthority(NovaContact contact, {bool allowUse, bool allowCallHandling}) async {
++    if (contact.isProtectedIdentity && allowUse == false) return;
++    final updated = contact.copyWith(
++      isAuthorizedToUseNova: allowUse  contact.isAuthorizedToUseNova,
++      canReceiveAutoCallHandling: allowCallHandling  contact.canReceiveAutoCallHandling,
++    );
++    final result = await widget.contactService.updateContact(updated);
++    if (!mounted) return;
++    setState(() {
++      _contacts = result;
++    });
++  }
++
++
++  Future<void> _changeContactRole(NovaContact contact, ContactRole role) async {
++    String customRoleLabel = contact.customRoleLabel;
++    if (role == ContactRole.custom) {
++      customRoleLabel = await _askCustomRelationshipLabel(initialValue: contact.customRoleLabel  contact.relationshipLabel);
++      if (customRoleLabel == null) {
++        return;
++      }
++    }
++    final updated = await widget.contactService.updateContact(
++      contact.copyWith(
++        role: role,
++        customRoleLabel: role == ContactRole.custom  customRoleLabel.trim() : null,
++        relationshipLabel: role == ContactRole.custom  customRoleLabel.trim() : role.label,
++      ),
++    );
++    if (!mounted) return;
++    setState(() {
++      _contacts = updated;
++      _syncMessage = '${contact.displayName} iÃ§in yakÄ±nlÄ±k rolÃ¼ gÃ¼ncellendi.';
++    });
++  }
++
++  Future<String?> _askCustomRelationshipLabel({String initialValue = ''}) async {
++    final controller = TextEditingController(text: initialValue);
++    final result = await showDialog<String>(
++      context: context,
++      builder: (context) => AlertDialog(
++        title: const Text('Ã–zel yakÄ±nlÄ±k yazÄ±sÄ±'),
++        content: TextField(
++          controller: controller,
++          decoration: const InputDecoration(
++            labelText: 'Ã–rn: Patronum, Kuzenim, EniÅŸtem',
++            border: OutlineInputBorder(),
++          ),
++        ),
++        actions: [
++          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('VazgeÃ§')),
++          FilledButton(onPressed: () => Navigator.of(context).pop(controller.text.trim()), child: const Text('Kaydet')),
++        ],
++      ),
++    );
++    controller.dispose();
++    return result;
++  }
++
++
++  Future<void> _editContactCustomization(NovaContact contact) async {
++    final openingController = TextEditingController(text: contact.callOpeningInstruction);
++    final questionsController = TextEditingController(text: contact.expectedCallerQuestions);
++    final allowedController = TextEditingController(text: contact.allowedResponseScope);
++    final blockedController = TextEditingController(text: contact.blockedResponseScope);
++    final emergencyController = TextEditingController(text: contact.emergencyInstruction);
++    final whiteLieController = TextEditingController(text: contact.whiteLieInstruction);
++    final quickReplyController = TextEditingController(text: contact.quickReplyInstruction);
++    var allowEmergencyWake = contact.allowEmergencyWake;
++    var autoTakeNotes = contact.autoTakeNotes;
++    var allowNightAutoCall = contact.allowNightAutoCall;
++    var preferSpeakerMode = contact.preferSpeakerMode;
++    var allowSmallTalk = contact.allowNovaSmallTalk;
++
++    final result = await showDialog<NovaContact>(
++      context: context,
++      builder: (context) {
++        return StatefulBuilder(
++          builder: (context, setModalState) {
++            return AlertDialog(
++              title: Text('${contact.spokenDisplayName} iÃ§in Ã§aÄŸrÄ± Ã¶zelleÅŸtirme'),
++              content: SizedBox(
++                width: 520,
++                child: SingleChildScrollView(
++                  child: Column(
++                    mainAxisSize: MainAxisSize.min,
++                    children: [
++                      const Text(
++                        'Nova bu kiÅŸiyle konuÅŸurken bu alanlarÄ± hotpath/tek omurga baÄŸlamÄ±na ekler. Yetki ve gÃ¼venlik sÄ±nÄ±rlarÄ± aÅŸÄ±lmaz.',
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: openingController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Ã–zel aÃ§Ä±lÄ±ÅŸ / karÅŸÄ±lama',
++                          hintText: 'Ã–rn: Annem ararsa daha sÄ±cak karÅŸÄ±la ve panik yapmamasÄ±nÄ± sÃ¶yle.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: questionsController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Bu kiÅŸi ne sorabilir?',
++                          hintText: 'Ã–rn: Nerede olduÄŸumu, uyanÄ±p uyanmadÄ±ÄŸÄ±mÄ±, acil dÃ¶nÃ¼ÅŸ isteyebilir.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: allowedController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Nova hangi konularda cevap verebilir?',
++                          hintText: 'Ã–rn: UyuduÄŸumu, mÃ¼sait olmadÄ±ÄŸÄ±mÄ±, not alabileceÄŸini sÃ¶yleyebilir.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: blockedController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Nova hangi konulara girmesin?',
++                          hintText: 'Ã–rn: Konum, Ã¶zel mesajlar, finansal bilgiler, kiÅŸisel detaylar.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: emergencyController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Acil durumda ne yapsÄ±n?',
++                          hintText: 'Ã–rn: Acil derse Ä±srarlÄ± uyandÄ±rma baÅŸlat, notu Ã¶ne Ã§Ä±kar.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: whiteLieController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'Sosyal uygun cevap Ã§izgisi',
++                          hintText: 'Ã–rn: Uyuyorum/duÅŸtayÄ±m/araÃ§ kullanÄ±yorum gibi owner tarafÄ±ndan izinli uygun cevaplar.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(
++                        controller: quickReplyController,
++                        minLines: 2,
++                        maxLines: 4,
++                        decoration: const InputDecoration(
++                          labelText: 'HazÄ±r kÄ±sa yanÄ±t / kapat ve yanÄ±tla metni',
++                          hintText: 'Ã–rn: Åu an mÃ¼sait deÄŸilim, acilse Nova not alsÄ±n.',
++                          border: OutlineInputBorder(),
++                        ),
++                      ),
++                      const SizedBox(height: 12),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Acil durumda kullanÄ±cÄ±yÄ± uyandÄ±rabilir'),
++                        subtitle: const Text(
++                          'Sadece kayÄ±tlÄ± ve Ã§aÄŸrÄ± yetkisi aÃ§Ä±k kiÅŸilerde geÃ§erlidir.',
++                        ),
++                        value: allowEmergencyWake,
++                        onChanged: (value) => setModalState(() => allowEmergencyWake = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Ã‡aÄŸrÄ± notu alabilir'),
++                        value: autoTakeNotes,
++                        onChanged: (value) => setModalState(() => autoTakeNotes = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('Gece modu otomatik cevap izni'),
++                        subtitle: const Text(
++                          'Bu aÃ§Ä±k deÄŸilse gece modunda bile normal telefon akÄ±ÅŸÄ± korunur.',
++                        ),
++                        value: allowNightAutoCall,
++                        onChanged: (value) => setModalState(() => allowNightAutoCall = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('HoparlÃ¶r modu tercihli'),
++                        value: preferSpeakerMode,
++                        onChanged: (value) => setModalState(() => preferSpeakerMode = value),
++                      ),
++                      SwitchListTile(
++                        contentPadding: EdgeInsets.zero,
++                        title: const Text('KÄ±sa companion sohbetine izin ver'),
++                        value: allowSmallTalk,
++                        onChanged: (value) => setModalState(() => allowSmallTalk = value),
++                      ),
++                    ],
++                  ),
++                ),
++              ),
++              actions: [
++                TextButton(
++                  onPressed: () => Navigator.of(context).pop(),
++                  child: const Text('VazgeÃ§'),
++                ),
++                FilledButton(
++                  onPressed: () {
++                    Navigator.of(context).pop(
++                      contact.copyWith(
++                        callOpeningInstruction: openingController.text.trim(),
++                        expectedCallerQuestions: questionsController.text.trim(),
++                        allowedResponseScope: allowedController.text.trim(),
++                        blockedResponseScope: blockedController.text.trim(),
++                        emergencyInstruction: emergencyController.text.trim(),
++                        whiteLieInstruction: whiteLieController.text.trim(),
++                        quickReplyInstruction: quickReplyController.text.trim(),
++                        allowEmergencyWake: allowEmergencyWake,
++                        autoTakeNotes: autoTakeNotes,
++                        allowNightAutoCall: allowNightAutoCall,
++                        preferSpeakerMode: preferSpeakerMode,
++                        allowNovaSmallTalk: allowSmallTalk,
++                      ),
++                    );
++                  },
++                  child: const Text('Kaydet'),
++                ),
++              ],
++            );
++          },
++        );
++      },
++    );
++
++    openingController.dispose();
++    questionsController.dispose();
++    allowedController.dispose();
++    blockedController.dispose();
++    emergencyController.dispose();
++    whiteLieController.dispose();
++    quickReplyController.dispose();
++
++    if (result == null) return;
++    final updated = await widget.contactService.updateContact(result);
++    if (!mounted) return;
++    setState(() {
++      _contacts = updated;
++      _syncMessage = '${contact.spokenDisplayName} iÃ§in Ã§aÄŸrÄ± Ã¶zelleÅŸtirmesi gÃ¼ncellendi.';
++    });
++  }
++
++  Future<void> _removeContact(String id) async {
++    final updated = await widget.contactService.removeContact(id);
++    if (!mounted) return;
++    setState(() {
++      _contacts = updated;
++    });
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final hasDeviceBridge = widget.deviceContactsBridgeService != null;
++    return Scaffold(
++      backgroundColor: _creamSurface,
++      appBar: AppBar(
++        title: const Text('Ã‡aÄŸrÄ± ve Companion KiÅŸi YÃ¶netimi'),
++        centerTitle: true,
++        backgroundColor: Colors.transparent,
++        foregroundColor: _deepRed,
++        surfaceTintColor: Colors.transparent,
++        elevation: 0,
++      ),
++      body: _isLoading
++           const Center(child: CircularProgressIndicator())
++          : ListView(
++              padding: const EdgeInsets.all(16),
++              children: [
++                Card(
++                  color: _creamCard,
++                  surfaceTintColor: Colors.transparent,
++                  shape: RoundedRectangleBorder(
++                    borderRadius: BorderRadius.circular(22),
++                    side: const BorderSide(color: _creamBorder),
++                  ),
++                  child: Padding(
++                    padding: const EdgeInsets.all(16),
++                    child: Column(children: [
++                      Text('Telefon Rehberi EÅŸitleme', style: Theme.of(context).textTheme.titleLarge),
++                      const SizedBox(height: 12),
++                      const Text('Ã‡aÄŸrÄ± ve companion iÃ§in ortak kiÅŸi havuzu burasÄ±dÄ±r. Telefon rehberinden toplu deÄŸil, seÃ§erek kiÅŸi ekleyebilir; ardÄ±ndan Ã§aÄŸrÄ± yÃ¶netimi yetkisi verebilirsiniz.'),
++                      const SizedBox(height: 12),
++                      Row(children: [Expanded(child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: _reactorRed, foregroundColor: _creamCard), onPressed: !_isSyncing && hasDeviceBridge  _syncFromDeviceContacts : null, icon: const Icon(Icons.sync), label: Text(_isSyncing  'HazÄ±rlanÄ±yor...' : 'Rehberden SeÃ§erek Ekle')))]),
++                      const SizedBox(height: 8),
++                      OutlinedButton(style: OutlinedButton.styleFrom(foregroundColor: _deepRed, side: const BorderSide(color: _creamBorder)), onPressed: hasDeviceBridge  _openAppSettingsForContacts : null, child: const Text('KiÅŸi Ä°zni / Uygulama AyarlarÄ±')),
++                      if (_syncMessage.trim().isNotEmpty) ...[const SizedBox(height: 8), Text(_syncMessage, style: const TextStyle(fontWeight: FontWeight.w600))],
++                    ]),
++                  ),
++                ),
++                const SizedBox(height: 12),
++                Card(
++                  color: _creamCard,
++                  surfaceTintColor: Colors.transparent,
++                  shape: RoundedRectangleBorder(
++                    borderRadius: BorderRadius.circular(22),
++                    side: const BorderSide(color: _creamBorder),
++                  ),
++                  child: Padding(
++                    padding: const EdgeInsets.all(16),
++                    child: Column(children: [
++                      Text('Yeni KiÅŸi Ekle', style: Theme.of(context).textTheme.titleLarge),
++                      const SizedBox(height: 12),
++                      TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Ad', border: OutlineInputBorder())),
++                      const SizedBox(height: 12),
++                      TextField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Telefon NumarasÄ±', border: OutlineInputBorder())),
++                      const SizedBox(height: 12),
++                      DropdownButtonFormField<ContactRole>(
++                        initialValue: _selectedRole,
++                        items: ContactRole.values.map((role) => DropdownMenuItem<ContactRole>(value: role, child: Text(role.label))).toList(growable: false),
++                        onChanged: (value) { if (value == null) return; setState(() { _selectedRole = value; }); },
++                        decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
++                      ),
++                      if (_selectedRole == ContactRole.custom) ...[
++                        const SizedBox(height: 12),
++                        TextField(controller: _customRoleController, decoration: const InputDecoration(labelText: 'Ã–zel Rol Metni', border: OutlineInputBorder())),
++                      ],
++                      const SizedBox(height: 12),
++                      DropdownButtonFormField<String>(
++                        initialValue: _selectedCloseness,
++                        items: const [
++                          DropdownMenuItem(value: 'very_close', child: Text('YakÄ±nlÄ±k: Ã‡ok yakÄ±n')),
++                          DropdownMenuItem(value: 'close', child: Text('YakÄ±nlÄ±k: YakÄ±n')),
++                          DropdownMenuItem(value: 'normal', child: Text('YakÄ±nlÄ±k: Normal')),
++                          DropdownMenuItem(value: 'distant', child: Text('YakÄ±nlÄ±k: Uzak')),
++                        ],
++                        onChanged: (value) { if (value == null) return; setState(() { _selectedCloseness = value; }); },
++                        decoration: const InputDecoration(labelText: 'YakÄ±nlÄ±k derecesi', border: OutlineInputBorder()),
++                      ),
++                      const SizedBox(height: 12),
++                      TextField(controller: _persistentMessageController, decoration: const InputDecoration(labelText: 'KalÄ±cÄ± mesaj (opsiyonel)', border: OutlineInputBorder())),
++                      const SizedBox(height: 12),
++                      SizedBox(width: double.infinity, child: FilledButton(style: FilledButton.styleFrom(backgroundColor: _reactorRed, foregroundColor: _creamCard), onPressed: _addContact, child: const Text('KiÅŸi Ekle'))),
++                    ]),
++                  ),
++                ),
++                const SizedBox(height: 12),
++                ..._contacts.map(_buildContactCard),
++              ],
++            ),
++    );
++  }
++
++  Widget _buildContactCard(NovaContact contact) {
++    return Card(
++      margin: const EdgeInsets.only(bottom: 12),
++      color: _creamCard,
++      surfaceTintColor: Colors.transparent,
++      shape: RoundedRectangleBorder(
++        borderRadius: BorderRadius.circular(22),
++        side: const BorderSide(color: _creamBorder),
++      ),
++      child: Padding(
++        padding: const EdgeInsets.all(16),
++        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
++          Row(children: [
++            Expanded(child: Text(contact.displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _deepRed))),
++            PopupMenuButton<ContactRole>(
++              tooltip: 'YakÄ±nlÄ±k rolÃ¼nÃ¼ deÄŸiÅŸtir',
++              onSelected: (role) => _changeContactRole(contact, role),
++              itemBuilder: (context) => ContactRole.values
++                  .map((role) => PopupMenuItem<ContactRole>(value: role, child: Text(role.label)))
++                  .toList(growable: false),
++              icon: const Icon(Icons.edit_note),
++            ),
++            if (contact.isProtectedIdentity)
++              const Chip(label: Text('Sabit yetki'), avatar: Icon(Icons.verified_user, size: 18)),
++          ]),
++          const SizedBox(height: 8),
++          Text('Rol: ${contact.role.label}${contact.role == ContactRole.custom && (contact.customRoleLabel?.trim().isNotEmpty  false)  ' â€¢ ${contact.customRoleLabel!.trim()}' : ''}'),
++          Text('Telefon: ${contact.phoneNumber}'),
++          Text('Arama metni: ${contact.incomingCallText}'),
++          Text('Aile hitabÄ±: ${contact.relationshipSpeech}'),
++          Text('YakÄ±nlÄ±k: ${contact.closenessSpeech}'),
++          Text('KalÄ±cÄ± mesaj: ${contact.defaultPersistentOwnerMessage}'),
++          Text('Ã–zelleÅŸtirme: ${contact.customizationSummary}'),
++          if (contact.callOpeningInstruction.trim().isNotEmpty)
++            Text('AÃ§Ä±lÄ±ÅŸ: ${contact.callOpeningInstruction.trim()}'),
++          if (contact.expectedCallerQuestions.trim().isNotEmpty)
++            Text('Beklenen sorular: ${contact.expectedCallerQuestions.trim()}'),
++          if (contact.allowedResponseScope.trim().isNotEmpty)
++            Text('Cevap kapsamÄ±: ${contact.allowedResponseScope.trim()}'),
++          if (contact.blockedResponseScope.trim().isNotEmpty)
++            Text('Yasak kapsam: ${contact.blockedResponseScope.trim()}'),
++          if (contact.emergencyInstruction.trim().isNotEmpty)
++            Text('Acil durum: ${contact.emergencyInstruction.trim()}'),
++          if (contact.quickReplyInstruction.trim().isNotEmpty)
++            Text('HazÄ±r yanÄ±t: ${contact.quickReplyInstruction.trim()}'),
++          const SizedBox(height: 12),
++          Align(
++            alignment: Alignment.centerLeft,
++            child: OutlinedButton.icon(
++              style: OutlinedButton.styleFrom(
++                foregroundColor: _deepRed,
++                side: const BorderSide(color: _creamBorder),
++              ),
++              onPressed: () => _editContactCustomization(contact),
++              icon: const Icon(Icons.tune),
++              label: const Text('Ã–zelleÅŸtir'),
++            ),
++          ),
++          const SizedBox(height: 8),
++          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Ã‡aÄŸrÄ± kiÅŸisi ekranÄ±nda ses yetkisi yÃ¶netilmez'), value: contact.isAuthorizedToUseNova, onChanged: contact.isProtectedIdentity  null : (value) => _toggleAuthority(contact, allowUse: value)),
++          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Ã‡aÄŸrÄ± devralma yetkisi'), value: contact.canReceiveAutoCallHandling, onChanged: (value) => _toggleAuthority(contact, allowCallHandling: value)),
++          Align(alignment: Alignment.centerRight, child: TextButton(style: TextButton.styleFrom(foregroundColor: _reactorRed), onPressed: contact.isProtectedIdentity  null : () => _removeContact(contact.id), child: Text(contact.isProtectedIdentity  'Korunan kiÅŸi' : 'Sil'))),
++        ]),
++      ),
++    );
++  }
++}
+--- a/lib/services/system/nova_continuous_listening_runtime_service.dart
++++ b/lib/services/system/nova_continuous_listening_runtime_service.dart
+@@ -306,35 +306,52 @@
+                 : await contactService!.findByPhoneNumber(activeNumber);
+             final canHandleThisCaller =
+                 callHandlingEnabled && (contact?.allowsCallHandling  false);
+-            if (canHandleThisCaller && callControlService != null && companionRuntime != null) {
++            if (canHandleThisCaller && callControlService != null) {
+               final callerName = contact == null
+                    'KayÄ±tlÄ± kiÅŸi'
+                   : (contact.displayName.isEmpty  'KayÄ±tlÄ± kiÅŸi' : contact.displayName);
+               if (onUnauthorizedOrStatus != null) {
+                 await _emitStatusIfChanged(
+-                  '$callerName arÄ±yor efendim. Nova tam kapalÄ± moddan yalnÄ±z bu kayÄ±tlÄ± Ã§aÄŸrÄ± iÃ§in geÃ§ici companion zinciri aÃ§Ä±yor.',
++                  '$callerName arÄ±yor efendim. Nova tam kapalÄ± moddan yalnÄ±z kayÄ±tlÄ± kiÅŸi Ã§aÄŸrÄ± tetiklemesi iÃ§in geÃ§ici Ã§aÄŸrÄ± zinciri aÃ§Ä±yor.',
+                   onUnauthorizedOrStatus,
+                 );
+               }
+               final answered = await callControlService!.answerRingingCall();
+               if (answered.success) {
+-                bool started = false;
+-                for (var retry = 0; retry < 5; retry++) {
+-                  await Future<void>.delayed(Duration(milliseconds: 180 + (retry * 120)));
+-                  started = await companionRuntime!.startForCurrentCall(allowShutdownBypass: true);
+-                  if (started) break;
+-                }
+-                if (!started) {
+-                  await NovaRuntimeSignalService.instance.record(
+-                    kind: NovaRuntimeSignalKind.callCompanion,
+-                    level: NovaRuntimeSignalLevel.warning,
+-                    code: 'shutdown_call_companion_start_failed',
+-                    message: companionRuntime!.lastStatusMessage.trim().isEmpty
+-                         'Tam kapalÄ± modda companion baÅŸlatÄ±lamadÄ±.'
+-                        : companionRuntime!.lastStatusMessage.trim(),
+-                    technicalDetails: 'shutdown authorized call start failed',
+-                    selfRepairCandidate: true,
+-                  );
++                await callControlService!.handOverToNova(
++                  trustedSource: 'shutdown_registered_call',
++                );
++                await callControlService!.routeToSpeaker(
++                  true,
++                  trustedSource: 'shutdown_registered_call',
++                );
++                await callControlService!.setMuted(
++                  true,
++                  trustedSource: 'shutdown_registered_call',
++                );
++                if (companionRuntime != null) {
++                  bool started = false;
++                  for (var retry = 0; retry < 5; retry++) {
++                    await Future<void>.delayed(
++                      Duration(milliseconds: 180 + (retry * 120)),
++                    );
++                    started = await companionRuntime!.startForCurrentCall(
++                      allowShutdownBypass: true,
++                    );
++                    if (started) break;
++                  }
++                  if (!started) {
++                    await NovaRuntimeSignalService.instance.record(
++                      kind: NovaRuntimeSignalKind.callCompanion,
++                      level: NovaRuntimeSignalLevel.warning,
++                      code: 'shutdown_call_companion_start_failed',
++                      message: companionRuntime!.lastStatusMessage.trim().isEmpty
++                           'Tam kapalÄ± modda companion baÅŸlatÄ±lamadÄ±.'
++                          : companionRuntime!.lastStatusMessage.trim(),
++                      technicalDetails: 'shutdown authorized call start failed',
++                      selfRepairCandidate: true,
++                    );
++                  }
+                 }
+               }
+               await Future<void>.delayed(const Duration(milliseconds: 1000));
+@@ -412,52 +429,77 @@
+               : await contactService!.findByPhoneNumber(activeNumber);
+           final canHandleThisCaller =
+               callHandlingEnabled && (contact?.allowsCallHandling  false);
++          final canNightAutoHandleThisCaller =
++              callHandlingEnabled && (contact?.allowsNightAutoHandling  false);
+           final callerName = contact == null
+                'KayÄ±tlÄ± olmayan arayan'
+               : (contact.displayName.isEmpty  'KayÄ±tlÄ± kiÅŸi' : contact.displayName);
+ 
+-          if (powerService.isPassiveSleep && canHandleThisCaller &&
++          if (powerService.isPassiveSleep &&
++              canNightAutoHandleThisCaller &&
+               callControlService != null &&
+               callSnapshot?.canAnswer == true) {
++            final opening =
++                '${identityRuntimeService.currentDisplayName} konuÅŸuyor. $callerName iÃ§in gece modu otomatik Ã§aÄŸrÄ± sistemi devrede. Ä°brahim ÅŸu an uygun deÄŸil; acilse sÃ¶yleyebilirsiniz, not alabilirim.';
+             if (onUnauthorizedOrStatus != null) {
+-              await _emitStatusIfChanged(
+-                '$callerName arÄ±yor efendim. Gece modu otomatik cevap zinciri anÄ±nda devrede.',
+-                onUnauthorizedOrStatus,
+-              );
++              await _emitStatusIfChanged(opening, onUnauthorizedOrStatus);
+             }
+-            final answered = await callControlService!.answerRingingCall();
++            final answered = await callControlService!.answerRingingCall(
++              trustedSource: 'night_auto_call',
++            );
+             if (!answered.success) {
+               await NovaRuntimeSignalService.instance.record(
+                 kind: NovaRuntimeSignalKind.call,
+                 level: NovaRuntimeSignalLevel.error,
+-                code: 'call_answer_failed',
++                code: 'night_auto_call_answer_failed',
+                 message: answered.message.trim().isEmpty
+-                     'Ã‡aÄŸrÄ± cevaplanamadÄ±.'
++                     'Gece modu otomatik Ã§aÄŸrÄ±sÄ± cevaplanamadÄ±.'
+                     : answered.message.trim(),
+-                technicalDetails: 'answerRingingCall failed',
+-                selfRepairCandidate: false,
++                technicalDetails:
++                    'answerRingingCall failed in passiveSleep without companion',
++                selfRepairCandidate: true,
+               );
+-            } else if (companionRuntime != null) {
+-              bool started = false;
+-              for (var retry = 0; retry < 5; retry++) {
+-                await Future<void>.delayed(
+-                  Duration(milliseconds: 220 + (retry * 130)),
+-                );
+-                started = await companionRuntime!.startForCurrentCall();
+-                if (started) break;
+-              }
+-              if (!started) {
+-                await NovaRuntimeSignalService.instance.record(
+-                  kind: NovaRuntimeSignalKind.callCompanion,
+-                  level: NovaRuntimeSignalLevel.warning,
+-                  code: 'call_companion_start_failed',
+-                  message: companionRuntime!.lastStatusMessage.trim().isEmpty
+-                       'Companion baÅŸlatÄ±lamadÄ±.'
+-                      : companionRuntime!.lastStatusMessage.trim(),
+-                  technicalDetails: 'startForCurrentCall retry loop failed',
+-                  selfRepairCandidate: true,
+-                );
+-              }
++            } else {
++              final handoff = await callControlService!.handOverToNova(
++                trustedSource: 'night_auto_call',
++              );
++              final speaker = await callControlService!.routeToSpeaker(
++                true,
++                trustedSource: 'night_auto_call',
++              );
++              final mute = await callControlService!.setMuted(
++                true,
++                trustedSource: 'night_auto_call',
++              );
++              final routeReady = handoff.success && speaker.success && mute.success;
++              await NovaRuntimeSignalService.instance.record(
++                kind: NovaRuntimeSignalKind.call,
++                level: routeReady
++                     NovaRuntimeSignalLevel.info
++                    : NovaRuntimeSignalLevel.warning,
++                code: routeReady
++                     'night_auto_call_route_ready'
++                    : 'night_auto_call_route_degraded',
++                message: routeReady
++                     'Gece modu otomatik Ã§aÄŸrÄ± sistemi Companion olmadan Nova konuÅŸma hattÄ±na alÄ±ndÄ±.'
++                    : 'Gece modu otomatik Ã§aÄŸrÄ± cevaplandÄ± fakat ses route/mute/handoff zincirinde eksik var.',
++                technicalDetails:
++                    'handoff=${handoff.success} speaker=${speaker.success} muted=${mute.success}',
++                selfRepairCandidate: !routeReady,
++              );
++            }
++            await Future<void>.delayed(const Duration(milliseconds: 1200));
++            continue;
++          }
++
++          if (powerService.isPassiveSleep &&
++              canHandleThisCaller &&
++              !canNightAutoHandleThisCaller) {
++            if (onUnauthorizedOrStatus != null) {
++              await _emitStatusIfChanged(
++                '$callerName arÄ±yor efendim. KiÅŸi kayÄ±tlÄ± ancak gece otomatik cevap izni kapalÄ±; normal telefon akÄ±ÅŸÄ± korunuyor.',
++                onUnauthorizedOrStatus,
++              );
+             }
+             await Future<void>.delayed(const Duration(milliseconds: 1200));
+             continue;

@@ -1,0 +1,36 @@
+===== NOVA VERIFY RESULT =====
+STATUS=FAIL
+TIME=2026-05-01 14:58:40.932
+PACKAGE=com.example.nova
+ACTIVITY=com.example.nova/.MainActivity
+
+Criteria:
+app_main_activity_visible=False
+record_audio_allowed=False
+foreground_allowed=False
+native_generate_called=True
+raw_model_output_seen=True
+single_brain_success=False
+tts_not_empty=False
+no_strict_local_model_fail=False
+no_internal_format_leak=True
+no_timeout=True
+no_native_crash=True
+no_oom_or_lmk_kill=False
+asr_service_not_crashed=True
+
+Nova did NOT pass hard model-brain criteria.
+Blockers:
+- app_main_activity_visible
+- record_audio_allowed
+- foreground_allowed
+- single_brain_success
+- tts_not_empty
+- no_strict_local_model_fail
+- no_oom_or_lmk_kill
+
+Important files:
+01_live_logcat_all_buffers.txt
+11_model_filtered.txt
+12_error_filtered.txt
+NOVA_VERIFY_RESULT.json

@@ -1,0 +1,30 @@
+{
+    "status":  "FAIL",
+    "package":  "com.example.nova",
+    "activity":  "com.example.nova/.MainActivity",
+    "durationSec":  180,
+    "checks":  {
+                   "app_main_activity_visible":  false,
+                   "record_audio_allowed":  false,
+                   "foreground_allowed":  false,
+                   "native_generate_called":  true,
+                   "raw_model_output_seen":  true,
+                   "single_brain_success":  false,
+                   "tts_not_empty":  false,
+                   "no_strict_local_model_fail":  false,
+                   "no_internal_format_leak":  true,
+                   "no_timeout":  true,
+                   "no_native_crash":  true,
+                   "no_oom_or_lmk_kill":  false,
+                   "asr_service_not_crashed":  true
+               },
+    "blockers":  [
+                     "app_main_activity_visible",
+                     "record_audio_allowed",
+                     "foreground_allowed",
+                     "single_brain_success",
+                     "tts_not_empty",
+                     "no_strict_local_model_fail",
+                     "no_oom_or_lmk_kill"
+                 ]
+}

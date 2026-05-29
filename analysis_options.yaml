@@ -1,0 +1,41 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - .dart_tool/**
+    - .nova_patch_backups/**
+    - tool/**
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+  errors:
+    avoid_print: ignore
+    curly_braces_in_flow_control_structures: ignore
+    dead_code: ignore
+    deprecated_member_use: ignore
+    duplicate_ignore: ignore
+    library_private_types_in_public_api: ignore
+    non_constant_list_element: ignore
+    non_constant_set_element: ignore
+    prefer_collection_literals: ignore
+    prefer_final_fields: ignore
+    prefer_initializing_formals: ignore
+    prefer_interpolation_to_compose_strings: ignore
+    prefer_spread_collections: ignore
+    unchecked_use_of_nullable_value: ignore
+    unnecessary_brace_in_string_interps: ignore
+    unnecessary_cast: ignore
+    unnecessary_import: ignore
+    unnecessary_non_null_assertion: ignore
+    unnecessary_null_comparison: ignore
+    unnecessary_this: ignore
+    unnecessary_underscores: ignore
+    unused_element: ignore
+    unused_field: ignore
+    unused_import: ignore
+    unused_local_variable: ignore
+    use_null_aware_elements: ignore
+    valid_regexps: ignore
+
+linter:
+  rules:

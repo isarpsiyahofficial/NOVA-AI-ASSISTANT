@@ -1,0 +1,539 @@
+2026-05-01 14:52:16.344  NOVA VERIFY START
+2026-05-01 14:52:16.394  Package=com.example.nova Activity=com.example.nova/.MainActivity DurationSec=180 NoLaunch=False Bugreport=False
+2026-05-01 14:52:16.613  Resize and clear logcat
+2026-05-01 14:52:17.205  Force-stop package
+2026-05-01 14:52:17.393  Capture before-state
+2026-05-01 14:52:17.606  Start live logcat
+2026-05-01 14:52:19.795  Launch exact MainActivity via adb shell am start
+2026-05-01 14:52:23.017  Runtime observation started
+
+===== SAMPLE 1 2026-05-01 14:52:23.207 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+6s956ms ago
+RECORD_AUDIO: allow; time=+395ms ago; rejectTime=+500ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+2m28s448ms ago
+START_FOREGROUND: allow; time=+538ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h50m5s313ms ago
+
+===== SAMPLE 2 2026-05-01 14:52:34.269 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+15s815ms ago
+RECORD_AUDIO: allow; time=+9s254ms ago; rejectTime=+9s359ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+2m37s307ms ago
+START_FOREGROUND: allow; time=+9s397ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h50m14s172ms ago
+
+===== SAMPLE 3 2026-05-01 14:52:45.412 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+28s876ms ago
+RECORD_AUDIO: allow; time=+22s315ms ago; rejectTime=+22s420ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+2m50s368ms ago
+START_FOREGROUND: allow; time=+22s458ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h50m27s233ms ago
+
+===== SAMPLE 4 2026-05-01 14:52:59.649 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+46s682ms ago
+RECORD_AUDIO: allow; time=+40s121ms ago; rejectTime=+40s226ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+3m8s174ms ago
+START_FOREGROUND: allow; time=+40s264ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h50m45s39ms ago
+
+===== SAMPLE 5 2026-05-01 14:53:19.678 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+1m5s409ms ago
+RECORD_AUDIO: allow; time=+58s848ms ago; rejectTime=+58s953ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+3m26s901ms ago
+START_FOREGROUND: allow; time=+58s991ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m3s766ms ago
+
+===== SAMPLE 6 2026-05-01 14:53:35.858 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+1m17s317ms ago
+RECORD_AUDIO: allow; time=+1m10s756ms ago; rejectTime=+1m10s861ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+3m38s809ms ago
+START_FOREGROUND: allow; time=+1m10s899ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m15s674ms ago
+
+===== SAMPLE 7 2026-05-01 14:53:45.700 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+1m26s426ms ago
+RECORD_AUDIO: allow; time=+1m19s865ms ago; rejectTime=+1m19s970ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+3m47s918ms ago
+START_FOREGROUND: allow; time=+1m20s8ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m24s783ms ago
+
+===== SAMPLE 8 2026-05-01 14:53:53.807 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+1m37s12ms ago
+RECORD_AUDIO: allow; time=+1m30s451ms ago; rejectTime=+1m30s556ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+3m58s504ms ago
+START_FOREGROUND: allow; time=+1m30s594ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m35s369ms ago
+
+===== SAMPLE 9 2026-05-01 14:54:05.111 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+1m45s626ms ago
+RECORD_AUDIO: allow; time=+1m39s65ms ago; rejectTime=+1m39s170ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m7s118ms ago
+START_FOREGROUND: allow; time=+1m39s208ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m43s983ms ago
+
+===== SAMPLE 10 2026-05-01 14:54:12.501 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+1m53s566ms ago
+RECORD_AUDIO: allow; time=+1m47s5ms ago; rejectTime=+1m47s110ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m15s58ms ago
+START_FOREGROUND: allow; time=+1m47s148ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m51s923ms ago
+
+===== SAMPLE 11 2026-05-01 14:54:20.177 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+2m1s44ms ago
+RECORD_AUDIO: allow; time=+1m54s483ms ago; rejectTime=+1m54s588ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m22s536ms ago
+START_FOREGROUND: allow; time=+1m54s626ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h51m59s401ms ago
+
+===== SAMPLE 12 2026-05-01 14:54:27.162 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+2m8s169ms ago
+RECORD_AUDIO: allow; time=+2m1s608ms ago; rejectTime=+2m1s713ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m29s661ms ago
+START_FOREGROUND: allow; time=+2m1s751ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h52m6s526ms ago
+
+===== SAMPLE 13 2026-05-01 14:54:35.172 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+2m16s95ms ago
+RECORD_AUDIO: allow; time=+2m9s534ms ago; rejectTime=+2m9s639ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m37s587ms ago
+START_FOREGROUND: allow; time=+2m9s677ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h52m14s452ms ago
+
+===== SAMPLE 14 2026-05-01 14:54:46.030 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+2m30s44ms ago
+RECORD_AUDIO: allow; time=+2m23s483ms ago; rejectTime=+2m23s588ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m51s536ms ago
+START_FOREGROUND: allow; time=+2m23s626ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h52m28s401ms ago
+
+===== SAMPLE 15 2026-05-01 14:54:57.631 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+2m38s203ms ago
+RECORD_AUDIO: allow; time=+2m31s642ms ago; rejectTime=+2m31s747ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+4m59s695ms ago
+START_FOREGROUND: allow; time=+2m31s785ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h52m36s560ms ago
+
+===== SAMPLE 16 2026-05-01 14:55:05.866 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+2m50s820ms ago
+RECORD_AUDIO: allow; time=+2m44s259ms ago; rejectTime=+2m44s364ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+11s855ms ago
+START_FOREGROUND: allow; time=+2m44s402ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h52m49s177ms ago
+
+===== SAMPLE 17 2026-05-01 14:55:21.590 =====
+17130
+  ACTIVITY com.google.android.packageinstaller/com.android.packageinstaller.InstallSuccess 9426790 pid=23062 userId=0 uid=10149 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+  ACTIVITY com.sh.smart.caller/com.android.dialer.main.impl.MainActivity 434dc10 pid=9262 userId=0 uid=10210 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+      mCreated=true mResumed=false mStopped=true    Active Fragments:
+  ACTIVITY com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher d31813d pid=2572 userId=0 uid=10153 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+    	mPackageUserToDotInfos:{com.transsion.smartmessage#UserHandle{0},category=-1=10, com.instagram.android#UserHandle{0},category=-1=7, com.google.android.gm#UserHandle{0},category=-1=2, com.example.nova#UserHandle{0},category=-1=1, trendyol.com#UserHandle{0},category=-1=1, com.twitter.android#UserHandle{0},category=-1=20, com.android.vending#UserHandle{0},category=-1=1, com.whatsapp#UserHandle{0},category=-1=61, com.google.android.youtube#UserHandle{0},category=-1=1, com.abtnprojects.ambatana#UserHandle{0},category=-1=1, com.talpa.hibrowser#UserHandle{0},category=-1=2, com.qjzjzd.an.en4399#UserHandle{0},category=-1=1, android#UserHandle{0},category=-1=1}
+    	Package index and name: 93/com.example.nova
+    	Package index and name: 94/com.example.nova
+    	Package index and name: 95/com.example.nova
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.MainActivity} screen=1 cell(2,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=NOVA supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaPhoneLauncherActivity} screen=1 cell(2,4) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Telefon supportsMultiInstance=false nonResizeable=false)
+ targetComponent=ComponentInfo{com.example.nova/com.example.nova.NovaContactsLauncherActivity} screen=1 cell(0,5) span(1,1) minSpan(1,1) rank=0 user=UserHandle{0} cateoryType=0 title=Ki+şiler supportsMultiInstance=false nonResizeable=false)
+  ACTIVITY com.example.nova/.MainActivity 974429 pid=17130 userId=0 uid=10395 displayId=0(type=INTERNAL)
+      mResumed=false mStopped=true mFinished=false
+       mInputChannel: 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          mChannel = 4b80c26 com.example.nova/com.example.nova.MainActivity (client)
+          context: com.example.nova.MainActivity@1ea47c9
+RECORD_AUDIO: foreground
+SYSTEM_ALERT_WINDOW: default; rejectTime=+3m4s47ms ago
+RECORD_AUDIO: allow; time=+2m57s486ms ago; rejectTime=+2m57s591ms ago (running)
+BIND_ACCESSIBILITY_SERVICE: allow; time=+25s82ms ago
+START_FOREGROUND: allow; time=+2m57s629ms ago (running)
+ACCESS_RESTRICTED_SETTINGS: default; rejectTime=+1h53m2s404ms ago
+2026-05-01 14:55:30.714  Stop live logcat
+2026-05-01 14:55:37.141  Capture final dumps
+2026-05-01 14:55:53.091  Create filters
+2026-05-01 14:58:15.708  Analyze
+2026-05-01 14:58:57.742  Compress reports
+2026-05-01 14:59:42.769  NOVA VERIFY END zip=C:\Projects\nova\tool\nova_verifier\nova_verify_out\nova_verify_latest.zip

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="124dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:background="#00000000">
+
+    <LinearLayout
+        android:id="@+id/bannerRoot"
+        android:layout_width="match_parent"
+        android:layout_height="108dp"
+        android:background="@drawable/bg_hios_incoming_banner"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="42dp"
+        android:paddingEnd="28dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/bannerNumberLine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="+90 543 178 71 07"
+                android:textColor="#FFF3DD"
+                android:textSize="23sp" />
+
+            <TextView
+                android:id="@+id/bannerCallerLine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="7dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="KALBİM"
+                android:textColor="#FFFFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/bannerRejectButton"
+            android:layout_width="74dp"
+            android:layout_height="74dp"
+            android:layout_marginStart="18dp"
+            android:background="@drawable/bg_hios_banner_reject"
+            android:clickable="true"
+            android:focusable="true"
+            android:drawableTop="@drawable/ic_hios_call_end_white"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/bannerAnswerButton"
+            android:layout_width="74dp"
+            android:layout_height="74dp"
+            android:layout_marginStart="24dp"
+            android:background="@drawable/bg_hios_banner_answer"
+            android:clickable="true"
+            android:focusable="true"
+            android:drawableTop="@drawable/ic_hios_call_white"
+            android:gravity="center" />
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,23 @@
+{
+  "resolution_policy": {
+    "exact_jsonl_first": true,
+    "alias_fallback_only_when_exact_missing": true,
+    "target_domains_built": [
+      "agriculture_engineering",
+      "archaeology_advanced",
+      "astrology_calculations",
+      "automotive_catalog",
+      "automotive_troubleshooting",
+      "bioenergy",
+      "biology_advanced",
+      "chemistry_advanced",
+      "construction_engineering",
+      "crypto_advanced",
+      "finance_advanced",
+      "math_advanced",
+      "numerology_calculations",
+      "pvc_aluminum",
+      "reiki"
+    ]
+  }
+}

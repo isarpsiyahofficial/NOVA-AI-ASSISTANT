@@ -1,0 +1,188 @@
+{
+  "format": "nova-open-source-registry-v26",
+  "requested_targets": {
+    "ultra_support_brain": 10000,
+    "problem_solving": 20000,
+    "math_advanced": 100000,
+    "biology_advanced": 50000,
+    "chemistry_advanced": 50000,
+    "numerology_calculations": 30000,
+    "occultism": 20000,
+    "astrology_calculations": 30000,
+    "bioenergy": 20000,
+    "reiki": 20000,
+    "physics_formula_applications": 10000,
+    "automotive_catalog": 150000,
+    "automotive_troubleshooting": 300000,
+    "archaeology_advanced": 50000,
+    "construction_engineering": 20000,
+    "pvc_aluminum": 20000,
+    "agriculture_engineering": 20000,
+    "finance_advanced": 30000,
+    "crypto_advanced": 20000
+  },
+  "domains": {
+    "ultra_support_brain": {
+      "target_records": 10000,
+      "actual_records": 10000,
+      "source_files": [
+        "CalculusVolume1-OP.pdf",
+        "CalculusVolume2-OP.pdf",
+        "CalculusVolume3-OP.pdf",
+        "college_physics_2e.pdf",
+        "Chemistry2e-OpenStax-reduced-size.pdf",
+        "ConceptsOfBiology-LR.pdf",
+        "Microbiology-LR.pdf",
+        "PrinciplesofFinance-WEB.pdf",
+        "IntroductoryBusinessStatistics-OP.pdf",
+        "Macroeconomics3e-WEB.pdf",
+        "National_Engineering_Manual.pdf",
+        "AManualOfCivilEngineering.pdf"
+      ]
+    },
+    "problem_solving": {
+      "target_records": 20000,
+      "actual_records": 20000,
+      "source_files": [
+        "CalculusVolume1-OP.pdf",
+        "CalculusVolume2-OP.pdf",
+        "CalculusVolume3-OP.pdf",
+        "college_physics_2e.pdf",
+        "Chemistry2e-OpenStax-reduced-size.pdf",
+        "IntroductoryBusinessStatistics-OP.pdf",
+        "PrinciplesofFinance-WEB.pdf",
+        "Macroeconomics3e-WEB.pdf"
+      ]
+    },
+    "math_advanced": {
+      "target_records": 100000,
+      "actual_records": 21777,
+      "source_files": [
+        "CalculusVolume1-OP.pdf",
+        "CalculusVolume2-OP.pdf",
+        "CalculusVolume3-OP.pdf",
+        "IntroductoryBusinessStatistics-OP.pdf"
+      ]
+    },
+    "biology_advanced": {
+      "target_records": 50000,
+      "actual_records": 20402,
+      "source_files": [
+        "ConceptsOfBiology-LR.pdf",
+        "Microbiology-LR.pdf"
+      ]
+    },
+    "chemistry_advanced": {
+      "target_records": 50000,
+      "actual_records": 10981,
+      "source_files": [
+        "Chemistry2e-OpenStax-reduced-size.pdf"
+      ]
+    },
+    "numerology_calculations": {
+      "target_records": 30000,
+      "actual_records": 2920,
+      "source_files": [
+        "ManualOfTheEnumeration.txt",
+        "CheirosBookOfNumbers.pdf"
+      ]
+    },
+    "occultism": {
+      "target_records": 20000,
+      "actual_records": 20000,
+      "source_files": [
+        "ManualOfOccultism.pdf",
+        "encyclopaedia_occultism.pdf",
+        "the_occult_world.pdf"
+      ]
+    },
+    "astrology_calculations": {
+      "target_records": 30000,
+      "actual_records": 288,
+      "source_files": [
+        "SimplifiedScientificAstrology.pdf",
+        "ManualOfOccultism.pdf"
+      ]
+    },
+    "bioenergy": {
+      "target_records": 20000,
+      "actual_records": 493,
+      "source_files": [
+        "EssayOfInstructionOnAnimalMagnetism.pdf",
+        "reiki_manual.pdf"
+      ]
+    },
+    "reiki": {
+      "target_records": 20000,
+      "actual_records": 806,
+      "source_files": [
+        "reiki_manual.pdf"
+      ]
+    },
+    "physics_formula_applications": {
+      "target_records": 10000,
+      "actual_records": 10000,
+      "source_files": [
+        "college_physics_2e.pdf"
+      ]
+    },
+    "automotive_catalog": {
+      "target_records": 150000,
+      "actual_records": 0,
+      "source_files": []
+    },
+    "automotive_troubleshooting": {
+      "target_records": 300000,
+      "actual_records": 0,
+      "source_files": []
+    },
+    "archaeology_advanced": {
+      "target_records": 50000,
+      "actual_records": 124,
+      "source_files": [
+        "ArchaeologyOfTheHighPlains.pdf"
+      ]
+    },
+    "construction_engineering": {
+      "target_records": 20000,
+      "actual_records": 2336,
+      "source_files": [
+        "AManualOfCivilEngineering.pdf",
+        "National_Engineering_Manual.pdf"
+      ]
+    },
+    "pvc_aluminum": {
+      "target_records": 20000,
+      "actual_records": 3491,
+      "source_files": [
+        "HandbookOnPipesAndFittings.pdf",
+        "National_Engineering_Manual.pdf"
+      ]
+    },
+    "agriculture_engineering": {
+      "target_records": 20000,
+      "actual_records": 1137,
+      "source_files": [
+        "AgriculturalEngineeringInIndiaIrrigation.pdf",
+        "Agricultural_Waste_Management_Field_Handbook.pdf",
+        "National_Engineering_Manual.pdf"
+      ]
+    },
+    "finance_advanced": {
+      "target_records": 30000,
+      "actual_records": 15812,
+      "source_files": [
+        "PrinciplesofFinance-WEB.pdf",
+        "IntroductoryBusinessStatistics-OP.pdf",
+        "Macroeconomics3e-WEB.pdf"
+      ]
+    },
+    "crypto_advanced": {
+      "target_records": 20000,
+      "actual_records": 228,
+      "source_files": [
+        "SEC_dlt_framework.pdf"
+      ]
+    }
+  }
+}

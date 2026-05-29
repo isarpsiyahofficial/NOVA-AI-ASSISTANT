@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+    <style name="NovaCallUiTheme" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">#160F22</item>
+        <item name="android:statusBarColor">#6B46C1</item>
+        <item name="android:navigationBarColor">#221637</item>
+        <item name="android:colorAccent">#B89CFF</item>
+        <item name="android:colorPrimary">#8E6BD9</item>
+        <item name="android:colorPrimaryDark">#5D3AA8</item>
+    </style>
+</resources>

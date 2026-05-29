@@ -1,0 +1,667 @@
+diff -ruN /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthBridgePlugin.kt /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthBridgePlugin.kt
+--- /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthBridgePlugin.kt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthBridgePlugin.kt	2026-04-26 15:14:54.001314475 +0000
+@@ -0,0 +1,85 @@
++package com.example.nova
++
++import android.content.Context
++import android.os.Handler
++import android.os.Looper
++import io.flutter.embedding.engine.FlutterEngine
++import io.flutter.plugin.common.MethodCall
++import io.flutter.plugin.common.MethodChannel
++
++class NovaAndroidTtsMouthBridgePlugin(
++    private val context: Context
++) : MethodChannel.MethodCallHandler {
++
++    companion object {
++        private const val CHANNEL = "nova/android_tts_mouth"
++
++        fun register(
++            flutterEngine: FlutterEngine,
++            context: Context
++        ) {
++            val channel = MethodChannel(
++                flutterEngine.dartExecutor.binaryMessenger,
++                CHANNEL
++            )
++            channel.setMethodCallHandler(
++                NovaAndroidTtsMouthBridgePlugin(context.applicationContext)
++            )
++        }
++    }
++
++    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
++        when (call.method) {
++            "warmup" -> {
++                val language = call.argument<String>("language")?.trim().orEmpty().ifBlank { "tr-TR" }
++                val preferFemale = call.argument<Boolean>("preferFemale") ?: true
++                result.success(
++                    NovaAndroidTtsMouthEngine.warmup(
++                        context = context,
++                        language = language,
++                        preferFemale = preferFemale
++                    )
++                )
++            }
++
++            "speak" -> {
++                val text = call.argument<String>("text")?.trim().orEmpty()
++                val language = call.argument<String>("language")?.trim().orEmpty().ifBlank { "tr-TR" }
++                val preferFemale = call.argument<Boolean>("preferFemale") ?: true
++                val allowUnknownGenderTurkish = call.argument<Boolean>("allowUnknownGenderTurkish") ?: true
++                val speechRate = (call.argument<Double>("speechRate") ?: 0.96).toFloat()
++                val pitch = (call.argument<Double>("pitch") ?: 1.03).toFloat()
++
++                if (text.isEmpty()) {
++                    result.success(false)
++                    return
++                }
++
++                Thread {
++                    val success = NovaAndroidTtsMouthEngine.speak(
++                        context = context,
++                        text = text,
++                        language = language,
++                        preferFemale = preferFemale,
++                        allowUnknownGenderTurkish = allowUnknownGenderTurkish,
++                        speechRate = speechRate,
++                        pitch = pitch,
++                        waitForDone = true
++                    )
++                    Handler(Looper.getMainLooper()).post {
++                        result.success(success)
++                    }
++                }.apply {
++                    name = "Nova-AndroidTtsMouth"
++                    isDaemon = true
++                }.start()
++            }
++
++            "stop" -> result.success(NovaAndroidTtsMouthEngine.stop())
++
++            "getState" -> result.success(NovaAndroidTtsMouthEngine.debugState())
++
++            else -> result.notImplemented()
++        }
++    }
++}
+diff -ruN /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthEngine.kt /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthEngine.kt
+--- /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthEngine.kt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthEngine.kt	2026-04-26 15:14:24.152434604 +0000
+@@ -0,0 +1,327 @@
++package com.example.nova
++
++import android.content.Context
++import android.media.AudioAttributes
++import android.os.Bundle
++import android.speech.tts.TextToSpeech
++import android.speech.tts.UtteranceProgressListener
++import android.speech.tts.Voice
++import android.util.Log
++import java.util.Locale
++import java.util.UUID
++import java.util.concurrent.CountDownLatch
++import java.util.concurrent.TimeUnit
++import java.util.concurrent.atomic.AtomicBoolean
++
++object NovaAndroidTtsMouthEngine {
++    private const val TAG = "NovaAndroidTtsMouth"
++    private const val DEFAULT_WAIT_MS = 45_000L
++
++    @Volatile private var tts: TextToSpeech = null
++    @Volatile private var initialized: Boolean = false
++    @Volatile private var initializing: Boolean = false
++    @Volatile private var selectedVoiceName: String = ""
++    @Volatile private var selectedVoiceLocale: String = ""
++    @Volatile private var lastMessage: String = "Android/Google TTS mouth henÃ¼z baÅŸlatÄ±lmadÄ±."
++
++    @Synchronized
++    fun warmup(context: Context, language: String = "tr-TR", preferFemale: Boolean = true): Boolean {
++        if (initialized && tts != null) {
++            return configureVoice(language = language, preferFemale = preferFemale)
++        }
++
++        if (initializing) {
++            waitUntilReady()
++            return initialized && configureVoice(language = language, preferFemale = preferFemale)
++        }
++
++        initializing = true
++        val latch = CountDownLatch(1)
++        val appContext = context.applicationContext
++        try {
++            var engine: TextToSpeech = null
++            engine = TextToSpeech(appContext) { status ->
++                initialized = status == TextToSpeech.SUCCESS
++                lastMessage = if (initialized) {
++                    "Android/Google TTS mouth hazÄ±r."
++                } else {
++                    "Android/Google TTS baÅŸlatÄ±lamadÄ±. status=$status"
++                }
++                tts = engine
++                initializing = false
++                latch.countDown()
++            }
++            tts = engine
++            latch.await(8, TimeUnit.SECONDS)
++        } catch (t: Throwable) {
++            initializing = false
++            initialized = false
++            lastMessage = t.message ?: "Android/Google TTS warmup hatasÄ±."
++            Log.e(TAG, "warmup failed", t)
++            return false
++        }
++
++        return initialized && configureVoice(language = language, preferFemale = preferFemale)
++    }
++
++    private fun waitUntilReady(): Boolean {
++        val started = System.currentTimeMillis()
++        while (initializing && System.currentTimeMillis() - started < 8_000L) {
++            try {
++                Thread.sleep(40L)
++            } catch (_: InterruptedException) {
++                return false
++            }
++        }
++        return initialized
++    }
++
++    @Synchronized
++    fun configureVoice(language: String = "tr-TR", preferFemale: Boolean = true): Boolean {
++        val engine = tts ?: return false
++        val locale = localeFrom(language)
++        try {
++            val languageResult = engine.setLanguage(locale)
++            if (languageResult == TextToSpeech.LANG_MISSING_DATA ||
++                languageResult == TextToSpeech.LANG_NOT_SUPPORTED
++            ) {
++                lastMessage = "TÃ¼rkÃ§e TTS dili cihazda desteklenmiyor veya veri eksik."
++                Log.w(TAG, lastMessage)
++                return false
++            }
++
++            engine.setAudioAttributes(
++                AudioAttributes.Builder()
++                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
++                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
++                    .build()
++            )
++
++            val voice = chooseBestVoice(engine.voices, locale, preferFemale)
++            if (voice != null) {
++                try {
++                    engine.voice = voice
++                    selectedVoiceName = voice.name.orEmpty()
++                    selectedVoiceLocale = voice.locale?.toLanguageTag().orEmpty()
++                    lastMessage = if (isFemaleLike(selectedVoiceName)) {
++                        "KadÄ±n/insancÄ±l TÃ¼rkÃ§e Android TTS mouth seÃ§ildi: $selectedVoiceName"
++                    } else {
++                        "Cinsiyeti belirsiz ama TÃ¼rkÃ§e Android TTS mouth seÃ§ildi: $selectedVoiceName"
++                    }
++                    Log.i(TAG, lastMessage)
++                } catch (t: Throwable) {
++                    lastMessage = "TTS voice set edilemedi; platform default TÃ¼rkÃ§e kullanÄ±lacak. ${t.message.orEmpty()}"
++                    Log.w(TAG, lastMessage)
++                }
++            } else {
++                selectedVoiceName = "platform_default_tr_TR_unverified_gender"
++                selectedVoiceLocale = locale.toLanguageTag()
++                lastMessage = "Voice listesi gÃ¼venli seÃ§im vermedi; platform default TÃ¼rkÃ§e mouth kullanÄ±lacak."
++                Log.w(TAG, lastMessage)
++            }
++
++            return true
++        } catch (t: Throwable) {
++            lastMessage = t.message ?: "Android/Google TTS voice yapÄ±landÄ±rmasÄ± baÅŸarÄ±sÄ±z."
++            Log.e(TAG, "configureVoice failed", t)
++            return false
++        }
++    }
++
++    fun speak(
++        context: Context,
++        text: String,
++        language: String = "tr-TR",
++        preferFemale: Boolean = true,
++        allowUnknownGenderTurkish: Boolean = true,
++        speechRate: Float = 0.96f,
++        pitch: Float = 1.03f,
++        waitForDone: Boolean = true,
++    ): Boolean {
++        val prepared = text.trim()
++        if (prepared.isEmpty()) {
++            lastMessage = "BoÅŸ metin konuÅŸulmadÄ±."
++            return false
++        }
++
++        if (!warmup(context, language, preferFemale)) {
++            return false
++        }
++
++        val engine = tts ?: return false
++        if (!allowUnknownGenderTurkish && selectedVoiceName.contains("unverified", ignoreCase = true)) {
++            lastMessage = "Cinsiyeti belirsiz TÃ¼rkÃ§e TTS owner policy nedeniyle konuÅŸmadÄ±."
++            return false
++        }
++
++        return try {
++            engine.setSpeechRate(speechRate.coerceIn(0.75f, 1.15f))
++            engine.setPitch(pitch.coerceIn(0.88f, 1.16f))
++
++            val done = CountDownLatch(1)
++            val ok = AtomicBoolean(false)
++            val failed = AtomicBoolean(false)
++            val utteranceId = "nova_mouth_${UUID.randomUUID()}"
++
++            engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
++                override fun onStart(utteranceId: String?) {
++                    ok.set(true)
++                    Log.i(TAG, "speak started id=$utteranceId voice=$selectedVoiceName")
++                }
++
++                override fun onDone(utteranceId: String?) {
++                    ok.set(true)
++                    done.countDown()
++                    Log.i(TAG, "speak done id=$utteranceId")
++                }
++
++                @Deprecated("Deprecated in Java")
++                override fun onError(utteranceId: String?) {
++                    failed.set(true)
++                    done.countDown()
++                    Log.e(TAG, "speak error id=$utteranceId")
++                }
++
++                override fun onError(utteranceId: String?, errorCode: Int) {
++                    failed.set(true)
++                    done.countDown()
++                    Log.e(TAG, "speak error id=$utteranceId code=$errorCode")
++                }
++            })
++
++            val params = Bundle()
++            val queued = engine.speak(prepared, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
++            if (queued != TextToSpeech.SUCCESS) {
++                lastMessage = "Android/Google TTS speak kuyruÄŸa alÄ±namadÄ±. result=$queued"
++                return false
++            }
++
++            if (!waitForDone) {
++                lastMessage = "Android/Google TTS konuÅŸma baÅŸlatÄ±ldÄ±."
++                return true
++            }
++
++            val waitMs = (2_500L + prepared.length * 85L).coerceIn(6_000L, DEFAULT_WAIT_MS)
++            done.await(waitMs, TimeUnit.MILLISECONDS)
++            val success = ok.get() && !failed.get()
++            lastMessage = if (success) {
++                "Android/Google TTS konuÅŸma tamamlandÄ±."
++            } else {
++                "Android/Google TTS konuÅŸma tamamlanamadÄ± veya callback dÃ¶nmedi."
++            }
++            success
++        } catch (t: Throwable) {
++            lastMessage = t.message ?: "Android/Google TTS konuÅŸma hatasÄ±."
++            Log.e(TAG, "speak failed", t)
++            false
++        }
++    }
++
++    fun stop(): Boolean {
++        return try {
++            tts?.stop()
++            lastMessage = "Android/Google TTS mouth durduruldu."
++            true
++        } catch (t: Throwable) {
++            lastMessage = t.message ?: "Android/Google TTS stop hatasÄ±."
++            false
++        }
++    }
++
++    fun debugState(): Map<String, Any> = linkedMapOf(
++        "ready" to (initialized && tts != null),
++        "initializing" to initializing,
++        "selectedVoiceName" to selectedVoiceName,
++        "selectedVoiceLocale" to selectedVoiceLocale,
++        "message" to lastMessage,
++    )
++
++    private fun chooseBestVoice(voices: Set<Voice>?, targetLocale: Locale, preferFemale: Boolean): Voice {
++        if (voices.isNullOrEmpty()) return null
++
++        var best: Voice = null
++        var bestScore = Int.MIN_VALUE
++
++        for (voice in voices) {
++            val name = voice.name.orEmpty()
++            val locale = voice.locale ?: continue
++            val localeMatches = locale.language.equals(targetLocale.language, ignoreCase = true) ||
++                name.contains("tr-tr", ignoreCase = true) ||
++                name.contains("turkish", ignoreCase = true) ||
++                name.contains("turk", ignoreCase = true)
++            if (!localeMatches) continue
++
++            val female = isFemaleLike(name)
++            val male = isMaleLike(name)
++
++            if (male && !female) {
++                Log.i(TAG, "skipped male/default-like voice=$name locale=${locale.toLanguageTag()}")
++                continue
++            }
++
++            var score = 0
++            if (locale.toLanguageTag().equals(targetLocale.toLanguageTag(), ignoreCase = true)) score += 1000
++            if (locale.language.equals(targetLocale.language, ignoreCase = true)) score += 450
++            if (name.contains("google", ignoreCase = true)) score += 150
++            if (preferFemale && female) score += 700
++            if (!female && !male) score += 120
++            if (voice.isNetworkConnectionRequired) score -= 160
++            score += voice.quality
++            score -= voice.latency / 3
++
++            if (score > bestScore) {
++                bestScore = score
++                best = voice
++            }
++        }
++
++        return best
++    }
++
++    private fun localeFrom(language: String): Locale {
++        val normalized = language.trim().replace('_', '-').lowercase(Locale.ROOT)
++        return when {
++            normalized.startsWith("tr") -> Locale("tr", "TR")
++            normalized.startsWith("en") -> Locale.US
++            else -> Locale("tr", "TR")
++        }
++    }
++
++    private fun isFemaleLike(name: String): Boolean {
++        val lower = name.lowercase(Locale.ROOT)
++        return hasToken(lower, "female") ||
++            hasToken(lower, "woman") ||
++            lower.contains("kadÄ±n") ||
++            lower.contains("kadin") ||
++            lower.contains("seda") ||
++            lower.contains("selin") ||
++            lower.contains("zeynep") ||
++            lower.contains("filiz") ||
++            lower.contains("elif") ||
++            lower.contains("ece") ||
++            lower.contains("ofg")
++    }
++
++    private fun isMaleLike(name: String): Boolean {
++        val lower = name.lowercase(Locale.ROOT)
++            .replace("female", "")
++            .replace("woman", "")
++            .replace("kadÄ±n", "")
++            .replace("kadin", "")
++        return hasToken(lower, "male") ||
++            hasToken(lower, "man") ||
++            lower.contains("erkek") ||
++            lower.contains("adam") ||
++            lower.contains("fahrettin") ||
++            lower.contains("fettah") ||
++            lower.contains("baritone") ||
++            lower.contains("bariton") ||
++            lower.contains("default") ||
++            lower.contains("robot")
++    }
++
++    private fun hasToken(value: String, token: String): Boolean {
++        return Regex("(^|[^a-z0-9])${Regex.escape(token.lowercase(Locale.ROOT))}([^a-z0-9]|$)")
++            .containsMatchIn(value.lowercase(Locale.ROOT))
++    }
++}
+diff -ruN /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/NovaXttsBridgePlugin.kt /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/NovaXttsBridgePlugin.kt
+--- /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/NovaXttsBridgePlugin.kt	2026-04-26 15:15:26.994503243 +0000
++++ /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/NovaXttsBridgePlugin.kt	2026-04-26 15:14:35.474182903 +0000
+@@ -55,11 +55,32 @@
+ 
+                     Thread {
+                         val success = try {
+-                            engine.speak(
+-                                text = text,
+-                                language = language,
+-                                speakerPath = speakerPath
+-                            )
++                            val languageLower = language.lowercase()
++                            if (languageLower.startsWith("tr")) {
++                                val mouthOk = NovaAndroidTtsMouthEngine.speak(
++                                    context = context,
++                                    text = text,
++                                    language = language,
++                                    preferFemale = true,
++                                    allowUnknownGenderTurkish = true,
++                                    waitForDone = true
++                                )
++                                if (mouthOk) {
++                                    true
++                                } else {
++                                    engine.speak(
++                                        text = text,
++                                        language = language,
++                                        speakerPath = speakerPath
++                                    )
++                                }
++                            } else {
++                                engine.speak(
++                                    text = text,
++                                    language = language,
++                                    speakerPath = speakerPath
++                                )
++                            }
+                         } catch (_: Throwable) {
+                             false
+                         }
+diff -ruN /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/MainActivity.kt /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/MainActivity.kt
+--- /mnt/data/nova_patch_original/android/app/src/main/kotlin/com/example/nova/MainActivity.kt	2026-04-26 15:15:26.966567878 +0000
++++ /mnt/data/nova_final_patch/android/app/src/main/kotlin/com/example/nova/MainActivity.kt	2026-04-26 15:14:35.472808967 +0000
+@@ -195,6 +195,11 @@
+             context = this
+         )
+ 
++        NovaAndroidTtsMouthBridgePlugin.register(
++            flutterEngine = flutterEngine,
++            context = this
++        )
++
+         NovaVoiceIdentityBridgePlugin.register(
+             flutterEngine = flutterEngine,
+             context = this
+diff -ruN /mnt/data/nova_patch_original/lib/services/speech/tts_service.dart /mnt/data/nova_final_patch/lib/services/speech/tts_service.dart
+--- /mnt/data/nova_patch_original/lib/services/speech/tts_service.dart	2026-04-26 15:15:26.928159150 +0000
++++ /mnt/data/nova_final_patch/lib/services/speech/tts_service.dart	2026-04-26 15:13:53.772514174 +0000
+@@ -1,5 +1,6 @@
+ import 'dart:async';
+ import 'package:flutter/foundation.dart';
++import 'package:flutter/services.dart';
+ import 'package:flutter_tts/flutter_tts.dart';
+ 
+ import '../../core/voice/voice_profile.dart';
+@@ -11,6 +12,7 @@
+   final NovaNativeAudioBridgeService nativeBridge;
+ 
+   static final FlutterTts _flutterTts = FlutterTts();
++  static const MethodChannel _androidMouthChannel = MethodChannel('nova/android_tts_mouth');
+ 
+   static bool _initialized = false;
+   static String _currentLanguage = 'tr-TR';
+@@ -144,10 +146,7 @@
+       }
+ 
+       if (_isTurkishLocale(_currentLanguage)) {
+-        final femaleVoiceReady = await _ensureVerifiedTurkishPlatformVoice();
+-        if (!femaleVoiceReady) {
+-          throw StateError('GÃ¼venli TÃ¼rkÃ§e aÄŸÄ±z sesi bulunamadÄ±; bilinen erkek/default TTS yasak.');
+-        }
++        await _ensureVerifiedTurkishPlatformVoice();
+         debugPrint('NOVA_TTS_TURKISH_PLATFORM_READY verifiedVoice=$_verifiedTurkishPlatformVoiceName chars=${prepared.length}');
+         await _speakWithPlatformTts(prepared);
+         return;
+@@ -171,13 +170,11 @@
+       }
+ 
+       if (_isTurkishLocale(_currentLanguage)) {
+-        // The brain, ASR and emotion/prosody systems remain in Nova. This is
+-        // only the final mouth adapter: use the previously human-like verified
+-        // Turkish female platform voice and reject male/default routes.
+-        final femaleVoiceReady = await _ensureVerifiedTurkishPlatformVoice();
+-        if (!femaleVoiceReady) {
+-          throw StateError('GÃ¼venli TÃ¼rkÃ§e aÄŸÄ±z sesi bulunamadÄ±; bilinen erkek/default TTS yasak.');
+-        }
++        // ASR kulak, Google/Android platform TTS aÄŸÄ±z. Setup konuÅŸmasÄ± yerel
++        // model, Hotpath veya streaming ASR boot zincirine kilitlenmez.
++        // KadÄ±n TÃ¼rkÃ§e ses Ã¶nceliklidir; Android cinsiyet belirtmiyorsa ses
++        // tamamen reddedilip Nova susturulmaz.
++        await _ensureVerifiedTurkishPlatformVoice();
+         await _speakWithPlatformTts(prepared);
+         return;
+       }
+@@ -322,12 +319,47 @@
+   Future<bool> _ensureVerifiedTurkishPlatformVoice() async {
+     await _ensureInitialized();
+     if (_verifiedTurkishPlatformVoiceReady) return true;
++
+     final selected = await _trySelectBestVoiceForLocale(
+       'tr-TR',
+-      requireFemaleForTurkish: true,
++      requireFemaleForTurkish: false,
+     );
+-    _verifiedTurkishPlatformVoiceReady = selected;
+-    return selected;
++    if (selected) {
++      _verifiedTurkishPlatformVoiceReady = true;
++      return true;
++    }
++
++    try {
++      await _flutterTts.setLanguage('tr-TR');
++      await _flutterTts.setVolume(1.0);
++      await _flutterTts.setSpeechRate(_currentSpeechRate);
++      await _flutterTts.setPitch(_currentPitch);
++      _verifiedTurkishPlatformVoiceReady = true;
++      _verifiedTurkishPlatformVoiceName = 'platform_default_tr_TR_unverified_gender';
++      debugPrint('NOVA_TTS_VOICE_ACCEPTED_PLATFORM_DEFAULT locale=tr-TR reason=voice_list_missing_or_unclassified');
++      return true;
++    } catch (error) {
++      debugPrint('NOVA_TTS_PLATFORM_DEFAULT_FAILED error=$error');
++    }
++
++    try {
++      final nativeReady = await _androidMouthChannel.invokeMethod<bool>(
++        'warmup',
++        const <String, Object?>{'language': 'tr-TR'},
++      );
++      if (nativeReady == true) {
++        _verifiedTurkishPlatformVoiceReady = true;
++        _verifiedTurkishPlatformVoiceName = 'native_android_google_tr_TR';
++        debugPrint('NOVA_TTS_NATIVE_ANDROID_MOUTH_READY');
++        return true;
++      }
++    } catch (error) {
++      debugPrint('NOVA_TTS_NATIVE_ANDROID_MOUTH_WARMUP_FAILED error=$error');
++    }
++
++    _verifiedTurkishPlatformVoiceReady = false;
++    _verifiedTurkishPlatformVoiceName = '';
++    return false;
+   }
+ 
+   Future<void> _speakWithPlatformTts(String prepared) async {
+@@ -335,9 +367,19 @@
+     for (final chunk in chunks) {
+       if (chunk.trim().isEmpty) continue;
+       await _applyDynamicProsody(chunk);
+-      final result = await _flutterTts.speak(chunk);
+-      debugPrint('NOVA_TTS_PLATFORM_CHUNK_RESULT result=$result chars=${chunk.length} voice=$_verifiedTurkishPlatformVoiceName');
+-      if (result != null && result != 1) {
++      try {
++        final result = await _flutterTts.speak(chunk);
++        debugPrint('NOVA_TTS_PLATFORM_CHUNK_RESULT result=$result chars=${chunk.length} voice=$_verifiedTurkishPlatformVoiceName');
++        if (result == null || result == 1) {
++          continue;
++        }
++        debugPrint('NOVA_TTS_PLATFORM_CHUNK_REJECTED result=$result; native mouth fallback deneniyor.');
++      } catch (error) {
++        debugPrint('NOVA_TTS_PLATFORM_CHUNK_ERROR error=$error; native mouth fallback deneniyor.');
++      }
++
++      final fallbackOk = await _speakWithNativeAndroidMouth(chunk);
++      if (!fallbackOk) {
+         throw StateError('Sistem TTS konuÅŸmayÄ± baÅŸlatamadÄ±.');
+       }
+     }
+@@ -347,6 +389,27 @@
+     } catch (_) {}
+   }
+ 
++  Future<bool> _speakWithNativeAndroidMouth(String text) async {
++    try {
++      final result = await _androidMouthChannel.invokeMethod<bool>(
++        'speak',
++        <String, Object?>{
++          'text': text,
++          'language': _currentLanguage,
++          'preferFemale': true,
++          'allowUnknownGenderTurkish': true,
++          'speechRate': 0.96,
++          'pitch': 1.03,
++        },
++      );
++      debugPrint('NOVA_TTS_NATIVE_ANDROID_MOUTH_RESULT result=$result chars=${text.length}');
++      return result == true;
++    } catch (error) {
++      debugPrint('NOVA_TTS_NATIVE_ANDROID_MOUTH_ERROR error=$error');
++      return false;
++    }
++  }
++
+   Future<void> _applyDynamicProsody(String text) async {
+     final lowered = text.toLowerCase();
+ 
+@@ -398,9 +461,7 @@
+         if (item is! Map) continue;
+ 
+         final voice = Map<String, dynamic>.from(item);
+-        final locale = (voice['locale'] as String  '')
+-            .toLowerCase()
+-            .replaceAll('_', '-');
++        final locale = _voiceLocaleOf(voice).toLowerCase().replaceAll('_', '-');
+         final name = (voice['name'] as String  '').toLowerCase();
+         final quality = (voice['quality'] as num?)  0;
+         final latency = (voice['latency'] as num?)  500;
+@@ -478,7 +539,7 @@
+ 
+       if (selected != null && selected.isNotEmpty) {
+         final selectedName = (selected['name'] as String  '').toLowerCase();
+-        final selectedLocale = (selected['locale'] as String  '').toLowerCase();
++        final selectedLocale = _voiceLocaleOf(selected).toLowerCase();
+         final acceptedFemale = _isFemaleLikeVoiceName(selectedName) &&
+             !_isMaleLikeVoiceName(selectedName);
+         final acceptedTurkishMouth = isTurkishTarget &&
+@@ -564,6 +625,19 @@
+     );
+   }
+ 
++  String _voiceLocaleOf(Map<String, dynamic> voice) {
++    final direct = (voice['locale']  voice['language']  voice['lang'])?.toString().trim();
++    if (direct != null && direct.isNotEmpty) return direct;
++    final languages = voice['languages'];
++    if (languages is List && languages.isNotEmpty) {
++      final first = languages.first.toString().trim();
++      if (first.isNotEmpty) return first;
++    }
++    final name = (voice['name']  '').toString().toLowerCase();
++    if (name.contains('tr-tr') || name.contains('turkish') || name.contains('turk')) return 'tr-TR';
++    return '';
++  }
++
+   String _normalizeLocale(String localeCode) {
+     final raw = localeCode.trim();
+     if (raw.isEmpty) return 'tr-TR';

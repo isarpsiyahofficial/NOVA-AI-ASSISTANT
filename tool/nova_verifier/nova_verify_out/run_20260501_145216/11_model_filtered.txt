@@ -1,0 +1,780 @@
+05-01 13:46:25.826  1899  3109 I wm_set_resumed_activity: [0,com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher,setFocusedTask-alreadyTop]
+05-01 13:46:28.867  1899  5464 I am_kill : [0,1073,com.example.nova:nova_sentinel,999,empty #49,87424]
+05-01 13:46:29.119  1899  5463 I am_proc_died: [0,1073,com.example.nova:nova_sentinel,999,19]
+05-01 13:46:29.231  1899  3109 I am_kill : [0,1079,com.example.nova:nova_nightwatch,999,empty #49,87824]
+05-01 13:46:29.432  1899  5463 I am_proc_died: [0,1079,com.example.nova:nova_nightwatch,999,19]
+05-01 13:46:38.232  1899  5463 I wm_set_resumed_activity: [0,com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher,setFocusedTask-alreadyTop]
+05-01 13:47:45.339  1899  3109 I am_kill : [0,1094,com.example.nova:nova_decommission,999,empty #49,87912]
+05-01 13:47:45.375  1899  3109 I am_proc_died: [0,1094,com.example.nova:nova_decommission,999,19]
+05-01 13:48:09.225  1899  5463 I am_kill : [0,1118,com.example.nova:nova_internet,999,empty #49,87964]
+05-01 13:48:09.263  1899  2634 I am_proc_died: [0,1118,com.example.nova:nova_internet,999,19]
+05-01 13:49:23.853  1899  3162 I am_kill : [0,15710,com.google.android.tts,999,empty #49,97664]
+05-01 13:49:23.949  1899  3109 I am_proc_died: [0,15710,com.google.android.tts,999,19]
+05-01 14:00:49.035  1899  2030 I am_proc_start: [0,16103,10096,com.google.android.partnersetup,service,{com.google.android.partnersetup/com.google.android.partnersetup.InstalledAppJobService},trigger = job,caller=system/1000]
+05-01 14:00:49.079  1899  3162 I am_proc_bound: [0,16103,com.google.android.partnersetup]
+05-01 14:02:56.714  1899  2037 I am_cpu  : [16103,10096,id.partnersetup,0,0,0]
+05-01 14:03:28.197  1899  3109 I am_schedule_service_restart: [999,com.google.android.gms/.auth.setup.devicesignals.LockScreenService,1000]
+05-01 14:03:29.248  1899  2030 I am_proc_start: [999,16621,99910109,com.google.android.gms.persistent,service,{com.google.android.gms/com.google.android.gms.auth.setup.devicesignals.LockScreenService},trigger = serviceRestart]
+05-01 14:03:32.162  1899  5057 I am_proc_died: [0,16103,com.google.android.partnersetup,905,19]
+05-01 14:06:56.374  1899  2029 I am_wtf  : [0,1899,system_server,-1,JobScheduler.JobStatus,Hasn't been prepared: JobStatus{47d9b55 androidx.work.systemjobscheduler:u0a296/19120 @androidx.work.systemjobscheduler@com.whatsapp/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10296 NET READY}]
+05-01 14:07:23.691  1899  2029 I am_wtf  : [0,1899,system_server,-1,JobScheduler.JobStatus,Hasn't been prepared: JobStatus{e92c5de androidx.work.systemjobscheduler:u0a296/19122 @androidx.work.systemjobscheduler@com.whatsapp/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10296 TIME=-1s392ms:none NET READY}]
+05-01 14:08:44.547  1899  1915 I wm_set_resumed_activity: [0,com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher,setFocusedTask-alreadyTop]
+05-01 14:09:55.564  1899  2373 I sysui_multi_action: [757,804,799,screen_timeout,801,600,802,1]
+05-01 14:09:59.039  1899  1995 I user_activity_timeout_override: 10000
+05-01 14:10:01.377  1899  1995 I user_activity_timeout_override: -1
+05-01 14:41:13.835  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:41:16.316  1899  2373 I sysui_multi_action: [757,804,799,screen_timeout,801,600,802,1]
+05-01 14:42:01.976  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:02.440  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:16.494  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:26.926  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:31.071  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:47.022  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:48.684  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:42:58.662  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:43:31.313  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:43:41.244  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:43:57.845  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:43:58.171  1899  1995 I user_activity_timeout_override: 10000
+05-01 14:43:58.532  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:44:04.535  1899  1995 I user_activity_timeout_override: -1
+05-01 14:44:04.841  1899  2373 I sysui_multi_action: [757,804,799,screen_timeout,801,600,802,1]
+05-01 14:44:31.540  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:44:32.154  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:44:48.535  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:44:48.961  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:44:59.898  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:45:00.258  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:45:04.999  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:45:21.850  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:45:23.562  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:45:42.540  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:45:50.671  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:46:08.407  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:46:09.014  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:46:20.950  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:46:43.157  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:46:53.116  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:47:10.866  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:47:26.799  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:48:05.576  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:48:21.486  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:49:11.181  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:49:21.137  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:49:35.119  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:49:47.057  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:50:00.196  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:50:10.014  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:50:11.423  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:50:24.377  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:50:29.690  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:51:07.434  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:51:11.630  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:51:21.590  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:51:28.489  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:51:48.327  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:52:11.896  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:52:15.932  1899  5472 I ActivityManager: Force stopping com.example.nova appid=10395 user=0: from pid 22311
+05-01 14:52:15.950  1899  5472 I AppsFilter: interaction: PackageSetting{5db533 com.android.microdroid.empty_payload/10218} -> PackageSetting{c83295a com.example.nova/10395} BLOCKED
+05-01 14:52:15.951  1899  5472 W ActivityManager: Invalid packageName: com.example.nova
+05-01 14:52:15.965  1899  1899 I notification_cancel_all: [1000,1899,com.example.nova,0,0,0,5,NULL]
+05-01 14:52:18.499  1899  5472 D ActivityManager: AgaresFW_starting=Intent { flg=0x10000000 cmp=com.example.nova/.MainActivity }
+05-01 14:52:18.505  1899  5472 D AppLockLice: onActivityStarterIntercept: callingPackage = com.android.shell, aInfo.packageName:com.example.nova,mComeLockPkgList =[]
+05-01 14:52:18.512  1899  5472 D ActivityTaskManager: TaskLaunchParamsModifier:task=null activity=ActivityRecord{974429 u0 com.example.nova/.MainActivity display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@118005028 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@118005028
+05-01 14:52:18.513  1899  5472 D ActivityTaskManager: TaskLaunchParamsModifier:task=null activity=ActivityRecord{974429 u0 com.example.nova/.MainActivity t-1} display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@118005028 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@118005028 non-freeform-task-display-area display-area=DefaultTaskDisplayArea@118005028 default-portrait freeform-size-mismatch=Rect(281, 693 - 799, 1773)
+05-01 14:52:18.514  1899  5472 I ActivityTaskManager: needHookReparentToDefaultDisplay: sourceRecord = null,r = ActivityRecord{974429 u0 com.example.nova/.MainActivity t-1}, tda = null
+05-01 14:52:18.521  1899  5472 D ActivityTaskManager: TaskLaunchParamsModifier:task=Task{4d9b54f #5665 type=standard I=com.example.nova/.MainActivity} activity=ActivityRecord{974429 u0 com.example.nova/.MainActivity t-1} display-from-task=0 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@118005028 inherit-from-task=fullscreen non-freeform-task-display-area display-area=DefaultTaskDisplayArea@118005028 default-portrait freeform-size-mismatch=Rect(281, 693 - 799, 1773)
+05-01 14:52:18.524  1316  3826 I BufferQueueDebug: [ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665}#5074](this:0xb4000077bab02db8,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:18.527  1899  5472 D os.fingerprint: onTaskMovedToFront Task{4d9b54f #5665 type=standard I=com.example.nova/.MainActivity}
+05-01 14:52:18.527  1899  5472 D os.fingerprint: activityComponent = ComponentInfo{com.example.nova/com.example.nova.MainActivity} inMultiWindow = false
+05-01 14:52:18.527  1899  5472 I wm_create_activity: [0,9913385,5665,com.example.nova/.MainActivity,NULL,NULL,NULL,268435456]
+05-01 14:52:18.533  1899  5472 I AppsFilter: interaction: PackageSetting{5db533 com.android.microdroid.empty_payload/10218} -> PackageSetting{daa5cba com.example.nova/10395} BLOCKED
+05-01 14:52:18.534  1899  5472 D os.fingerprint: onActivityResume next:ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665}
+05-01 14:52:18.534  1899  5472 D os.fingerprint: activityComponent = ComponentInfo{com.example.nova/com.example.nova.MainActivity} inMultiWindow = false
+05-01 14:52:18.534  1899  5472 D AppLockLice: onActivityResume: packageName = com.example.nova,mComeLockPkgList =[],mPreLockPkgList =[]
+05-01 14:52:18.535  1899  2064 I Usf/appStateManager: handleUpdateTaskOverLap uid: 10395    packageName:com.example.nova remove
+05-01 14:52:18.538  1899  5472 I ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.example.nova/.MainActivity} with LAUNCH_SINGLE_TOP from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+05-01 14:52:18.538  1899  5472 I ActivityTaskManager: Add pending draw ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665}
+05-01 14:52:18.542  2806  3005 V WindowManagerShell: Transition requested (#301): android.os.BinderProxy@454a123 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=5665 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.example.nova/.MainActivity } baseActivity=ComponentInfo{com.example.nova/com.example.nova.MainActivity} topActivity=ComponentInfo{com.example.nova/com.example.nova.MainActivity} origActivity=null realActivity=ComponentInfo{com.example.nova/com.example.nova.MainActivity} numActivities=1 lastActiveTime=72826939 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=110 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@5337620} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 108 - 0, 0) topActivityInfo=ActivityInfo{1a73bd9 com.example.nova.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=true locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= falseisLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false topActivityEligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=1080 topActivityLetterboxHeight=2400 isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatControlState=hidden freeformCameraCompatMode=inactive}}}, pipTask = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 301 }
+05-01 14:52:18.549  1899  2624 D ActivityTaskManager_Recents: Skipping, user setup not complete  mTaskId: 8
+05-01 14:52:18.551  2806  3005 D ShellEventHandler: onPostRequestStartTransition OPEN token=android.os.BinderProxy@454a123
+05-01 14:52:18.553  1899  1995 I PowerHalWrapper: amsBoostProcessCreate package:com.example.nova 
+05-01 14:52:18.554  2572  2572 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=5665, baseIntent=Intent { flg=0x10000000 cmp=com.example.nova/.MainActivity }
+05-01 14:52:18.562  1899  2030 I am_proc_start: [0,17130,10395,com.example.nova,top-activity,{com.example.nova/com.example.nova.MainActivity}]
+05-01 14:52:18.562  1899  2030 I ActivityManager: Start proc 17130:com.example.nova/u0a395 for top-activity {com.example.nova/com.example.nova.MainActivity}
+05-01 14:52:18.569  1899  1995 I DisplayDeviceRepository: Display device changed: DisplayDeviceInfo{"Yerle┼şik Ekran": uniqueId="local:4627039422300187648", 1080 x 2400, modeId 4, renderFrameRate 60.000004, defaultModeId 1, userPreferredModeId -1, supportedModes [{id=1, width=1080, height=2400, fps=120.00001, vsync=120.00001, synthetic=false, alternativeRefreshRates=[60.0, 90.0, 144.00002], supportedHdrTypes=[]}, {id=2, width=1080, height=2400, fps=144.00002, vsync=144.00002, synthetic=false, alternativeRefreshRates=[60.0, 90.0, 120.00001], supportedHdrTypes=[]}, {id=3, width=1080, height=2400, fps=90.0, vsync=90.0, synthetic=false, alternativeRefreshRates=[60.0, 120.00001, 144.00002], supportedHdrTypes=[]}, {id=4, width=1080, height=2400, fps=60.0, vsync=60.0, synthetic=false, alternativeRefreshRates=[90.0, 120.00001, 144.00002], supportedHdrTypes=[]}], colorMode 0, supportedColorModes [0, 7, 9], hdrCapabilities HdrCapabilities{mSupportedHdrTypes=[], mMaxLuminance=500.0, mMaxAverageLuminance=500.0, mMinLuminance=0.0}, allmSupported false, gameContentTypeSupported false, density 420, 388.17 x 388.156 dpi, appVsyncOff 1133334, presDeadline 16600000, cutout DisplayCutout{insets=Rect(0, 108 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(485, 0 - 595, 108), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.625} cutoutSpec={M -21,0 L -21,41 L 21,41 L 21,0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, touch INTERNAL, rotation 0, type INTERNAL, address {port=0, model=0x40368bd6e7ee6c}, deviceProductInfo DeviceProductInfo{name=MTKDEV, manufacturerPnpId=MTK, productId=35638, modelYear=null, manufactureDate=ManufactureDate{week=42, year=2021}, connectionToSinkType=0}, state OFF, committedState OFF, frameRateOverride {uid=10164 frameRateHz=60.000004} , brightnessMinimum 0.0, brightnessMaximum 1.0, brightnessDefault 0.09817635, hdrSdrRatio 1.0, FLAG_ALLOWED_TO_BE_DEFAULT_DISPLAY, FLAG_ROTATES_WITH_CONTENT, FLAG_SECURE, FLAG_SUPPORTS_PROTECTED_BUFFERS, FLAG_TRUSTED, installOrientation 0, displayShape DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}}
+05-01 14:52:18.575 17130 17130 I .example.nova: Using CollectorTypeCMC GC.
+05-01 14:52:18.585 17130 17130 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+05-01 14:52:18.588 17130 17130 W TranInstanceHelper: Failed to instance com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl, java.lang.ClassNotFoundException: com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl
+05-01 14:52:18.597  1899  5464 I am_proc_bound: [0,17130,com.example.nova]
+05-01 14:52:18.603  1899  5464 D os.ActivityManagerServiceLice: make process active com.example.nova(17130)
+05-01 14:52:18.628  1899  2030 I am_proc_start: [0,22335,10395,com.example.nova:nova_observer,broadcast,{com.example.nova/com.example.nova.NovaSecurityBootReceiver},action = android.intent.action.LOCKED_BOOT_COMPLETED]
+05-01 14:52:18.628  1899  2030 I ActivityManager: Start proc 22335:com.example.nova:nova_observer/u0a395 for broadcast {com.example.nova/com.example.nova.NovaSecurityBootReceiver}
+05-01 14:52:18.635 17130 17130 D nativeloader: Configuring clns-7 for other apk /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk. target_sdk_version=36, uses_libraries=libOpenCL.so, library_path=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64:/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.example.nova
+05-01 14:52:18.635 22335 22335 I nova_observer: Using CollectorTypeCMC GC.
+05-01 14:52:18.643 22335 22335 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+05-01 14:52:18.647 22335 22335 W TranInstanceHelper: Failed to instance com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl, java.lang.ClassNotFoundException: com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl
+05-01 14:52:18.655  1899  2854 I am_proc_bound: [0,22335,com.example.nova:nova_observer]
+05-01 14:52:18.657  1899  2854 D os.ActivityManagerServiceLice: make process active com.example.nova:nova_observer(22335)
+05-01 14:52:18.674 22335 22335 D nativeloader: Configuring clns-7 for other apk /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk. target_sdk_version=36, uses_libraries=libOpenCL.so, library_path=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64:/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.example.nova
+05-01 14:52:18.708  1899  5464 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaSecuritySentinelService } to com.example.nova/.NovaSecuritySentinelService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.711  1899  5464 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaNightWatchService } to com.example.nova/.NovaNightWatchService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.714  1899  2854 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaDecommissionService } to com.example.nova/.NovaDecommissionService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.717  1899  2854 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaInternetShieldService } to com.example.nova/.NovaInternetShieldService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.723  1899  2854 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaSecuritySentinelService } to com.example.nova/.NovaSecuritySentinelService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.726  1899  2854 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaNightWatchService } to com.example.nova/.NovaNightWatchService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.728  1899  2854 W ActivityManager: Background start not allowed: service Intent { act=com.example.nova.security.ENFORCE_BOOT_STATE pkg=com.example.nova cmp=com.example.nova/.NovaDecommissionService } to com.example.nova/.NovaDecommissionService from pid=22335 uid=10395 pkg=com.example.nova startFg?=false
+05-01 14:52:18.729  1899  5464 D TranMemcgComponentImpl: write pid:17130 (com.example.nova)  to ljj
+05-01 14:52:18.732  1899  5464 I wm_restart_activity: [0,9913385,5665,com.example.nova/.MainActivity]
+05-01 14:52:18.734  1899  5464 D os.fingerprint: onRealStartActivityLocked next:ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665} isKeyguardShowing:true
+05-01 14:52:18.734  1899  5464 D os.fingerprint: activityComponent = ComponentInfo{com.example.nova/com.example.nova.MainActivity} inMultiWindow = false
+05-01 14:52:18.735  1899  5464 D os.fingerprint: onUpdateFocusedApp oldPackageName:com.transsion.hilauncher oldComponent:ComponentInfo{com.transsion.hilauncher/com.android.launcher3.uioverrides.QuickstepLauncher} newPackageName:com.example.nova newComponent:ComponentInfo{com.example.nova/com.example.nova.MainActivity} mFm :android.hardware.fingerprint.FingerprintManager@1254d3
+05-01 14:52:18.735  1899  5464 I TranSCSourceConnectManagerImpl: hookDisplayResumedActivityChanged displayId: 0 packageName: com.example.nova
+05-01 14:52:18.736  1899  5464 I wm_set_resumed_activity: [0,com.example.nova/.MainActivity,realStartActivityLocked - onActivityStateChanged]
+05-01 14:52:18.736  1899  5464 D tranpm/BehaviorManager:  onAppLaunch nextPackName = com.example.nova currPackName = com.transsion.hilauncher
+05-01 14:52:18.737  1899  5464 I PowerHalWrapper: amsBoostNotify pid:17130,activity:com.example.nova.MainActivity, package:com.example.nova, mProcessCreatePackcom.example.nova 
+05-01 14:52:18.739  1899  5464 I ScnModule: [GameDetection] packname: com.example.nova, apkSize: -175957857. 
+05-01 14:52:18.739  1899  5464 I mtkpower_client: [PowerHal_Wrap_notifyAppState] com.example.nova/com.example.nova.MainActivity pid=17130 activityId:9913385 state:1
+05-01 14:52:18.740  1267  1267 I vendor.mediatek.hardware.mtkpower_applist-service.mediatek: packName: com.example.nova actName: com.example.nova.MainActivity pid: 17130 uid: 10395 state: 1
+05-01 14:52:18.740  1267  1267 I MTK_APPList: [notifyAPPstate] com.example.nova/com.example.nova.MainActivity, pid=17130, uid=10395, state:RESUMED, fps:-1, win:0
+05-01 14:52:18.740  1267  1267 I MTK_APPList: [notifyAPPstate] multi_resumed_app_info[0] com.example.nova/com.example.nova.MainActivity, pid:17130, fps:-1, isMultiWindow:0
+05-01 14:52:18.740  1267  1267 I MTK_APPList: [notifyAPPstate] foreground:com.example.nova, pid:17130, uid:10395
+05-01 14:52:18.743  1899  5464 I System.out: [scale_ufs_gear] pakname is not antutu: com.example.nova, file is not exist: false
+05-01 14:52:18.744  1267  1267 I MTK_APPList: [notifyAPPstate] pc:0, com.transsion.hilauncher => com.example.nova
+05-01 14:52:18.744  1899  5464 I ActivityTaskManager: debug# mResumedActivity : com.example.nova, mAllSleepTokens = [{"keyguard", display 0, acquire at 17548965 (659351 ms ago)}, {"Dream", display 0, acquire at 17713818 (494498 ms ago)}, {"ScreenOff", display 0, acquire at 17719207 (489109 ms ago)}]
+05-01 14:52:18.744  1899  5464 I wm_pause_activity: [0,9913385,com.example.nova/.MainActivity,userLeaving=false,sleep]
+05-01 14:52:18.745  1899  5464 I PowerHalWrapper: amsBoostNotify pid:17130,activity:com.example.nova.MainActivity, package:com.example.nova, mProcessCreatePackcom.example.nova 
+05-01 14:52:18.745  1899  5464 I ScnModule: [GameDetection] packname: com.example.nova, apkSize: -175957857. 
+05-01 14:52:18.745  1899  5464 I mtkpower_client: [PowerHal_Wrap_notifyAppState] com.example.nova/com.example.nova.MainActivity pid=17130 activityId:9913385 state:0
+05-01 14:52:18.745  1267  1267 I vendor.mediatek.hardware.mtkpower_applist-service.mediatek: packName: com.example.nova actName: com.example.nova.MainActivity pid: 17130 uid: 10395 state: 0
+05-01 14:52:18.746  1267  1267 I MTK_APPList: [notifyAPPstate] com.example.nova/com.example.nova.MainActivity, pid=17130, uid=10395, state:PAUSED, fps:-1, win:0
+05-01 14:52:18.747  1899  5464 D os.fingerprint: onActivityResume next:ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665}
+05-01 14:52:18.747  1899  5464 D os.fingerprint: activityComponent = ComponentInfo{com.example.nova/com.example.nova.MainActivity} inMultiWindow = false
+05-01 14:52:18.747  4592  4941 I SimpleEventAdapt: onActivityEvent get com.example.nova, com.example.nova.MainActivity,true
+05-01 14:52:18.747  3838  3970 D pnpmgr  : current activity is com.example.nova
+05-01 14:52:18.748  4592  4941 I SimpleEventAdapt: onAppForegroundEvent get com.example.nova, true
+05-01 14:52:18.748  4592  4941 I SimpleEventAdapt: onAppStartEvent get com.example.nova,start true
+05-01 14:52:18.750  4592 22357 I Kolun_AI: SystemEventSubscribe: onPublishData {"type":"activity_event","time":1777636338748,"data":"{\"className\":\"com.example.nova.MainActivity\",\"isResumed\":true,\"packageName\":\"com.example.nova\"}","provider":"dc","dc_version":2030380000,"data_version":1,"user_id":0}
+05-01 14:52:18.750  1899  5464 D ActivityTaskManager: TaskProcess setRealTask mRealTask#=Task{4d9b54f #5665 type=standard I=com.example.nova/.MainActivity}
+05-01 14:52:18.752  1899  2385 D PowerManagerService: onAppLaunch: currentPackage=com.transsion.hilauncher, nextPackage=com.example.nova.
+05-01 14:52:18.754  4592 22357 I Kolun_AI: SystemEventSubscribe: onPublishData {"type":"app_foreground","time":1777636338750,"data":"{\"isForeground\":true,\"packageName\":\"com.example.nova\"}","provider":"dc","dc_version":2030380000,"data_version":1,"user_id":0}
+05-01 14:52:18.754  4592 22357 I Kolun_AI: SystemEventSubscribeheh:SimpleEventBus post event AppForegroundEvent{mPackageName='com.example.nova', mIsForeground=true} 1777636338750
+05-01 14:52:18.756  1899  2549 D TranAppm/ThermalEngineModule:  AppSwitchListener from com.transsion.hilauncher to com.example.nova
+05-01 14:52:18.756  4592  4690 I Kolun_AI: SceneIdentify:onBusEvent AppForegroundEvent   com.example.nova, true, SceneIdentify
+05-01 14:52:18.757  4592  4690 I Kolun_AI: SceneIdentify:checkShortVideo com.example.nova true 
+05-01 14:52:18.757  4592  4690 I Kolun_AI: SceneIdentify:checkGameIn  com.example.nova, 
+05-01 14:52:18.757  4592  4690 I Kolun_AI: SceneIdentify:checkSocialIn  com.example.nova, 
+05-01 14:52:18.757  4592  4690 I Kolun_AI: TipsSceneService:event com.example.nova
+05-01 14:52:18.757  4592  4690 I Kolun_AI: AppPredictManager:onBusEvent com.example.nova true
+05-01 14:52:18.759 17130 17130 D nativeloader: Load libpowerhalwrap_jni.so using system ns (caller=/system_ext/framework/mediatek-framework.jar): ok
+05-01 14:52:18.770  1899  5465 I sysui_multi_action: [757,856,758,1,806,com.example.nova,857,nova_reminders,858,4]
+05-01 14:52:18.776  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{563e874 #u0a363/2071862118 com.moonactive.coinmaster/com.onesignal.core.services.SyncJobService u=0 s=10363 TIME=-20h12m40s461ms:none NET PERSISTED READY}
+05-01 14:52:18.780  1899  2030 I am_proc_start: [0,22359,10395,com.example.nova:nova_internet,service,{com.example.nova/com.example.nova.NovaInternetShieldService},caller=com.example.nova/10395]
+05-01 14:52:18.781  1899  2030 I ActivityManager: Start proc 22359:com.example.nova:nova_internet/u0a395 for service {com.example.nova/com.example.nova.NovaInternetShieldService}
+05-01 14:52:18.782  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{b0d9db4 androidx.work.systemjobscheduler:u0a271/-2147483550 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 NET system stops=1 READY}
+05-01 14:52:18.787  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{1380d52 androidx.work.systemjobscheduler:u0a271/-2147483549 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 NET system stops=1 READY}
+05-01 14:52:18.790  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{858d823 androidx.work.systemjobscheduler:u0a271/-2147483548 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 NET system stops=1 READY}
+05-01 14:52:18.791 22359 22359 I nova_internet: Using CollectorTypeCMC GC.
+05-01 14:52:18.794  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{4f58bc2 androidx.work.systemjobscheduler:u0a271/-2147483631 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 TIME=-14h40m20s529ms:none NET READY}
+05-01 14:52:18.799  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{2b423ff #u0a204/100 com.transsnet.store/com.afmobi.palmplay.service.MsgJobService u=0 s=10204 TIME=-52m58s420ms:-52m58s420ms NET PERSISTED READY}
+05-01 14:52:18.802 22359 22359 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+05-01 14:52:18.803  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{a85cc63 #u0a209/101 com.talpa.hibrowser/com.talpa.ka.KaJobService u=0 s=10209 TIME=-2h4m29s36ms:-2h4m14s36ms NET READY}
+05-01 14:52:18.807 22359 22359 W TranInstanceHelper: Failed to instance com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl, java.lang.ClassNotFoundException: com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl
+05-01 14:52:18.818  1899  5670 I am_proc_bound: [0,22359,com.example.nova:nova_internet]
+05-01 14:52:18.822  1899  5670 D os.ActivityManagerServiceLice: make process active com.example.nova:nova_internet(22359)
+05-01 14:52:18.825  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{78addc8 #u0a310/41952327 com.qjzjzd.an.en4399/com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService u=0 s=10310 TIME=-1h47m13s216ms:none NET READY}
+05-01 14:52:18.829  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{90250ed androidx.work.systemjobscheduler:u0a209/960 @androidx.work.systemjobscheduler@com.talpa.hibrowser/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10209 TIME=-1h46m8s169ms:none READY}
+05-01 14:52:18.838  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{b6b00b1 #u0a204/200 com.transsnet.store/com.afmobi.palmplay.activate.TRDataJobService u=0 s=10204 TIME=-5m49s671ms:+54m10s329ms NET PERSISTED READY}
+05-01 14:52:18.842  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{6063bc9 #u0a204/666 com.transsnet.store/com.transsnet.launcherlib.services.ExternalJobService u=0 s=10204 TIME=-5m49s544ms:+54m10s456ms NET PERSISTED READY}
+05-01 14:52:18.843 22359 22359 D nativeloader: Configuring clns-7 for other apk /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk. target_sdk_version=36, uses_libraries=libOpenCL.so, library_path=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64:/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.example.nova
+05-01 14:52:18.846  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{ea90e #u0a204/5185 com.transsnet.store/com.transsion.newphonerecommend.service.NewPhoneJobService u=0 s=10204 TIME=-5m34s103ms:+54m25s897ms NET PERSISTED READY}
+05-01 14:52:19.098 17130 22382 D libMEOW : applied 0 plugin for [com.example.nova].
+05-01 14:52:19.110 17130 17130 D nativeloader: Load /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64/libnova-lib.so using class loader ns clns-7 (caller=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk): ok
+05-01 14:52:19.111 17130 17130 D ActivityThread: ++ activityComponent:com.example.nova/com.example.nova.MainActivity counts:1 ALEAK_CLEAR_SUPPORT:true
+05-01 14:52:19.155 17130 22383 D nativeloader: Load /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64/libflutter.so using class loader ns clns-7 (caller=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk): ok
+05-01 14:52:19.209 17130 22385 D vulkan  : searching for layers in '/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64'
+05-01 14:52:19.210 17130 22385 D vulkan  : searching for layers in '/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk!/lib/arm64-v8a'
+05-01 14:52:19.233 17130 22385 D vulkan  : searching for layers in '/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64'
+05-01 14:52:19.233 17130 22385 D vulkan  : searching for layers in '/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk!/lib/arm64-v8a'
+05-01 14:52:19.245  1899  1995 W ActivityTaskManager: Activity top resumed state loss timeout for ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665}
+05-01 14:52:19.247  1899  1995 W ActivityTaskManager: Activity pause timeout for ActivityRecord{974429 u0 com.example.nova/.MainActivity t5665}
+05-01 14:52:19.248  1899  1995 I wm_add_to_stopping: [0,9913385,com.example.nova/.MainActivity,completePauseLocked]
+05-01 14:52:19.251  4592  4941 I SimpleEventAdapt: onActivityEvent get com.example.nova, com.example.nova.MainActivity,false
+05-01 14:52:19.253  4592 22357 I Kolun_AI: SystemEventSubscribe: onPublishData {"type":"activity_event","time":1777636339252,"data":"{\"className\":\"com.example.nova.MainActivity\",\"isResumed\":false,\"packageName\":\"com.example.nova\"}","provider":"dc","dc_version":2030380000,"data_version":1,"user_id":0}
+05-01 14:52:19.294 17130 17130 I TextToSpeech: Sucessfully bound to com.google.android.tts
+05-01 14:52:19.294  1899  3853 D TextToSpeechManagerPerUserService: Trying to start connection to TTS engine: com.google.android.tts
+05-01 14:52:19.297 17130 17130 D nativeloader: Load /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64/libdartjni.so using class loader ns clns-7 (caller=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk): ok
+05-01 14:52:19.324  1316  3826 D SurfaceFlinger: [SF client] NEW(0xb4000078fa9f5ed0) for (17130:com.example.nova)
+05-01 14:52:19.327  1899  2030 I am_proc_start: [0,22412,10130,com.google.android.tts,service,{com.google.android.tts/com.google.android.apps.speech.tts.googletts.service.GoogleTtsService},caller=system/1000]
+05-01 14:52:19.328  1899  2030 I ActivityManager: Start proc 22412:com.google.android.tts/u0a130 for service {com.google.android.tts/com.google.android.apps.speech.tts.googletts.service.GoogleTtsService}
+05-01 14:52:19.342 22412 22412 I gle.android.tts: Using CollectorTypeCMC GC.
+05-01 14:52:19.349 17130 17130 I wm_on_create_called: [9913385,com.example.nova.MainActivity,performCreate,232]
+05-01 14:52:19.350 17130 17130 I wm_on_start_called: [9913385,com.example.nova.MainActivity,handleStartActivity,0]
+05-01 14:52:19.351 22412 22412 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+05-01 14:52:19.353 17130 17130 I wm_on_resume_called: [9913385,com.example.nova.MainActivity,RESUME_ACTIVITY,0]
+05-01 14:52:19.355 22412 22412 W TranInstanceHelper: Failed to instance com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl, java.lang.ClassNotFoundException: com.transsion.hubcore.linkplus.implement.app.TranActivityThreadLinkplusImpl
+05-01 14:52:19.360  1316  3826 D SurfaceFlinger: [SF client] NEW(0xb4000078fa9e5ca0) for (17130:com.example.nova)
+05-01 14:52:19.363  1899  3853 I am_proc_bound: [0,22412,com.google.android.tts]
+05-01 14:52:19.366  1899  3853 D os.ActivityManagerServiceLice: make process active com.google.android.tts(22412)
+05-01 14:52:19.375 17130 17130 D ViewRootImpl: setView appearance:512 com.example.nova/com.example.nova.MainActivity
+05-01 14:52:19.380  1316  3826 I BufferQueueDebug: [4b80c26 com.example.nova/com.example.nova.MainActivity#5075](this:0xb4000077bab83008,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:19.385  1899  3162 I TranThermalBacklightCtrl: cur package [com.example.nova] is in TemperatureControlWhitelist
+05-01 14:52:19.398 17130 17130 I wm_on_top_resumed_gained_called: [9913385,com.example.nova.MainActivity,topStateChangedWhenResumed]
+05-01 14:52:19.399 17130 17130 I wm_on_top_resumed_lost_called: [9913385,com.example.nova.MainActivity,topStateChangedWhenResumed]
+05-01 14:52:19.401 17130 17130 I wm_on_paused_called: [9913385,com.example.nova.MainActivity,performPause,1]
+05-01 14:52:19.401  1899  5670 I wm_failed_to_pause: [0,9913385,com.example.nova/.MainActivity,(none)]
+05-01 14:52:19.413 22412 22412 W gle.android.tts: Failed to find entry 'classes.dex': Entry not found
+05-01 14:52:19.414 22412 22412 W gle.android.tts: Failed to find entry 'classes.dex': Entry not found
+05-01 14:52:19.415 22412 22412 W gle.android.tts: Failed to find entry 'classes.dex': Entry not found
+05-01 14:52:19.416 22412 22412 D nativeloader: Configuring clns-7 for other apk /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/base.apk:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.arm64_v8a.apk:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.tr.apk:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.xxhdpi.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/lib/arm64:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/base.apk!/lib/arm64-v8a:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.arm64_v8a.apk!/lib/arm64-v8a:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.tr.apk!/lib/arm64-v8a:/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ
+05-01 14:52:19.441  1899  3853 D CoreBackPreview: Window{4b80c26 u0 com.example.nova/com.example.nova.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@813f1b9, mPriority=0, mIsAnimationCallback=false}
+05-01 14:52:19.443  1316  1403 I BufferQueueDebug: [com.example.nova/com.example.nova.MainActivity#5076](this:0xb4000077bab6c388,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:19.451  1899  2854 I WindowManager: Relayout Window{4b80c26 u0 com.example.nova/com.example.nova.MainActivity}: oldVis=4 newVis=0 focusMayChange = true requestedWidth = 1080 requestedHeight = 2400 outFrames = ClientWindowFrames{frame=[0,0][1080,2400] display=[0,0][1080,2400] parentFrame=[0,0][0,0]} outSurfaceControl = Surface(name=com.example.nova/com.example.nova.MainActivity)/@0x9f6ebac
+05-01 14:52:19.452  2806  3597 V WindowManagerShell: onTransitionReady(transaction=8156143024680)
+05-01 14:52:19.453  2806  3005 V WindowManagerShell: onTransitionReady (#301) android.os.BinderProxy@454a123: {id=301 t=OPEN f=0x40 trk=0 r=[] c=[]}
+05-01 14:52:19.453  2806  3005 D ShellTransitions_interrupt: processReadyQueuemIfTransitionReUseLeash: false
+05-01 14:52:19.454  1899  1992 V WindowManager: Sent Transition (#301) createdAt=05-01 14:52:18.511 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=5665 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.example.nova/.MainActivity } baseActivity=ComponentInfo{com.example.nova/com.example.nova.MainActivity} topActivity=ComponentInfo{com.example.nova/com.example.nova.MainActivity} origActivity=null realActivity=ComponentInfo{com.example.nova/com.example.nova.MainActivity} numActivities=1 lastActiveTime=72826939 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=110 token=WCT{RemoteToken{ec0380a Task{4d9b54f #5665 type=standard I=com.example.nova/.MainActivity}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 108 - 0, 0) topActivityInfo=ActivityInfo{aa7187b com.example.nova.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=true locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= falseisLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false topActivityEligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=1080 topActivityLetterboxHeight=2400 isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatControlState=hidden freeformCameraCompatMode=inactive}}}, pipTask = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 301 }
+05-01 14:52:19.454  1899  1992 V WindowManager:     startWCT=WindowContainerTransaction { changes = {} hops = [] errorCallbackToken=null taskFragmentOrganizer=null mInterrupt=false }
+05-01 14:52:19.460 17130 22379 D libMEOW : applied 0 plugin for [com.example.nova].
+05-01 14:52:19.462  1899  1992 V WindowManager: Finish Transition (#301): created at 05-01 14:52:18.511 collect-started=0.089ms request-sent=25.249ms started=37.779ms ready=232.399ms sent=937.845ms finished=947.898ms
+05-01 14:52:19.463  1316  3826 I BufferQueueDebug: [Bounds for - com.example.nova/com.example.nova.MainActivity#5077](this:0xb4000077bab1f558,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:19.463  1899  1995 I PowerHalWrapper: amsBoostNotify pid:17130,activity:com.example.nova.MainActivity, package:com.example.nova, mProcessCreatePackcom.example.nova 
+05-01 14:52:19.464  2806  3005 D ShellEventHandler: onTransitionFinished OPEN token=android.os.BinderProxy@454a123
+05-01 14:52:19.464  1899  1995 I ScnModule: [GameDetection] packname: com.example.nova, apkSize: -175957857. 
+05-01 14:52:19.464  1899  1995 I mtkpower_client: [PowerHal_Wrap_notifyAppState] com.example.nova/com.example.nova.MainActivity pid=17130 activityId:9913385 state:0
+05-01 14:52:19.465  1316  3826 I BufferQueueDebug: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#5078](this:0xb4000077bab60d48,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:19.465  1267  1267 I vendor.mediatek.hardware.mtkpower_applist-service.mediatek: packName: com.example.nova actName: com.example.nova.MainActivity pid: 17130 uid: 10395 state: 0
+05-01 14:52:19.465  1267  1267 I MTK_APPList: [notifyAPPstate] com.example.nova/com.example.nova.MainActivity, pid=17130, uid=10395, state:PAUSED, fps:-1, win:0
+05-01 14:52:19.466  1316  3826 I BufferQueueDebug: [SurfaceView[com.example.nova/com.example.nova.MainActivity](BLAST)#5079](this:0xb4000077bab3bcf8,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:19.466  1899  1995 I wm_stop_activity: [0,9913385,com.example.nova/.MainActivity]
+05-01 14:52:19.468  1316  3826 I BufferQueueDebug: [Background for SurfaceView[com.example.nova/com.example.nova.MainActivity]#5080](this:0xb4000077bab58498,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:19.469 17130 17130 D BLASTBufferQueue: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#1](f:0,a:0) constructor()
+05-01 14:52:19.469 17130 17130 D BLASTBufferQueue: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#1](f:0,a:0) update width=1080 height=2400 format=4 mTransformHint=0
+05-01 14:52:19.473  1899  1995 I DisplayDeviceRepository: Display device changed: DisplayDeviceInfo{"Yerle┼şik Ekran": uniqueId="local:4627039422300187648", 1080 x 2400, modeId 4, renderFrameRate 60.000004, defaultModeId 1, userPreferredModeId -1, supportedModes [{id=1, width=1080, height=2400, fps=120.00001, vsync=120.00001, synthetic=false, alternativeRefreshRates=[60.0, 90.0, 144.00002], supportedHdrTypes=[]}, {id=2, width=1080, height=2400, fps=144.00002, vsync=144.00002, synthetic=false, alternativeRefreshRates=[60.0, 90.0, 120.00001], supportedHdrTypes=[]}, {id=3, width=1080, height=2400, fps=90.0, vsync=90.0, synthetic=false, alternativeRefreshRates=[60.0, 120.00001, 144.00002], supportedHdrTypes=[]}, {id=4, width=1080, height=2400, fps=60.0, vsync=60.0, synthetic=false, alternativeRefreshRates=[90.0, 120.00001, 144.00002], supportedHdrTypes=[]}], colorMode 0, supportedColorModes [0, 7, 9], hdrCapabilities HdrCapabilities{mSupportedHdrTypes=[], mMaxLuminance=500.0, mMaxAverageLuminance=500.0, mMinLuminance=0.0}, allmSupported false, gameContentTypeSupported false, density 420, 388.17 x 388.156 dpi, appVsyncOff 1133334, presDeadline 16600000, cutout DisplayCutout{insets=Rect(0, 108 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(485, 0 - 595, 108), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.625} cutoutSpec={M -21,0 L -21,41 L 21,41 L 21,0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, touch INTERNAL, rotation 0, type INTERNAL, address {port=0, model=0x40368bd6e7ee6c}, deviceProductInfo DeviceProductInfo{name=MTKDEV, manufacturerPnpId=MTK, productId=35638, modelYear=null, manufactureDate=ManufactureDate{week=42, year=2021}, connectionToSinkType=0}, state OFF, committedState OFF, frameRateOverride {uid=1000 frameRateHz=60.000004} {uid=10164 frameRateHz=60.000004} , brightnessMinimum 0.0, brightnessMaximum 1.0, brightnessDefault 0.09817635, hdrSdrRatio 1.0, FLAG_ALLOWED_TO_BE_DEFAULT_DISPLAY, FLAG_ROTATES_WITH_CONTENT, FLAG_SECURE, FLAG_SUPPORTS_PROTECTED_BUFFERS, FLAG_TRUSTED, installOrientation 0, displayShape DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}}
+05-01 14:52:19.486  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{563e874 #u0a363/2071862118 com.moonactive.coinmaster/com.onesignal.core.services.SyncJobService u=0 s=10363 TIME=-20h12m41s171ms:none NET PERSISTED READY}
+05-01 14:52:19.489  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{b0d9db4 androidx.work.systemjobscheduler:u0a271/-2147483550 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 NET system stops=1 READY}
+05-01 14:52:19.491 17130 22385 E .example.nova: Invalid base format! req_base_format = 0x0, req_format = 0x38
+05-01 14:52:19.491 17130 22385 E .example.nova: Invalid base format! req_base_format = 0x0, req_format = 0x3b
+05-01 14:52:19.491 17130 22385 E .example.nova: Invalid base format! req_base_format = 0x0, req_format = 0x38
+05-01 14:52:19.492 17130 22385 E .example.nova: Invalid base format! req_base_format = 0x0, req_format = 0x3b
+05-01 14:52:19.492  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{1380d52 androidx.work.systemjobscheduler:u0a271/-2147483549 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 NET system stops=1 READY}
+05-01 14:52:19.495  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{858d823 androidx.work.systemjobscheduler:u0a271/-2147483548 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 NET system stops=1 READY}
+05-01 14:52:19.498  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{4f58bc2 androidx.work.systemjobscheduler:u0a271/-2147483631 @androidx.work.systemjobscheduler@com.linkedin.android/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10271 TIME=-14h40m21s233ms:none NET READY}
+05-01 14:52:19.498 17130 22385 D .example.nova: MBrain is disabled
+05-01 14:52:19.498 17130 22385 D .example.nova: initMbrain failed
+05-01 14:52:19.501  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{2b423ff #u0a204/100 com.transsnet.store/com.afmobi.palmplay.service.MsgJobService u=0 s=10204 TIME=-52m59s122ms:-52m59s122ms NET PERSISTED READY}
+05-01 14:52:19.506  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{a85cc63 #u0a209/101 com.talpa.hibrowser/com.talpa.ka.KaJobService u=0 s=10209 TIME=-2h4m29s738ms:-2h4m14s738ms NET READY}
+05-01 14:52:19.509  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{78addc8 #u0a310/41952327 com.qjzjzd.an.en4399/com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService u=0 s=10310 TIME=-1h47m13s901ms:none NET READY}
+05-01 14:52:19.513  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{90250ed androidx.work.systemjobscheduler:u0a209/960 @androidx.work.systemjobscheduler@com.talpa.hibrowser/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10209 TIME=-1h46m8s854ms:none READY}
+05-01 14:52:19.528  1899  2269 D TranWifiTputMonitor: top app: com.example.nova in white list: false
+05-01 14:52:19.609  1899  2379 D TranAppBrightnessChangeController: [onForegroundAppchange] ForegroundPackage: com.example.nova splitScreen: false multiWindow: false mIsPinned:false
+05-01 14:52:19.612 22412 22412 I NativeLibraryLoader: Beginning load of google_speech_sbg_tts_jni...
+05-01 14:52:19.634  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{b6b00b1 #u0a204/200 com.transsnet.store/com.afmobi.palmplay.activate.TRDataJobService u=0 s=10204 TIME=-5m50s467ms:+54m9s533ms NET PERSISTED READY}
+05-01 14:52:19.640  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{6063bc9 #u0a204/666 com.transsnet.store/com.transsnet.launcherlib.services.ExternalJobService u=0 s=10204 TIME=-5m50s342ms:+54m9s658ms NET PERSISTED READY}
+05-01 14:52:19.643 17130 17130 W Choreographer: Already have a pending vsync event.  There should only be one at a time.
+05-01 14:52:19.645  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{ea90e #u0a204/5185 com.transsnet.store/com.transsion.newphonerecommend.service.NewPhoneJobService u=0 s=10204 TIME=-5m34s902ms:+54m25s98ms NET PERSISTED READY}
+05-01 14:52:19.687 22412 22458 I VoiceDataDownloader: Not already initialized. Initializing Superpacks.
+05-01 14:52:19.714 22412 22412 I GoogleTtsServicePeer: Creating Google TTS service, version googletts.google-speech-apk_20260331.04_p0.892709386
+05-01 14:52:19.718 22412 22460 I SP      : Registering ttsvoices.3269, url: null, constraints: *:*:*:*, flags: *, requested: 3269, current: 3269
+05-01 14:52:19.828 17130 22385 D BLASTBufferQueue: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#1](f:0,a:1) acquireNextBufferLocked size=1080x2400 mFrameNumber=1 applyTransaction=true mTimestamp=18209398436545(auto) mPendingTransactions.size=0 graphicBufferId=73572789780490 transform=0
+05-01 14:52:19.829 17130 22385 D .example.nova: MBrain is disabled
+05-01 14:52:19.829 17130 22385 D .example.nova: initMbrain failed
+05-01 14:52:19.850 17130 17130 D BLASTBufferQueue: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#1](f:0,a:1) destructor()
+05-01 14:52:19.850 17130 17130 D BufferQueueConsumer: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#1(BLAST Consumer)1](id:42ea00000001,api:0,p:-1,c:17130) disconnect
+05-01 14:52:19.857 17130 17130 I wm_on_stop_called: [9913385,com.example.nova.MainActivity,STOP_ACTIVITY_ITEM,2]
+05-01 14:52:19.878  1899  5465 D WindowManager: System monitor finishDrawingWindow w: Window{4b80c26 u0 com.example.nova/com.example.nova.MainActivity}; mDrawState = DRAW_PENDING
+05-01 14:52:19.900  1316  1316 I SurfaceFlinger: onHandleDestroyed: name=SurfaceView[com.example.nova/com.example.nova.MainActivity]#5078, layerId=5078, parentId=0
+05-01 14:52:19.900  1316  1316 I SurfaceFlinger: onHandleDestroyed: name=SurfaceView[com.example.nova/com.example.nova.MainActivity](BLAST)#5079, layerId=5079, parentId=0
+05-01 14:52:19.900  1316  1316 I SurfaceFlinger: onHandleDestroyed: name=Background for SurfaceView[com.example.nova/com.example.nova.MainActivity]#5080, layerId=5080, parentId=0
+05-01 14:52:19.900  1316  1316 I SurfaceFlinger: onHandleDestroyed: name=Bounds for - com.example.nova/com.example.nova.MainActivity#5077, layerId=5077, parentId=0
+05-01 14:52:19.905 22412 22452 D nativeloader: Load /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/lib/arm64/libgoogle_speech_sbg_tts_jni.so using class loader ns clns-7 (caller=/data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/base.apk!classes2.dex): ok
+05-01 14:52:19.905 22412 22452 I NativeLibraryLoader: google_speech_sbg_tts_jni (null) was loaded normally!
+05-01 14:52:19.917  1316  1316 I BufferQueueDebug: [SurfaceView[com.example.nova/com.example.nova.MainActivity](BLAST)#5079](this:0xb4000077bab3bcf8,id:-1,api:0,p:-1,c:1316) onDestructor()
+05-01 14:52:19.917  1316  1316 I BufferQueueDebug: [Background for SurfaceView[com.example.nova/com.example.nova.MainActivity]#5080](this:0xb4000077bab58498,id:-1,api:0,p:-1,c:1316) onDestructor()
+05-01 14:52:19.917  1316  1316 I BufferQueueDebug: [SurfaceView[com.example.nova/com.example.nova.MainActivity]#5078](this:0xb4000077bab60d48,id:-1,api:0,p:-1,c:1316) onDestructor()
+05-01 14:52:20.167 22412 22412 I PipelineReaderImpl: Initializing monolithic pipeline from disk: /data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/pipeline.pb
+05-01 14:52:20.168 22412 22412 I native  : I0000 00:00:1777636340.168431   22412 android_resource_loader.cc:38] Using Android specific resource loader
+05-01 14:52:20.171 22412 22412 I native  : I0000 00:00:1777636340.171618   22412 android_resource_loader.cc:109] Loading resources for tr_tr_x_embedded_havoc/751641137423226573
+05-01 14:52:20.173 22412 22412 I native  : I0000 00:00:1777636340.172965   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/burdock_frame_config.pb" (as: FILE) ...
+05-01 14:52:20.173 22412 22412 I native  : I0000 00:00:1777636340.173536   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/burdock_frame_config.pb" of size 68
+05-01 14:52:20.174 22412 22412 I native  : I0000 00:00:1777636340.174114   22412 android_resource_loader.cc:100] Built resource acoustic_frame_config
+05-01 14:52:20.174 22412 22412 I native  : I0000 00:00:1777636340.174166   22412 android_resource_loader.cc:116] Loaded resource:acoustic_frame_config
+05-01 14:52:20.174 22412 22412 I native  : I0000 00:00:1777636340.174202   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/affixes_tr_tr_android.far" (as: FILE) ...
+05-01 14:52:20.175 22412 22412 I native  : I0000 00:00:1777636340.175598   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/affixes_tr_tr_android.far" of size 145
+05-01 14:52:20.176 22412 22412 I native  : I0000 00:00:1777636340.176249   22412 android_resource_loader.cc:100] Built resource affix_word_splitter_grm
+05-01 14:52:20.176 22412 22412 I native  : I0000 00:00:1777636340.176324   22412 android_resource_loader.cc:116] Loaded resource:affix_word_splitter_grm
+05-01 14:52:20.176 22412 22412 I native  : I0000 00:00:1777636340.176363   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/affixes_params_tr_tr.pb" (as: FILE) ...
+05-01 14:52:20.176 22412 22412 I native  : I0000 00:00:1777636340.176811   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/affixes_params_tr_tr.pb" of size 2700
+05-01 14:52:20.180 22412 22412 I native  : I0000 00:00:1777636340.180130   22412 affix_word_splitter_data.cc:89] Loaded affixes in [/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/affixes_params_tr_tr.pb].
+05-01 14:52:20.180 22412 22412 I native  : I0000 00:00:1777636340.180247   22412 android_resource_loader.cc:100] Built resource affix_word_splitter
+05-01 14:52:20.180 22412 22412 I native  : I0000 00:00:1777636340.180269   22412 android_resource_loader.cc:116] Loaded resource:affix_word_splitter
+05-01 14:52:20.180 22412 22412 I native  : I0000 00:00:1777636340.180298   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_tr_pronounce.far" (as: FILE) ...
+05-01 14:52:20.181 22412 22412 I native  : I0000 00:00:1777636340.181276   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_tr_pronounce.far" of size 325296
+05-01 14:52:20.185 22412 22412 I native  : I0000 00:00:1777636340.185880   22412 android_resource_loader.cc:100] Built resource compound_pronounce_grm_fst
+05-01 14:52:20.186 22412 22412 I native  : I0000 00:00:1777636340.186042   22412 android_resource_loader.cc:116] Loaded resource:compound_pronounce_grm_fst
+05-01 14:52:20.186 22412 22412 I native  : I0000 00:00:1777636340.186141   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/disambiguation_rules_tr_tr.pb" (as: FILE) ...
+05-01 14:52:20.187 22412 22412 I native  : I0000 00:00:1777636340.187735   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/disambiguation_rules_tr_tr.pb" of size 96830
+05-01 14:52:20.203 22412 22412 I native  : I0000 00:00:1777636340.203413   22412 android_resource_loader.cc:100] Built resource disambiguation_rules
+05-01 14:52:20.203 22412 22412 I native  : I0000 00:00:1777636340.203648   22412 android_resource_loader.cc:116] Loaded resource:disambiguation_rules
+05-01 14:52:20.203 22412 22412 I native  : I0000 00:00:1777636340.203783   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/engine_config_tr_tr_x_embedded_havoc.pb" (as: FILE) ...
+05-01 14:52:20.204 22412 22412 I native  : I0000 00:00:1777636340.204380   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/engine_config_tr_tr_x_embedded_havoc.pb" of size 54
+05-01 14:52:20.205 22412 22412 I native  : I0000 00:00:1777636340.205011   22412 android_resource_loader.cc:100] Built resource engine_config
+05-01 14:52:20.205 22412 22412 I native  : I0000 00:00:1777636340.205125   22412 android_resource_loader.cc:116] Loaded resource:engine_config
+05-01 14:52:20.205 22412 22412 I native  : I0000 00:00:1777636340.205238   22412 android_resource_loader.cc:100] Built resource guided_synthesis
+05-01 14:52:20.205 22412 22412 I native  : I0000 00:00:1777636340.205329   22412 android_resource_loader.cc:116] Loaded resource:guided_synthesis
+05-01 14:52:20.205 22412 22412 I native  : I0000 00:00:1777636340.205416   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/mapping_grammar_tr.far" (as: FILE) ...
+05-01 14:52:20.206 22412 22412 I native  : I0000 00:00:1777636340.206058   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/mapping_grammar_tr.far" of size 1439
+05-01 14:52:20.206 22412 22412 I native  : I0000 00:00:1777636340.206923   22412 android_resource_loader.cc:100] Built resource homograph_mapping_grammar
+05-01 14:52:20.207 22412 22412 I native  : I0000 00:00:1777636340.207031   22412 android_resource_loader.cc:116] Loaded resource:homograph_mapping_grammar
+05-01 14:52:20.207 22412 22412 I native  : I0000 00:00:1777636340.207134   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/lettuce_model.fb" (as: MEMORY) ...
+05-01 14:52:20.207 22412 22412 I native  : I0000 00:00:1777636340.207694   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/lettuce_model.fb" of size 480536
+05-01 14:52:20.216 22412 22412 I native  : I0000 00:00:1777636340.216134   22412 android_resource_loader.cc:100] Built resource lettuce_model_resource
+05-01 14:52:20.216 22412 22412 I native  : I0000 00:00:1777636340.216300   22412 android_resource_loader.cc:116] Loaded resource:lettuce_model_resource
+05-01 14:52:20.216 22412 22412 I native  : I0000 00:00:1777636340.216430   22412 android_resource_loader.cc:100] Built resource lettuce_model_scorer
+05-01 14:52:20.216 22412 22412 I native  : I0000 00:00:1777636340.216522   22412 android_resource_loader.cc:116] Loaded resource:lettuce_model_scorer
+05-01 14:52:20.216 22412 22412 I native  : I0000 00:00:1777636340.216608   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/lettuce_classify_embedded_tr_generated_android.far" (as: FILE) ...
+05-01 14:52:20.217 22412 22412 I native  : I0000 00:00:1777636340.217553   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/lettuce_classify_embedded_tr_generated_android.far" of size 4032073
+05-01 14:52:20.224 17130 17130 D nativeloader: Load /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64/libsherpa-onnx-jni.so using class loader ns clns-7 (caller=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk): ok
+05-01 14:52:20.271 22412 22412 I native  : I0000 00:00:1777636340.271868   22412 android_resource_loader.cc:100] Built resource lettuce_node_generator_grm
+05-01 14:52:20.272 22412 22412 I native  : I0000 00:00:1777636340.272026   22412 android_resource_loader.cc:116] Loaded resource:lettuce_node_generator_grm
+05-01 14:52:20.272 22412 22412 I native  : I0000 00:00:1777636340.272068   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/feats_android.far" (as: FILE) ...
+05-01 14:52:20.274 22412 22412 I native  : I0000 00:00:1777636340.274208   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/feats_android.far" of size 3015
+05-01 14:52:20.274 22412 22412 I native  : I0000 00:00:1777636340.274805   22412 android_resource_loader.cc:100] Built resource lseq_classifier_grammar
+05-01 14:52:20.274 22412 22412 I native  : I0000 00:00:1777636340.274861   22412 android_resource_loader.cc:116] Loaded resource:lseq_classifier_grammar
+05-01 14:52:20.274 22412 22412 I native  : I0000 00:00:1777636340.274894   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/lucid_collection_android.far" (as: FILE) ...
+05-01 14:52:20.275 22412 22412 I native  : I0000 00:00:1777636340.275532   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/lucid_collection_android.far" of size 8927
+05-01 14:52:20.276 22412 22412 I native  : I0000 00:00:1777636340.276126   22412 android_resource_loader.cc:100] Built resource lucid_parser_grm_fst
+05-01 14:52:20.276 22412 22412 I native  : I0000 00:00:1777636340.276196   22412 android_resource_loader.cc:116] Loaded resource:lucid_parser_grm_fst
+05-01 14:52:20.276 22412 22412 I native  : I0000 00:00:1777636340.276231   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/markup_triggers.pb" (as: FILE) ...
+05-01 14:52:20.277 22412 22412 I native  : I0000 00:00:1777636340.277337   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/markup_triggers.pb" of size 930
+05-01 14:52:20.277 22412 22412 I native  : I0000 00:00:1777636340.277785   22412 android_resource_loader.cc:100] Built resource markup_triggers
+05-01 14:52:20.277 22412 22412 I native  : I0000 00:00:1777636340.277846   22412 android_resource_loader.cc:116] Loaded resource:markup_triggers
+05-01 14:52:20.277 22412 22412 I native  : I0000 00:00:1777636340.277929   22412 android_resource_loader.cc:100] Built resource multilingual_capabilities
+05-01 14:52:20.277 22412 22412 I native  : I0000 00:00:1777636340.277948   22412 android_resource_loader.cc:116] Loaded resource:multilingual_capabilities
+05-01 14:52:20.277 22412 22412 I native  : I0000 00:00:1777636340.277969   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_tr_phonology.pb" (as: FILE) ...
+05-01 14:52:20.278 22412 22412 I native  : I0000 00:00:1777636340.278804   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_tr_phonology.pb" of size 1767
+05-01 14:52:20.281 22412 22412 W native  : W0000 00:00:1777636340.281269   22412 phonology.cc:80] Phonemes 4, l have non-distinctive features. See b/111971558.
+05-01 14:52:20.281 22412 22412 I native  : I0000 00:00:1777636340.281685   22412 android_resource_loader.cc:100] Built resource phonology
+05-01 14:52:20.281 22412 22412 I native  : I0000 00:00:1777636340.281735   22412 android_resource_loader.cc:116] Loaded resource:phonology
+05-01 14:52:20.281 22412 22412 I native  : I0000 00:00:1777636340.281782   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/ipa_to_tts_to-tr_tr.far" (as: FILE) ...
+05-01 14:52:20.282 22412 22412 I native  : I0000 00:00:1777636340.282444   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/ipa_to_tts_to-tr_tr.far" of size 60432
+05-01 14:52:20.286 22412 22412 I native  : I0000 00:00:1777636340.286324   22412 android_resource_loader.cc:100] Built resource ipa_to_tts_phoneme_mapper
+05-01 14:52:20.286 22412 22412 I native  : I0000 00:00:1777636340.286392   22412 android_resource_loader.cc:116] Loaded resource:ipa_to_tts_phoneme_mapper
+05-01 14:52:20.286 22412 22412 I native  : I0000 00:00:1777636340.286428   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_tr.hlex.bin" (as: MEMORY) ...
+05-01 14:52:20.287 22412 22412 I native  : I0000 00:00:1777636340.287382   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_tr.hlex.bin" of size 971680
+05-01 14:52:20.300 22412 22412 I native  : I0000 00:00:1777636340.300548   22412 android_resource_loader.cc:100] Built resource lexicon
+05-01 14:52:20.300 22412 22412 I native  : I0000 00:00:1777636340.300871   22412 android_resource_loader.cc:116] Loaded resource:lexicon
+05-01 14:52:20.301 22412 22412 I native  : I0000 00:00:1777636340.301087   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/homographs_model_tr_tr_embedded.bin" (as: MEMORY) ...
+05-01 14:52:20.304 22412 22412 I native  : I0000 00:00:1777636340.304134   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/homographs_model_tr_tr_embedded.bin" of size 1209104
+05-01 14:52:20.330 22412 22412 I native  : I0000 00:00:1777636340.330073   22412 android_resource_loader.cc:100] Built resource homograph_classifier_model_resource
+05-01 14:52:20.330 22412 22412 I native  : I0000 00:00:1777636340.330163   22412 android_resource_loader.cc:116] Loaded resource:homograph_classifier_model_resource
+05-01 14:52:20.330 22412 22412 I native  : I0000 00:00:1777636340.330209   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/lettuce_node_generator_params_embedded_tr_runtime.pb" (as: FILE) ...
+05-01 14:52:20.333 22412 22412 I native  : I0000 00:00:1777636340.333276   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/lettuce_node_generator_params_embedded_tr_runtime.pb" of size 989
+05-01 14:52:20.736 22412 22412 I native  : I0000 00:00:1777636340.736339   22412 exl_node_generator.cc:58] Setting legal word grammar as macro_only: true
+05-01 14:52:20.736 22412 22412 I native  : I0000 00:00:1777636340.736636   22412 android_resource_loader.cc:100] Built resource lettuce_node_generator
+05-01 14:52:20.736 22412 22412 I native  : I0000 00:00:1777636340.736684   22412 android_resource_loader.cc:116] Loaded resource:lettuce_node_generator
+05-01 14:52:20.736 22412 22412 I native  : I0000 00:00:1777636340.736755   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/burdock_model.params.pb" (as: FILE) ...
+05-01 14:52:20.739 22412 22412 I native  : I0000 00:00:1777636340.739489   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/burdock_model.params.pb" of size 5041
+05-01 14:52:20.741 22412 22412 I native  : I0000 00:00:1777636340.741016   22412 android_resource_loader.cc:100] Built resource lstm_add_specification_resource
+05-01 14:52:20.741 22412 22412 I native  : I0000 00:00:1777636340.741096   22412 android_resource_loader.cc:116] Loaded resource:lstm_add_specification_resource
+05-01 14:52:20.741 22412 22412 I native  : I0000 00:00:1777636340.741151   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/chive_model_fused.pb" (as: FILE) ...
+05-01 14:52:20.741 22412 22412 I native  : I0000 00:00:1777636340.741703   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/chive_model_fused.pb" of size 906
+05-01 14:52:20.742 22412 22412 I native  : I0000 00:00:1777636340.742555   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/burdock_valerian_model.tflite" (as: MEMORY) ...
+05-01 14:52:20.744 22412 22412 I native  : I0000 00:00:1777636340.743934   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/burdock_valerian_model.tflite" of size 1674560
+05-01 14:52:20.752  1899  2017 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:20.788 22412 22412 I native  : I0000 00:00:1777636340.788789   22412 chive_inference_resource.cc:234] Creating new CHiVE model [model graph]: 
+05-01 14:52:20.788 22412 22412 I native  : I0000 00:00:1777636340.788868   22412 chive_model.cc:179] Creating a single pass CHiVE model
+05-01 14:52:20.790 22412 22412 I native  : I0000 00:00:1777636340.790918   22412 android_resource_loader.cc:100] Built resource chive_inference_config
+05-01 14:52:20.791 22412 22412 I native  : I0000 00:00:1777636340.791045   22412 android_resource_loader.cc:116] Loaded resource:chive_inference_config
+05-01 14:52:20.791 22412 22412 I native  : I0000 00:00:1777636340.791113   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/converter_tr_tr_android.far" (as: FILE) ...
+05-01 14:52:20.794 22412 22412 I native  : I0000 00:00:1777636340.793947   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/converter_tr_tr_android.far" of size 1312
+05-01 14:52:20.795 22412 22412 I native  : I0000 00:00:1777636340.795012   22412 android_resource_loader.cc:100] Built resource pron_buffet_to_tts_converter
+05-01 14:52:20.795 22412 22412 I native  : I0000 00:00:1777636340.795099   22412 android_resource_loader.cc:116] Loaded resource:pron_buffet_to_tts_converter
+05-01 14:52:20.795 22412 22412 I native  : I0000 00:00:1777636340.795148   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/regexp_rewrite.pb" (as: FILE) ...
+05-01 14:52:20.797 22412 22412 I native  : I0000 00:00:1777636340.797858   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/regexp_rewrite.pb" of size 46242
+05-01 14:52:20.800 22412 22412 I native  : I0000 00:00:1777636340.800372   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/punctuation.pb" (as: FILE) ...
+05-01 14:52:20.801 22412 22412 I native  : I0000 00:00:1777636340.801511   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/punctuation.pb" of size 452
+05-01 14:52:20.827 22412 22412 I native  : I0000 00:00:1777636340.827802   22412 android_resource_loader.cc:100] Built resource rewrite_algo
+05-01 14:52:20.828 22412 22412 I native  : I0000 00:00:1777636340.828046   22412 android_resource_loader.cc:116] Loaded resource:rewrite_algo
+05-01 14:52:20.828 22412 22412 I native  : I0000 00:00:1777636340.828167   22412 android_resource_loader.cc:100] Built resource runtime_override
+05-01 14:52:20.828 22412 22412 I native  : I0000 00:00:1777636340.828265   22412 android_resource_loader.cc:116] Loaded resource:runtime_override
+05-01 14:52:20.828 22412 22412 I native  : I0000 00:00:1777636340.828363   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/seanet_model_options.pb" (as: FILE) ...
+05-01 14:52:20.831 22412 22412 I native  : I0000 00:00:1777636340.831589   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/seanet_model_options.pb" of size 32
+05-01 14:52:20.832 22412 22412 I native  : I0000 00:00:1777636340.832036   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/seanet_model.tflite" (as: FILE) ...
+05-01 14:52:20.832 22412 22412 I native  : I0000 00:00:1777636340.832529   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/seanet_model.tflite" of size 2786320
+05-01 14:52:20.863 22412 22412 I native  : I0000 00:00:1777636340.863430   22412 android_resource_loader.cc:100] Built resource seanet_enhancer
+05-01 14:52:20.863 22412 22412 I native  : I0000 00:00:1777636340.863607   22412 android_resource_loader.cc:116] Loaded resource:seanet_enhancer
+05-01 14:52:20.863 22412 22412 I native  : I0000 00:00:1777636340.863710   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/sb_model.bin" (as: MEMORY) ...
+05-01 14:52:20.864 22412 22412 I native  : I0000 00:00:1777636340.864744   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/sb_model.bin" of size 323824
+05-01 14:52:20.870 22412 22412 I native  : I0000 00:00:1777636340.870231   22412 android_resource_loader.cc:100] Built resource sentence_boundary_model_resource
+05-01 14:52:20.870 22412 22412 I native  : I0000 00:00:1777636340.870291   22412 android_resource_loader.cc:116] Loaded resource:sentence_boundary_model_resource
+05-01 14:52:20.870 22412 22412 I native  : I0000 00:00:1777636340.870331   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_verbalize_spec.pb" (as: FILE) ...
+05-01 14:52:20.870 22412 22412 I native  : I0000 00:00:1777636340.870926   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_verbalize_spec.pb" of size 2843
+05-01 14:52:20.871 22412 22412 I native  : I0000 00:00:1777636340.871354   22412 android_resource_loader.cc:100] Built resource serialization_spec
+05-01 14:52:20.871 22412 22412 I native  : I0000 00:00:1777636340.871399   22412 android_resource_loader.cc:116] Loaded resource:serialization_spec
+05-01 14:52:20.871 22412 22412 I native  : I0000 00:00:1777636340.871435   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/textnorm_params_embedded_tr_tr.pb" (as: FILE) ...
+05-01 14:52:20.871 22412 22412 I native  : I0000 00:00:1777636340.871799   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/textnorm_params_embedded_tr_tr.pb" of size 184
+05-01 14:52:20.873 22412 22412 I native  : I0000 00:00:1777636340.873168   22412 android_resource_loader.cc:100] Built resource textnorm_params
+05-01 14:52:20.873 22412 22412 I native  : I0000 00:00:1777636340.873211   22412 android_resource_loader.cc:116] Loaded resource:textnorm_params
+05-01 14:52:21.459 22412 22412 I native  : I0000 00:00:1777636341.459589   22412 android_resource_loader.cc:100] Built resource icu_transliterator_to_latin
+05-01 14:52:21.459 22412 22412 I native  : I0000 00:00:1777636341.459671   22412 android_resource_loader.cc:116] Loaded resource:icu_transliterator_to_latin
+05-01 14:52:21.459 22412 22412 I native  : I0000 00:00:1777636341.459714   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/g2p_m3_syls0_stress0_tr-TR.fst" (as: FILE) ...
+05-01 14:52:21.460 22412 22412 I native  : I0000 00:00:1777636341.460200   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/g2p_m3_syls0_stress0_tr-TR.fst" of size 172936
+05-01 14:52:21.460 22412 22412 I native  : I0000 00:00:1777636341.460290   22412 compact_fst.cc:20] Loading FST from "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/g2p_m3_syls0_stress0_tr-TR.fst" ...
+05-01 14:52:21.485 22412 22412 I native  : I0000 00:00:1777636341.485663   22412 decoder.cc:51] G2P FST loaded (48 graphemes and 48 phonemes).
+05-01 14:52:21.488 22412 22412 I native  : I0000 00:00:1777636341.488793   22412 android_resource_loader.cc:100] Built resource learned_fst_g2p_mapper
+05-01 14:52:21.488 22412 22412 I native  : I0000 00:00:1777636341.488869   22412 android_resource_loader.cc:116] Loaded resource:learned_fst_g2p_mapper
+05-01 14:52:21.488 22412 22412 I native  : I0000 00:00:1777636341.488944   22412 android_resource_loader.cc:100] Built resource spelling_normalizer
+05-01 14:52:21.488 22412 22412 I native  : I0000 00:00:1777636341.488965   22412 android_resource_loader.cc:116] Loaded resource:spelling_normalizer
+05-01 14:52:21.496 22412 22412 I native  : I0000 00:00:1777636341.496651   22412 android_resource_loader.cc:100] Built resource token_resolver_algo
+05-01 14:52:21.496 22412 22412 I native  : I0000 00:00:1777636341.496735   22412 android_resource_loader.cc:116] Loaded resource:token_resolver_algo
+05-01 14:52:21.496 22412 22412 I native  : I0000 00:00:1777636341.496779   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/model_farm32.pb" (as: FILE) ...
+05-01 14:52:21.497 22412 22412 I native  : I0000 00:00:1777636341.497366   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/model_farm32.pb" of size 400016
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504063   22412 android_resource_loader.cc:100] Built resource universal_lseq_classifier_model
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504135   22412 android_resource_loader.cc:116] Loaded resource:universal_lseq_classifier_model
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504178   22412 android_resource_loader.cc:100] Built resource utf8_utils
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504196   22412 android_resource_loader.cc:116] Loaded resource:utf8_utils
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504228   22412 android_resource_loader.cc:100] Built resource lexical_classifier
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504244   22412 android_resource_loader.cc:116] Loaded resource:lexical_classifier
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504268   22412 android_resource_loader.cc:100] Built resource icu_transliterator
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504281   22412 android_resource_loader.cc:116] Loaded resource:icu_transliterator
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504725   22412 ranker.cc:118] LinearLseqRanker: using FarmHash32
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504848   22412 android_resource_loader.cc:100] Built resource universal_lseq_classifier_algo
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504882   22412 android_resource_loader.cc:116] Loaded resource:universal_lseq_classifier_algo
+05-01 14:52:21.504 22412 22412 I native  : I0000 00:00:1777636341.504916   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/variant_overrides_tr.pb" (as: FILE) ...
+05-01 14:52:21.506 22412 22412 I native  : I0000 00:00:1777636341.506053   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/variant_overrides_tr.pb" of size 0
+05-01 14:52:21.506 22412 22412 I native  : I0000 00:00:1777636341.506174   22412 android_resource_loader.cc:100] Built resource variant_overrides
+05-01 14:52:21.506 22412 22412 I native  : I0000 00:00:1777636341.506198   22412 android_resource_loader.cc:116] Loaded resource:variant_overrides
+05-01 14:52:21.506 22412 22412 I native  : I0000 00:00:1777636341.506242   22412 android_resource_loader.cc:100] Built resource select_variants_algo
+05-01 14:52:21.506 22412 22412 I native  : I0000 00:00:1777636341.506262   22412 android_resource_loader.cc:116] Loaded resource:select_variants_algo
+05-01 14:52:21.506 22412 22412 I native  : I0000 00:00:1777636341.506290   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_verbalization_capabilities.pb" (as: FILE) ...
+05-01 14:52:21.507 22412 22412 I native  : I0000 00:00:1777636341.507210   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/tr_verbalization_capabilities.pb" of size 222
+05-01 14:52:21.508 22412 22412 I native  : I0000 00:00:1777636341.508254   22412 android_resource_loader.cc:100] Built resource verbalization_capabilities
+05-01 14:52:21.508 22412 22412 I native  : I0000 00:00:1777636341.508305   22412 android_resource_loader.cc:116] Loaded resource:verbalization_capabilities
+05-01 14:52:21.508 22412 22412 I native  : I0000 00:00:1777636341.508339   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/verbalize_android.far" (as: FILE) ...
+05-01 14:52:21.509 22412 22412 I native  : I0000 00:00:1777636341.509175   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/verbalize_android.far" of size 1352384
+05-01 14:52:21.526 22412 22412 I native  : I0000 00:00:1777636341.526745   22412 android_resource_loader.cc:100] Built resource verbalize_grm_fst
+05-01 14:52:21.526 22412 22412 I native  : I0000 00:00:1777636341.526926   22412 android_resource_loader.cc:116] Loaded resource:verbalize_grm_fst
+05-01 14:52:21.542  1899  1995 I sysui_multi_action: [757,1144,758,7,806,com.example.nova,871,com.example.nova.MainActivity]
+05-01 14:52:21.547  1899  5472 D ActivityManager: AgaresFW_Status=ok,LaunchState=UNKNOWN (0),Activity=com.example.nova/.MainActivity,TotalTime=-1,WaitTime=3045
+05-01 14:52:21.555 22412 22412 I native  : I0000 00:00:1777636341.555811   22412 android_resource_loader.cc:100] Built resource verbalize_grm_algo
+05-01 14:52:21.555 22412 22412 I native  : I0000 00:00:1777636341.555892   22412 android_resource_loader.cc:116] Loaded resource:verbalize_grm_algo
+05-01 14:52:21.555 22412 22412 I native  : I0000 00:00:1777636341.555935   22412 voice_params_resource.cc:33] Voice information: MessageLite at 0xb40000716bb54070
+05-01 14:52:21.556 22412 22412 I native  : I0000 00:00:1777636341.556005   22412 android_resource_loader.cc:100] Built resource voice_params
+05-01 14:52:21.556 22412 22412 I native  : I0000 00:00:1777636341.556022   22412 android_resource_loader.cc:116] Loaded resource:voice_params
+05-01 14:52:21.563 22412 22412 I native  : I0000 00:00:1777636341.563515   22412 android_resource_loader.cc:100] Built resource word_resolver_algo
+05-01 14:52:21.563 22412 22412 I native  : I0000 00:00:1777636341.563593   22412 android_resource_loader.cc:116] Loaded resource:word_resolver_algo
+05-01 14:52:21.563 22412 22412 I native  : I0000 00:00:1777636341.563651   22412 data_source.cc:95] Opening data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/xsampa_to_tts_to-tr_tr.far" (as: FILE) ...
+05-01 14:52:21.564 22412 22412 I native  : I0000 00:00:1777636341.564328   22412 data_source.cc:99] ... Opened data source "/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56/../tr-tr-x-multi-r56/xsampa_to_tts_to-tr_tr.far" of size 5363
+05-01 14:52:21.565 22412 22412 I native  : I0000 00:00:1777636341.565589   22412 android_resource_loader.cc:100] Built resource xsampa_to_tts_phoneme_mapper
+05-01 14:52:21.565 22412 22412 I native  : I0000 00:00:1777636341.565670   22412 android_resource_loader.cc:116] Loaded resource:xsampa_to_tts_phoneme_mapper
+05-01 14:52:21.565 22412 22412 I native  : I0000 00:00:1777636341.565691   22412 local_pipeline_runner.cc:49] Done loading all resources from: {/data/user_de/0/com.google.android.tts/files/superpacks/tr-tr/tr-tr-x-multi-seanet-r56}
+05-01 14:52:21.584  1899  1899 D TextToSpeechManagerPerUserService: Connected successfully to TTS engine: com.google.android.tts
+05-01 14:52:21.585 17130 22330 I TextToSpeech: Connected to TTS engine
+05-01 14:52:21.808 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:21.827  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:52:21.999 22412 22467 I GoogleTTSServiceImpl: For default lang tr-tr is name tr-TR-language (tr-tr-x-mfm-server)
+05-01 14:52:21.999 17130 22481 I TextToSpeech: Setting up the connection to TTS engine...
+05-01 14:52:24.621  4592  4941 I SimpleEventAdapt: onAppStartEvent get com.example.nova,start false
+05-01 14:52:24.633 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:24.633  1316  1316 I SurfaceFlinger: onHandleDestroyed: name=com.example.nova/com.example.nova.MainActivity#5076, layerId=5076, parentId=0
+05-01 14:52:24.636 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:24.639 22412 22467 I GoogleTTSServiceImpl: For default lang tr-tr is name tr-TR-language (tr-tr-x-mfm-server)
+05-01 14:52:24.650  1316  1316 I BufferQueueDebug: [Bounds for - com.example.nova/com.example.nova.MainActivity#5077](this:0xb4000077bab1f558,id:-1,api:0,p:-1,c:1316) onDestructor()
+05-01 14:52:24.650  1316  1316 I BufferQueueDebug: [com.example.nova/com.example.nova.MainActivity#5076](this:0xb4000077bab6c388,id:-1,api:0,p:-1,c:1316) onDestructor()
+05-01 14:52:24.705 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:24.708 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:24.712 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:24.714 22412 22467 I GoogleTTSServiceImpl: For default lang tr-tr is name tr-TR-language (tr-tr-x-mfm-server)
+05-01 14:52:24.718 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:24.793 17130 22508 D ProfileInstaller: Installing profile for com.example.nova
+05-01 14:52:24.921 17130 17130 D AudioRecord: set(): 0xb40000720b79a410, inputSource 6, sampleRate 16000, format 0x1, channelMask 0x10, frameCount 16000, notificationFrames 0, sessionId 0, transferType 0, flags 0, attributionSource AttributionSourceState{pid: 17130, uid: 10395, deviceId: 0, packageName: com.example.nova, attributionTag: (null), token: binder:0xb40000718b705030, renouncedPermissions: [], next: []} uid -1, pid -1
+05-01 14:52:24.922 17130 17130 D .example.nova: TranAudioRecord:mPackageName = com.example.nova.
+05-01 14:52:24.923 17130 17130 W .example.nova: Get process name fail
+05-01 14:52:24.927 17130 17130 D TranMagiqueSon: TranMagiqueSon+ OpPackageName = com.example.nova
+05-01 14:52:24.935 22412 22465 I LocalSynthesizer: Voice tr-tr-x-ofg-seanet-embedded is already supported by loaded synthesizer tr-tr-x-multi.
+05-01 14:52:24.936 22412 22465 I ComposerWrapperImpl: Skipping initialization, can already run voice tr-tr-x-ofg-seanet-embedded.
+05-01 14:52:24.947  1299 11087 D AudioUtilmtk: checkWhiteList(): Not find packageName com.example.nova in scenarioName RecordScreenOff_Irq 
+05-01 14:52:24.975  1243 22583 D AudioSpeechEnhanceInfo: IsBesRecTuningEnable()- 0
+05-01 14:52:24.975  1243 22583 D AudioSpeechEnhanceInfo: IsAPDMNRTuningEnable(), 0
+05-01 14:52:24.996  1299 22512 I AudioFlinger_Threads: AudioFlinger's thread 0xb400006ff360aaa8 tid=22512 ready to run
+05-01 14:52:25.004  1299 11087 I audioserver: App op 27 missing, silencing record AttributionSourceState{pid: 17130, uid: 10395, deviceId: 0, packageName: com.example.nova, attributionTag: (null), token: binder:0xb400006e9040ee00, renouncedPermissions: [], next: []}
+05-01 14:52:25.139  1899  5666 I ActivityManager: Background started FGS: Allowed [callingPackage: com.example.nova; callingUid: 10395; uidState: TPSL; uidBFSL: n/a; intent: Intent { cmp=com.example.nova/.asr.NovaAsrForegroundService }; code:ACTIVITY_STARTER; tempAllowListReason:<null>; targetSdkVersion:36; callerTargetSdkVersion:36; startForegroundCount:0; bindFromPackage:null: isBindService:false]
+05-01 14:52:25.241  1899  3853 I AS.AudioService: handleRecordingConfigurationChanged recorderName = com.example.nova event = 2 uid = 10395 deviceInfo = android.media.AudioDeviceInfo@2f source = 6
+05-01 14:52:25.242  1899  3853 I Griffin/DeviceState: audioRecordChanged : com.example.nova
+05-01 14:52:25.242  1899  3853 I Usf/appStateManager: updateRecordSnapshot uid:10395 pkgName:com.example.nova isActive:true event:2
+05-01 14:52:25.242  1899  2064 I Usf/appStateManager: handleUpdateAudioRecordState uid: 10395    packageName:com.example.nova add
+05-01 14:52:25.245  1243 22517 D AudioSpeechEnhanceInfo: GetHifiRecord, mHiFiRecordEnable=0
+05-01 14:52:25.245  1243 22517 D AudioSpeechEnhanceInfo: GetHifiRecord, mHiFiRecordEnable=0
+05-01 14:52:25.263  1243 22517 D AudioALSACaptureDataClientAurisysNormal: isNeedSyncPcmStart, read thread ready! pcm start
+05-01 14:52:25.264  4592 22357 I Kolun_AI: SystemEventSubscribe: onPublishData {"type":"media_event","time":1777636345262,"data":"{\"audioPkg\":\"com.gallery20\",\"audioState\":1,\"cameraId\":\"1\",\"cameraPkg\":\"\",\"cameraState\":1,\"micPkg\":\"com.example.nova\",\"micState\":0}","provider":"dc","dc_version":2030380000,"data_version":1,"user_id":0}
+05-01 14:52:25.266  1243 22517 D AudioUtility: setupCustomInfoStr(), custom_info = "SetAudioCustomScene=Default;MTK_VOIP_AINR=false;MTK_REC_AINR=false;", (scene = Default, vol_level = -1, bt_codec = -1)
+05-01 14:52:25.276  1899  5472 I am_foreground_service_start: [0,com.example.nova/.asr.NovaAsrForegroundService,1,ACTIVITY_STARTER,36,36,0,0,0,1,UNKNOWN,128]
+05-01 14:52:25.281  1899  2029 V os.notification: onFixNotification  start, notification= Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:25.281  1899  2029 V os.notification: onFixNotification  end, notification= Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:25.283  1243 22517 D aurisys_lib_handler: aurisys_arsi_create_handler(), lib_name mtk_speech_enh, 0xb40000732c654510, memory_size 2820256, arsi_handler 0xb4000072a60ae760, retval 0x0
+05-01 14:52:25.283  1243 22517 D aurisys_lib_manager: UL Lib, lib_name mtk_speech_enh, 0xb40000732c654510, sample_rate: 48000 => 16000, num_channels: 2 => 2, audio_format: 0x4 => 0x1, interleave: 1 => 0, frame: 0 => 20
+05-01 14:52:25.285  1299  3367 I audioserver: App op 27 missing, unsilencing record AttributionSourceState{pid: 17130, uid: 10395, deviceId: 0, packageName: com.example.nova, attributionTag: (null), token: binder:0xb400006e9040ee00, renouncedPermissions: [], next: []}
+05-01 14:52:25.287  1243 22517 D aurisys_lib_handler: lib_name mtk_speech_enh, 0xb40000732c654510, set ul_analog_gain_ref_only 48, ul_digital_gain 48, retval 0
+05-01 14:52:25.291  1899  5472 I AS.AudioService: handleRecordingConfigurationChanged recorderName = com.example.nova event = 2 uid = 10395 deviceInfo = android.media.AudioDeviceInfo@2f source = 6
+05-01 14:52:25.292  1899  5472 I Griffin/DeviceState: audioRecordChanged : com.example.nova
+05-01 14:52:25.292  1899  5472 I Usf/appStateManager: updateRecordSnapshot uid:10395 pkgName:com.example.nova isActive:true event:2
+05-01 14:52:25.292  1899  2064 I Usf/appStateManager: handleUpdateAudioRecordState uid: 10395    packageName:com.example.nova add
+05-01 14:52:25.342 17130 17130 I flutter : NOVA_STREAMING_ASR_START_RESULT owner=runtime ok=true token=1 running=true foreground=true partial=0 final=0 message=Embedded ASR modeli bulundu (native sherpa_asr, modelType=whisper, decoder=sherpa_asr/decoder.onnx).
+05-01 14:52:25.455 17130 17130 I flutter : NOVA_SETUP_ASR_READY reason=setup_init started=false ready=true gateRunning=true gateState={success: true, message: Streaming ses kap─▒s─▒ ba┼şlat─▒ld─▒., running: true, speechActive: false, speechRecentlyActive: false, lastSpeechAt: 0, lastSampleAt: 0, avgRms: 0.0, peakRms: 0.0, baselineRms: 260.0, thresholdRms: 980.0, lastError: , speechOpenCounter: 0, speechCloseCounter: 0, sampleRate: 16000, bufferedPcmSamples: 0} ok=false
+05-01 14:52:25.459 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=model_prepare_success percent=100 message=Yerel model dosyas─▒ do─şruland─▒ ve haz─▒r.
+05-01 14:52:25.487 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.492 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.496 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.500 22412 22467 I GoogleTTSServiceImpl: For default lang tr-tr is name tr-TR-language (tr-tr-x-mfm-server)
+05-01 14:52:25.504 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.508 22412 22465 I LocalSynthesizer: Voice tr-tr-x-ofg-seanet-embedded is already supported by loaded synthesizer tr-tr-x-multi.
+05-01 14:52:25.508 22412 22465 I ComposerWrapperImpl: Skipping initialization, can already run voice tr-tr-x-ofg-seanet-embedded.
+05-01 14:52:25.539 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.543 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.547 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.550 22412 22467 I GoogleTTSServiceImpl: For default lang tr-tr is name tr-TR-language (tr-tr-x-mfm-server)
+05-01 14:52:25.556 22412 22467 I GoogleTTSServiceImpl: currentLocale = tr-TR
+05-01 14:52:25.560 22412 22465 I LocalSynthesizer: Voice tr-tr-x-ofg-seanet-embedded is already supported by loaded synthesizer tr-tr-x-multi.
+05-01 14:52:25.561 22412 22465 I ComposerWrapperImpl: Skipping initialization, can already run voice tr-tr-x-ofg-seanet-embedded.
+05-01 14:52:25.625 22412 22467 I GoogleTTSServiceImpl: onIsValidVoiceName(tr-tr-x-efu-network): SUCCESS
+05-01 14:52:25.626 17130 17130 I flutter : NOVA_TTS_VOICE_CACHE_HIT selected=tr-tr-x-efu-network locale=tr-tr
+05-01 14:52:25.627 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=brain_kernel_preflight percent=2 message=Nova tek beyin ├ğekirde─şi i├ğin native preflight ba┼şlat─▒ld─▒.
+05-01 14:52:25.627 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=brain_kernel_model_prepare percent=12 message=Yerel model dosyas─▒ Brain Kernel proof i├ğin haz─▒rlan─▒yor.
+05-01 14:52:25.628 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=model_prepare_success percent=100 message=Yerel model dosyas─▒ do─şruland─▒ ve haz─▒r.
+05-01 14:52:25.628 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=brain_kernel_first_token_start percent=35 message=Tek Nova beyninin ilk canl─▒ cevap kan─▒t─▒ al─▒n─▒yor.
+05-01 14:52:25.628 17130 22534 I NovaMainActivity: NOVA_NATIVE_GENERATE_CALLED promptHash=-1087492001 promptChars=78 systemChars=200 fastMode=true model_path=/data/user/0/com.example.nova/files/gemma-3n-E2B-it-int4.litertlm purpose=brain_kernel
+05-01 14:52:25.630 22412 22465 I LocalSynthesizer: Voice tr-tr-x-efu-seanet-embedded is already supported by loaded synthesizer tr-tr-x-multi.
+05-01 14:52:25.630 22412 22465 I ComposerWrapperImpl: Skipping initialization, can already run voice tr-tr-x-efu-seanet-embedded.
+05-01 14:52:25.630 17130 22542 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_start percent=none message=Yerel model ilk ├ğ─▒kar─▒m─▒ ba┼şlat─▒yor. modelBytes=3655827456; promptChars=78; systemChars=200; fastMode=true
+05-01 14:52:25.632 17130 22542 E .example.nova: No implementation found for void com.google.ai.edge.litertlm.NativeLibraryLoader.nativeCheckLoaded() (tried Java_com_google_ai_edge_litertlm_NativeLibraryLoader_nativeCheckLoaded and Java_com_google_ai_edge_litertlm_NativeLibraryLoader_nativeCheckLoaded__) - is the library loaded, e.g. System.loadLibrary?
+05-01 14:52:25.684 17130 22542 D nativeloader: Load /data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/lib/arm64/liblitertlm_jni.so using class loader ns clns-7 (caller=/data/app/~~R658xcLpGXGck2TLOVj1PQ==/com.example.nova-7IT52it64aYiZnVeITibWA==/base.apk): ok
+05-01 14:52:28.385 17130 22542 I .example.nova: Waiting for a blocking GC NativeAlloc
+05-01 14:52:28.402 17130 22326 W .example.nova: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+05-01 14:52:28.412 17130 22542 I .example.nova: WaitForGcToComplete blocked NativeAlloc on NativeAlloc for 26.313ms
+05-01 14:52:28.413 17130 22328 W .example.nova: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/base.apk' with 1 weak references
+05-01 14:52:28.414 17130 22328 W .example.nova: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.arm64_v8a.apk' with 1 weak references
+05-01 14:52:28.414 17130 22328 W .example.nova: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.tr.apk' with 1 weak references
+05-01 14:52:28.414 17130 22328 W .example.nova: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.xxhdpi.apk' with 1 weak references
+05-01 14:52:28.997  1316  3826 I BufferQueueDebug: [WindowToken{dfbf031 type=2024 android.os.BinderProxy@7c364d8}#5081](this:0xb4000077bab60d48,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:29.031  1316  3826 I BufferQueueDebug: [WindowToken{f6e5e6d type=2024 android.os.BinderProxy@675f684}#5083](this:0xb4000077bab3bcf8,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1316:/system/bin/surfaceflinger)
+05-01 14:52:29.230  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.231  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.242  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.283  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.288  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.294  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.298  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.303  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:29.310  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.021  1899  2558 I Hiber/nativeServiceClient: check binder uid=10396
+05-01 14:52:31.027  1899  2558 I Hiber/nativeServiceClient: check binder uid=10122
+05-01 14:52:31.232  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.233  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.246  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.333  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.339  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.345  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.353  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.360  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.368  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.377  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.386  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.393  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:31.403  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:32.596  1899  2286 W ActivityManager: Receiver with filter android.content.IntentFilter@343097a already registered for pid 1899, callerPackage is android
+05-01 14:52:32.596  1899  2286 W ActivityManager: Receiver with filter android.content.IntentFilter@eca652b already registered for pid 1899, callerPackage is android
+05-01 14:52:33.234  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.234  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.242  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.300  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.304  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.309  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.316  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.323  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.328  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.332  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.337  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:33.630 17130 22541 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 8 saniyedir cevap bekliyor.
+05-01 14:52:35.238  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.238  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.247  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.285  1899  2029 V os.notification: onFixNotification  start, notification= Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.286  1899  2029 V os.notification: onFixNotification  end, notification= Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.291  1899  2029 V os.notification: no need to update importance since is low importance, pkg -> com.example.nova
+05-01 14:52:35.292  1899  2029 D TranLedControllerTOS15GtPova: hookNotificationLed pkg=com.example.nova uid=10395 mStatus=0 mScreenState=1 notificationChannelId=nova_asr_runtime
+05-01 14:52:35.297  1899  2179 D os.notification.SuspendJobManager: create job  com.transsion.util.SuspendJobManager$JobInfo@4898731 key:NotificationRecord(0x063cf7d8: pkg=com.example.nova user=UserHandle{0} id=4701 tag=null importance=2 key=0|com.example.nova|4701|null|10395: Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)) data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda1@6a5ae16 sn:-1 owner:{}
+05-01 14:52:35.299  4472  4514 D os.notification: onNotifyNotification StatusBarNotification:StatusBarNotification(pkg=com.example.nova user=UserHandle{0} id=4701 tag=null key=0|com.example.nova|4701|null|10395: Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)) callingUid:10395 NotificationChannel:NotificationChannel{mId='nova_asr_runtime', mName=Nova ASR, mDescription=, mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibrationPattern=null, mVibrationEffect=null, mUserLockedFields=0, mUserVisibleTaskShown=true, mVibrationEnabled=false, mShowBadge=true, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false, mLastNotificationUpdateTimeMs=0} receipt:com.transsion.app.IEnqueueNotificationReceipt$Stub$Proxy@eb32c13 sn:1752
+05-01 14:52:35.301  4472  4514 D os_noti_center_rule: setNotiRule: chCursor = android.database.sqlite.SQLiteCursor@369be50, count --= 0, pkgAndCh = com.example.nova##nova_asr_runtime, cloum = 3
+05-01 14:52:35.303  1899  2179 D os.notification.SuspendJobManager: done  com.transsion.util.SuspendJobManager$JobInfo@4898731 key:NotificationRecord(0x063cf7d8: pkg=com.example.nova user=UserHandle{0} id=4701 tag=null importance=2 key=0|com.example.nova|4701|null|10395: Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)) data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda1@6a5ae16 sn:1752 owner:{4472} for  app-4472-request
+05-01 14:52:35.303  1899  1899 I notification_enqueue: [10395,17130,com.example.nova,4701,NULL,0,Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE),0]
+05-01 14:52:35.304  1899  2029 D os.notification: onEnqueueNotificationInternal StatusBarNotification:StatusBarNotification(pkg=com.example.nova user=UserHandle{0} id=4701 tag=null key=0|com.example.nova|4701|null|10395: Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)) callingUid:10395 sn:1752 res:true
+05-01 14:52:35.307  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.023821,0.000050, totalTime 0.023871 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:52:35.309  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.313  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.316  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.321  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.327  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.333  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.341  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:35.386  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000002,0.022418,0.000024, totalTime 0.022444 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:52:35.518  1899  1899 I sysui_multi_action: [757,1501,758,1,793,228,794,0,795,228,796,4701,806,com.example.nova,857,nova_asr_runtime,858,2,947,0,1500,0,1688,1]
+05-01 14:52:35.566  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.022105,0.000024, totalTime 0.022129 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:52:35.568 21807 21807 D NotifyService: Listener posted:com.example.nova
+05-01 14:52:35.583  2806  3214 D TrCloudNotificationSupportController: containCloudNotificationSupportApp: com.example.novanot in the cloud list
+05-01 14:52:35.583  2806  3214 D TrCloudNotificationSupportController: containLocalNotificationSupportApp: com.example.novanot in the local list
+05-01 14:52:35.631  2806  3130 D StatusBarIconView: unSupportMatrixIcon: key:0|com.example.nova|4701|null|10395 , isGrayscaleDrawable:true , isGrayscaleIcon:true
+05-01 14:52:35.632  2806  3212 D StatusBarIconView: unSupportMatrixIcon: key:0|com.example.nova|4701|null|10395 , isGrayscaleDrawable:true , isGrayscaleIcon:true
+05-01 14:52:35.632  2806  3184 D StatusBarIconView: unSupportMatrixIcon: key:0|com.example.nova|4701|null|10395 , isGrayscaleDrawable:true , isGrayscaleIcon:true
+05-01 14:52:35.634  2806  3138 D StatusBarIconView: unSupportMatrixIcon: key:0|com.example.nova|4701|null|10395 , isGrayscaleDrawable:true , isGrayscaleIcon:true
+05-01 14:52:35.640  2806  3276 D SystemUINotificationLice: setThunderButtonVisibleNeeded Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.642  2806  3276 D SystemUINotificationLice: setThunderButtonVisibleNeeded Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.642  2806  3276 D SystemUINotificationLice: updateButtonVisibleIfNeeded Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.644  2806  3276 D SystemUINotificationLice: setThunderButtonVisibleNeeded Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.644  2806  3276 D SystemUINotificationLice: updateButtonVisibleIfNeeded Notification(channel=nova_asr_runtime shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE)
+05-01 14:52:35.736  2806  2806 D game/all: updateBackgroundPublicIfGameMode: this:0|com.example.nova|4701|null|10395
+05-01 14:52:37.240  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.241  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.251  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.311 22335 22345 W nova_observer: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+05-01 14:52:37.333  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.338  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.342  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.347  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.353  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:37.464 22359 22368 W nova_internet: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+05-01 14:52:39.245  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.246  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.256  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.321  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.325  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.329  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.332  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.334  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.338  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.341  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:39.345  1899  2538 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:52:41.529 22412 22422 W gle.android.tts: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+05-01 14:52:41.631 17130 22541 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 16 saniyedir cevap bekliyor.
+05-01 14:52:44.107  1346  1372 W TeeEndorsementInstaller: Endorsement token not found, wait a bit longer (81 sec) [vendor/mediatek/proprietary/trustzone/trustonic/source/external/mobicore/common/510/Daemon/src/EndorsementInstaller.cpp:104]
+05-01 14:52:47.763 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_done percent=none message=Yerel model native inference ├ğa─şr─▒s─▒n─▒ tamamlad─▒.
+05-01 14:52:47.769 17130 22534 I NovaMainActivity: NOVA_RAW_MODEL_OUTPUT promptHash=-1087492001 chars=16 raw_model_output=Haz─▒r─▒m efendim. purpose=brain_kernel
+05-01 14:52:47.769 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=brain_kernel_verified percent=100 message=Nova tek beyin ├ğekirde─şi ger├ğek local model cevab─▒ ├╝retti.
+05-01 14:52:47.778 17130 17130 I flutter : NOVA_SETUP_BOOT brain_kernel_verified_then_micro_setup_opening
+05-01 14:52:47.778 17130 17130 I flutter : NOVA_SETUP_BOOT opening_micro_inference_start
+05-01 14:52:47.781 17130 17130 I flutter : NOVA_SINGLE_BRAIN_CORE_PROFILE_READY hash=959341994
+05-01 14:52:47.784 17130 17130 I flutter : NOVA_SINGLE_BRAIN_INPUT source=setup_voice_opening mode=systemSetup primaryTurn=true requireModel=true ownerConfidence=0.00 speaker= chars=161
+05-01 14:52:48.382 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_backend_check percent=none message=Yerel d├╝┼ş├╝nme motoru ├ğekirde─şi kontrol ediliyor.
+05-01 14:52:48.391 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=model_prepare_success percent=100 message=Yerel model dosyas─▒ do─şruland─▒ ve haz─▒r.
+05-01 14:52:48.392 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_loading percent=none message=Yerel d├╝┼ş├╝nme motoru belle─şe al─▒n─▒yor. Bu a┼şamada ger├ğek y├╝zde ├╝retilemiyor; native y├╝kleme sonucu bekleniyor.
+05-01 14:52:48.392 17130 22534 I NovaMainActivity: NOVA_NATIVE_GENERATE_CALLED promptHash=-1945290953 promptChars=313 systemChars=127 fastMode=true cancelPrevious=true ownerPrimaryTurn=true model_path=/data/user/0/com.example.nova/files/gemma-3n-E2B-it-int4.litertlm
+05-01 14:52:48.395 17130 22630 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_start percent=none message=Yerel model ilk ├ğ─▒kar─▒m─▒ ba┼şlat─▒yor. modelBytes=3655827456; promptChars=313; systemChars=127; fastMode=true
+05-01 14:52:49.167  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.023368,0.000054, totalTime 0.023423 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:52:49.181  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:52:53.044  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:52:53.057  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:52:53.069  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:52:53.073  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:52:53.080  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:52:53.086  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:52:56.395 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 8 saniyedir cevap bekliyor.
+05-01 14:53:04.397 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 16 saniyedir cevap bekliyor.
+05-01 14:53:04.698  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:53:04.707  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.023426,0.000062, totalTime 0.023489 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:04.723  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:53:05.348  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.024410,0.000057, totalTime 0.024468 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:08.967  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.023036,0.000128, totalTime 0.023165 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:08.993  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:53:12.182  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:53:12.398 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 24 saniyedir cevap bekliyor.
+05-01 14:53:13.693  4472  7005 D AlarmPingSender: Success. Release lock(MqttService.client.199780117264496647):1777636393693
+05-01 14:53:14.126  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.022009,0.000055, totalTime 0.022065 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:20.399 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_health_guard percent=none message=Yerel model h├ól├ó cevap ├╝retmedi. k─▒sa sa─şl─▒k e┼şi─şi a┼ş─▒ld─▒; s├╝re├ğ iptal edilmiyor ama y├╝kleme/decode hatt─▒ canl─▒l─▒k a├ğ─▒s─▒ndan izleniyor.
+05-01 14:53:23.037 17130 17130 I flutter : NOVA_SINGLE_BRAIN_DECISION source=setup_voice_opening allowed=false modelUsed=false isError=true route=local_model_failed_strict textChars=47 staticLike=false
+05-01 14:53:23.037 17130 17130 I flutter : NOVA_SINGLE_BRAIN_BLOCK source=setup_voice_opening reason=AI_REQUIRED_BLOCK: Yerel model ├ğal─▒┼ş─▒rken beklenmeyen hata olu┼ştu.
+05-01 14:53:23.037 17130 17130 I flutter : NOVA_SETUP_BOOT opening_micro_inference_done error=true allowed=false
+05-01 14:53:23.038 17130 17130 I flutter : NOVA_SETUP_OPENING_MICRO_ERROR route=single_brain_blocked text=AI_REQUIRED_BLOCK: Yerel model ├ğal─▒┼ş─▒rken beklenmeyen hata olu┼ştu.
+05-01 14:53:23.044 17130 17130 I flutter : NOVA_SETUP_TTS_SPEAK_START nextStep=_SetupStep.askAssistantName mode=NovaTtsMode.neuralLocal source=setup_hotpath_ai_output tts_source=brain_decision_ai_output textChars=0
+05-01 14:53:23.044 17130 17130 I flutter : NOVA_SETUP_TTS_BLOCKED_EMPTY_SINGLE_BRAIN nextStep=_SetupStep.askAssistantName
+05-01 14:53:23.672 17130 17130 I flutter : NOVA_STREAMING_ASR_START_IDEMPOTENT owner=runtime running=true foreground=true
+05-01 14:53:24.117  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:53:24.135 17130 17130 I flutter : NOVA_SETUP_ASR_READY reason=after_brain_kernel_opening started=true ready=true gateRunning=true gateState={success: true, message: OK, running: true, speechActive: false, speechRecentlyActive: false, lastSpeechAt: 0, lastSampleAt: 72891774, avgRms: 64.63013577718856, peakRms: 554.6289178563088, baselineRms: 91.17996832809679, thresholdRms: 640.0, lastError: , speechOpenCounter: 0, speechCloseCounter: 0, sampleRate: 16000, bufferedPcmSamples: 384000} ok=true
+05-01 14:53:28.400 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 40 saniyedir cevap bekliyor.
+05-01 14:53:32.697  1899  2286 W ActivityManager: Receiver with filter android.content.IntentFilter@78ff9b0 already registered for pid 1899, callerPackage is android
+05-01 14:53:32.697  1899  2286 W ActivityManager: Receiver with filter android.content.IntentFilter@4812029 already registered for pid 1899, callerPackage is android
+05-01 14:53:36.401 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 48 saniyedir cevap bekliyor.
+05-01 14:53:39.591  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.027158,0.000066, totalTime 0.027224 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:40.528  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.024448,0.000158, totalTime 0.024607 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:42.026  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.021999,0.000019, totalTime 0.022019 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:53:43.151  1899  2046 D BatteryService: widetemperaturebatteryburn check uevent: {SUBSYSTEM=misc, MAJOR=10, SEQNUM=10298, ACTION=change, DEVNAME=tran_cpu_metrics, SYS_TASK_LOADING={"n":".example.nova", "p":"17130", "u":"10395", "a":"50", "l":"346", "th":"90", "th_l":"60"}, MINOR=97, DEVPATH=/devices/virtual/misc/tran_cpu_metrics}
+05-01 14:53:43.154  1899  2532 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:53:44.402 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 56 saniyedir cevap bekliyor.
+05-01 14:53:44.459 17130 22326 I .example.nova: NativeAlloc concurrent mark compact GC freed 2054KB AllocSpace bytes, 104(5036KB) LOS objects, 85% free, 4186KB/28MB, paused 368us,9.085ms total 50.584ms
+05-01 14:53:52.403 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 64 saniyedir cevap bekliyor.
+05-01 14:53:56.140 17130 17130 I flutter : NOVA_SETUP_ASR_PARTIAL chars=77
+05-01 14:53:56.144 17130 17130 I flutter : NOVA_SETUP_ASR_FINAL chars=77
+05-01 14:53:58.057  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:53:58.083  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:54:00.403 17130 22629 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_inference_waiting percent=none message=Yerel beyin hatt─▒ ├ğal─▒┼ş─▒yor; native inference 72 saniyedir cevap bekliyor.
+05-01 14:54:04.148  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000000,0.024767,0.000025, totalTime 0.024792 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:54:04.689  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.025782,0.000085, totalTime 0.025868 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:54:04.697  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:54:04.725  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:54:04.756  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:54:04.769  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.025751,0.000089, totalTime 0.025840 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:54:04.783  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:54:05.118  1346  1372 W TeeEndorsementInstaller: Endorsement token not found, wait a bit longer (81 sec) [vendor/mediatek/proprietary/trustzone/trustonic/source/external/mobicore/common/510/Daemon/src/EndorsementInstaller.cpp:104]
+05-01 14:54:05.363 17130 17130 I flutter : NOVA_SETUP_ASR_IGNORED reason=setup_speech_or_noise final=false chars=11
+05-01 14:54:05.366 17130 17130 I flutter : NOVA_SETUP_ASR_IGNORED reason=setup_speech_or_noise final=true chars=11
+05-01 14:54:06.525 17130 22534 I NovaMainActivity: NOVA_BOOT_PROGRESS phase=native_model_timeout percent=none message=Yerel model 75 saniye i├ğinde ger├ğek cevap d├Ând├╝rmedi; eski native ├ğ─▒kar─▒m iptal edildi ve sistem yeni komutlara a├ğ─▒k b─▒rak─▒ld─▒.
+05-01 14:54:09.331 17130 17130 I flutter : NOVA_SETUP_ASR_PARTIAL chars=77
+05-01 14:54:09.336 17130 17130 I flutter : NOVA_SETUP_ASR_FINAL chars=77
+05-01 14:54:12.412  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:54:16.197  2997  3023 W .gms.persistent: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/base.apk' with 1 weak references
+05-01 14:54:16.197  2997  3023 W .gms.persistent: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.arm64_v8a.apk' with 1 weak references
+05-01 14:54:16.198  2997  3023 W .gms.persistent: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.tr.apk' with 1 weak references
+05-01 14:54:16.198  2997  3023 W .gms.persistent: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~vtuFigglr7Dst81NojJkdQ==/com.google.android.tts-hshlQ7v9qmGgLD8Ue9Ps7g==/split_config.xxhdpi.apk' with 1 weak references
+05-01 14:54:18.056  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:54:18.071  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:54:18.096  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:54:18.113  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:54:18.132  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:54:18.149  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:54:19.597 17130 17130 I flutter : NOVA_SETUP_ASR_PARTIAL chars=77
+05-01 14:54:19.604 17130 17130 I flutter : NOVA_SETUP_ASR_FINAL chars=77
+05-01 14:54:22.392  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:54:28.242 17130 17130 I flutter : NOVA_SETUP_ASR_PARTIAL chars=16
+05-01 14:54:28.248 17130 17130 I flutter : NOVA_SETUP_ASR_FINAL chars=16
+05-01 14:54:31.766 17130 17130 I flutter : NOVA_SETUP_ASR_PARTIAL chars=15
+05-01 14:54:31.771 17130 17130 I flutter : NOVA_SETUP_ASR_FINAL chars=15
+05-01 14:54:32.809  1899  2286 W ActivityManager: Receiver with filter android.content.IntentFilter@8b41dd8 already registered for pid 1899, callerPackage is android
+05-01 14:54:32.810  1899  2286 W ActivityManager: Receiver with filter android.content.IntentFilter@2d8b531 already registered for pid 1899, callerPackage is android
+05-01 14:54:42.277 17130 17130 I flutter : NOVA_SETUP_ASR_IGNORED reason=setup_speech_or_noise final=false chars=11
+05-01 14:54:42.281 17130 17130 I flutter : NOVA_SETUP_ASR_IGNORED reason=setup_speech_or_noise final=true chars=11
+05-01 14:54:44.581  1899  2046 D BatteryService: widetemperaturebatteryburn check uevent: {SUBSYSTEM=misc, MAJOR=10, SEQNUM=10305, ACTION=change, DEVNAME=tran_cpu_metrics, SYS_TASK_LOADING={"n":".example.nova", "p":"17130", "u":"10395", "a":"50", "l":"304", "th":"90", "th_l":"60"}, MINOR=97, DEVPATH=/devices/virtual/misc/tran_cpu_metrics}
+05-01 14:54:44.584  1899  2532 D ActivityTaskManager_Recents: Skipping, user setup not complete: Task{fb9de34 #8 type=undefined A=10185:com.transsion.mobilecloner}
+05-01 14:54:49.814 17130 17130 I flutter : NOVA_SETUP_ASR_PARTIAL chars=15
+05-01 14:54:49.819 17130 17130 I flutter : NOVA_SETUP_ASR_FINAL chars=15
+05-01 14:54:56.397 17969 17969 D RequestTag: createToken:token_boyuan_10003_TR_tr
+05-01 14:54:57.566  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{b6b00b1 #u0a204/200 com.transsnet.store/com.afmobi.palmplay.activate.TRDataJobService u=0 s=10204 TIME=-8m28s399ms:+51m31s601ms NET PERSISTED READY}
+05-01 14:54:57.575  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{6063bc9 #u0a204/666 com.transsnet.store/com.transsnet.launcherlib.services.ExternalJobService u=0 s=10204 TIME=-8m28s277ms:+51m31s723ms NET PERSISTED READY}
+05-01 14:54:57.584  1899  2170 E JobScheduler.Concurrency: Error executing JobStatus{ea90e #u0a204/5185 com.transsnet.store/com.transsion.newphonerecommend.service.NewPhoneJobService u=0 s=10204 TIME=-8m12s840ms:+51m47s160ms NET PERSISTED READY}
+05-01 14:54:57.600  4729  8924 W RegisteredComponentCache: org.xmlpull.v1.XmlPullParserException: No android.nfc.action.TECH_DISCOVERED meta-data
+05-01 14:54:57.600  4729  8924 W RegisteredComponentCache: 	at com.android.nfc.RegisteredComponentCache.generateComponentsList(RegisteredComponentCache.java:203)
+05-01 14:54:57.839  1899  2007 W PackageManager: org.xmlpull.v1.XmlPullParserException: No android.accounts.AccountAuthenticator meta-data
+05-01 14:54:57.839  1899  2007 W PackageManager: 	at android.content.pm.RegisteredServicesCache.generateServicesMap(RegisteredServicesCache.java:493)
+05-01 14:55:00.572  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:55:00.584  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:55:00.588  2806  2806 I SysUI(250928)_ChargingController: chargeAction:UpdateChargeData(vent=ChargeRepositoryImpl(eventChargeType='0', chargePower='0', switchSettingSource='0', switchSelection='0', chargeMultiValue='0', chargeLevel='-1.0', level=90, nativeChargeType=0, nativeMultiValue=0, chargingSource=WIRE, wlsMagneticFan=0))
+05-01 14:55:00.619  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:55:00.646  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:55:04.696  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:55:04.709  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:55:04.720  2806  2806 I ChargeAnima: TrSysChargeUtils-updateNativeCharge pumpstat Not fast charge}
+05-01 14:55:04.735  5935  5935 D BLab-SettingsProviderUtils: isUserSetupCompleteSdk = 1
+05-01 14:55:09.666  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.021978,0.000076, totalTime 0.022056 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:55:12.641  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:55:22.622  1507  1925 E RILC    : RIL_onRequestComplete: invalid RIL_Token
+05-01 14:55:23.066  1243 22522 W AudioALSACaptureDataProviderNormal: readThread, latency_in_s,0.000001,0.022942,0.000103, totalTime 0.023046 > logTimeout 0.022000 TIMEOUT!!
+05-01 14:55:26.120  1346  1372 W TeeEndorsementInstaller: Endorsement token not found, wait a bit longer (81 sec) [vendor/mediatek/proprietary/trustzone/trustonic/source/external/mobicore/common/510/Daemon/src/EndorsementInstaller.cpp:104]
+     generate adb public/private key; private key stored in FILE,
