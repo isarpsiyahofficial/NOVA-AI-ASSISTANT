@@ -25,6 +25,8 @@ services:
       - ../../android/app/src/main/assets/sherpa_tts:/models/tts:ro
       - ./runtime/reports:/reports
       - ./runtime:/shared
+    ports:
+      - "18080:8080"
     restart: unless-stopped
     networks:
       - nova-call
