@@ -16,10 +16,13 @@ concurrency:
   group: nova-runtime-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
 jobs:
   runtime-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -36,6 +39,22 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Restore verified voice model cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision official sherpa voice assets
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
 
       - name: Install dependencies
         run: flutter pub get
@@ -68,5 +87,25 @@ jobs:
           lib/services/stt/nova_speech_to_text_service.dart
           lib/services/tts/nova_tts_service.dart
 
-      - name: Compile debug APK
+      - name: Audit packaged native voice stack
+        run: |
+          chmod +x tooling/audit_native_voice_stack.sh
+          tooling/audit_native_voice_stack.sh
+
+      - name: Compile debug APK with native models
         run: flutter build apk --debug --no-pub
+
+      - name: Compile ABI-split release APKs
+        run: flutter build apk --release --split-per-abi --no-pub
+
+      - name: Upload test APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-native-voice-apks
+          path: |
+            build/app/outputs/flutter-apk/app-debug.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
+          if-no-files-found: error
+          retention-days: 14
