@@ -1,5 +1,7 @@
 // NOVA_STREAMING_ASR_NO_FALLBACK_V1
 // NOVA_STT_SAME_SEGMENT_TITANET_AUTHORITY_V1
+// ACCEPTANCE_CONTRACT: Platform SpeechRecognizer fallback is prohibited.
+// ACCEPTANCE_CONTRACT: Whisper transcript and TitaNet use the same PCM segment.
 import 'dart:async';
 
 import '../../core/audio_runtime/nova_stt_result.dart';
