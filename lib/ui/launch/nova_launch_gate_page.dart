@@ -1,6 +1,4 @@
-// ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
-// NOVA_ABSOLUTE_FINAL_CLEANUP_V1
-// NOVA_LAUNCH_GATE_VERIFIED_SETUP_V2
+// NOVA_LAUNCH_GATE_VERIFIED_SETUP_V3_REAL_VOICEPRINT_ONLY
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -83,15 +81,22 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
     final shouldOpenSetup = await _firstRunService.shouldOpenFirstRunSetup();
     final settings = await _settingsService.load();
     final owner = await _ownerService.loadOwner();
-    final ownerMissing =
-        owner == null ||
-        owner.ownerName.trim().isEmpty ||
-        owner.ownerVoiceId.trim().isEmpty;
-    final voiceProfileMissing = settings.activeVoiceProfileId.trim().isEmpty;
-    final apiMissing =
-        !settings.apiBrainEnabled || settings.apiKey.trim().isEmpty;
+    final ownerVoiceValid = owner != null &&
+        owner.ownerName.trim().isNotEmpty &&
+        _ownerService.isVerifiedVoiceprintId(owner.ownerVoiceId);
+    final activeVoiceValid =
+        _ownerService.isVerifiedVoiceprintId(settings.activeVoiceProfileId);
+    final sameVerifiedProfile = ownerVoiceValid &&
+        activeVoiceValid &&
+        owner!.ownerVoiceId.trim() == settings.activeVoiceProfileId.trim();
+    final apiReady =
+        settings.apiBrainEnabled && settings.apiKey.trim().isNotEmpty;
     final shouldShowSetup =
-        shouldOpenSetup || ownerMissing || voiceProfileMissing || apiMissing;
+        shouldOpenSetup || !sameVerifiedProfile || !apiReady;
+
+    if (!sameVerifiedProfile && owner != null) {
+      await _ownerService.clearOwner();
+    }
 
     if (!mounted) return;
     setState(() {
@@ -129,8 +134,8 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
       if (!hasMic && (!_showSetup || forceSetupEssentialPermissions)) {
         await _permissionBridgeService.requestRecordAudioPermission();
       }
-      final hasNotifications = await _permissionBridgeService
-          .canPostNotifications();
+      final hasNotifications =
+          await _permissionBridgeService.canPostNotifications();
       if (!hasNotifications &&
           (!_showSetup || forceSetupEssentialPermissions)) {
         await _permissionBridgeService.requestPostNotificationsPermission();
