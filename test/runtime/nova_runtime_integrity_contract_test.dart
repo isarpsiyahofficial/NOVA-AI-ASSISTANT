@@ -40,6 +40,21 @@ void main() {
       );
     });
 
+    test('unused Android SpeechRecognizer authority files stay removed', () {
+      expect(
+        File(
+          'android/app/src/main/kotlin/com/example/nova/NovaSpeechRecognizerHelper.kt',
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(
+          'android/app/src/main/kotlin/com/example/nova/NovaSpeechSessionManager.kt',
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
     test('ASR ownership transfer stops the native engine first', () {
       final source = _read(
         'lib/services/asr/nova_streaming_asr_runtime_service.dart',
@@ -68,7 +83,10 @@ void main() {
     test('TTS resumes ASR without a fixed post-speech delay', () {
       final source = _read('lib/services/tts/nova_tts_service.dart');
 
-      expect(source, contains('NOVA_TTS_LOW_LATENCY_HANDOFF_V1'));
+      expect(
+        source,
+        contains('NOVA_TTS_LOW_LATENCY_HANDOFF_V2_SHERPA_PRIMARY'),
+      );
       expect(source, isNot(contains('Duration(milliseconds: 550)')));
       final playbackEnd = source.indexOf(
         'await playbackGuardService.markPlaybackEnded();',
@@ -84,6 +102,31 @@ void main() {
       expect(playbackEnd, greaterThanOrEqualTo(0));
       expect(clearBuffer, greaterThan(playbackEnd));
       expect(resume, greaterThan(clearBuffer));
+    });
+
+    test('normal Nova speech explicitly selects offline sherpa profile', () {
+      final source = _read('lib/services/tts/nova_tts_service.dart');
+      expect(source, contains("speakerPath: 'sherpa_default'"));
+      expect(
+        source,
+        contains('enginePolicy=sherpa_offline_primary_platform_explicit_fallback'),
+      );
+    });
+
+    test('native mouth is a real sherpa OfflineTts engine', () {
+      final engine = _read(
+        'android/app/src/main/kotlin/com/example/nova/NovaXttsEngine.kt',
+      );
+      final bridge = _read(
+        'android/app/src/main/kotlin/com/example/nova/NovaXttsBridgePlugin.kt',
+      );
+
+      expect(engine, contains('import com.k2fsa.sherpa.onnx.OfflineTts'));
+      expect(engine, contains('OfflineTtsVitsModelConfig'));
+      expect(engine, contains('activeEngine.generate('));
+      expect(engine, contains('AudioTrack.Builder()'));
+      expect(engine, isNot(contains('NovaAndroidTtsMouthEngine.speak(')));
+      expect(bridge, contains('NovaSherpaTtsWarmup'));
     });
 
     test('playback echo cooldown stays short and uses in-memory state', () {
