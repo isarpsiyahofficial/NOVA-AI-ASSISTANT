@@ -48,7 +48,9 @@ jobs:
           lib/services/runtime/nova_runtime_graph_service.dart
           lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
+          lib/services/audio_runtime/nova_playback_echo_filter_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/tts/nova_tts_service.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
 
       - name: Run runtime integrity contracts
@@ -62,7 +64,9 @@ jobs:
           lib/services/runtime/nova_runtime_graph_service.dart
           lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
+          lib/services/audio_runtime/nova_playback_echo_filter_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/tts/nova_tts_service.dart
 
       - name: Compile debug APK
         run: flutter build apk --debug --no-pub
