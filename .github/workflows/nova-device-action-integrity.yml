@@ -34,16 +34,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Format action runtime in CI workspace
+      - name: Format verified action runtime in CI workspace
         run: >-
           dart format
           lib/core/actions/nova_device_action.dart
           lib/core/ai/ai_request.dart
+          lib/core/asr/nova_streaming_transcript.dart
+          lib/core/audio_runtime/nova_stt_result.dart
           lib/core/turn/nova_core_turn_controller.dart
           lib/services/actions/nova_phone_control_bridge_service.dart
           lib/services/actions/nova_contact_call_target_resolver_service.dart
           lib/services/actions/nova_device_action_executor_service.dart
           lib/services/api/api_service.dart
+          lib/services/identity/device_owner_identity_service.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/nova/nova_dashboard_page.dart
           test/runtime/nova_verified_device_action_contract_test.dart
           test/runtime/nova_contact_call_target_resolver_test.dart
 
@@ -58,8 +64,14 @@ jobs:
           flutter analyze
           lib/core/actions/nova_device_action.dart
           lib/core/ai/ai_request.dart
+          lib/core/asr/nova_streaming_transcript.dart
+          lib/core/audio_runtime/nova_stt_result.dart
           lib/core/turn/nova_core_turn_controller.dart
           lib/services/actions/nova_phone_control_bridge_service.dart
           lib/services/actions/nova_contact_call_target_resolver_service.dart
           lib/services/actions/nova_device_action_executor_service.dart
           lib/services/api/api_service.dart
+          lib/services/identity/device_owner_identity_service.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/nova/nova_dashboard_page.dart
