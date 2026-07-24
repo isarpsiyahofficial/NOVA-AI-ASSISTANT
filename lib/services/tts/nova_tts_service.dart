@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
 // NOVA_ABSOLUTE_FINAL_CLEANUP_V1
-// NOVA_TTS_LOW_LATENCY_HANDOFF_V1
+// NOVA_TTS_LOW_LATENCY_HANDOFF_V2_SHERPA_PRIMARY
 import 'package:flutter/foundation.dart';
 import '../../core/ai/ai_response.dart';
 import '../../core/runtime/freshness_controller.dart';
@@ -97,9 +97,6 @@ class NovaTtsService {
         );
 
     if (!allowedByAuthority) {
-      // NOVA_TTS_NO_REWRITE_BACKDOOR_V1:
-      // Static/status/runtime text must not be rescued by sending it back to AI
-      // as a rewrite request. Only already-authorized AI final responses may speak.
       debugPrint(
         'NOVA_TTS_AUTHORITY_REROUTE_DISABLED '
         'source=$normalizedAuthoritySource chars=${authorityText.replaceAll(RegExp(r'\s+'), ' ').trim().length}',
@@ -224,9 +221,6 @@ class NovaTtsService {
       await ttsService.stop();
     }
 
-    // main.dart prewarms the selected Turkish voice. setLanguage is still the
-    // authoritative runtime check, so every reply does not repeat a second
-    // explicit prewarm/voice scan before speaking.
     await ttsService.setLanguage(localeCode);
     final baseRate = settings.speechRate > 0
         ? settings.speechRate.clamp(0.56, 0.70)
@@ -263,7 +257,7 @@ class NovaTtsService {
     debugPrint(
       'NOVA_TTS_FINAL_TEXT source=${NovaSingleBrainAuthorityService.brainTtsSource} '
       'authoritySource=$normalizedAuthoritySource mode=$mode '
-      'enginePolicy=verified_turkish_female_platform_default textChars=${renderedSpeech.length}',
+      'enginePolicy=sherpa_offline_primary_platform_explicit_fallback textChars=${renderedSpeech.length}',
     );
 
     await ttsService.setSpeechRate(mergedPlan.speechRate);
@@ -281,6 +275,7 @@ class NovaTtsService {
           try {
             await ttsService.speak(
               renderedSpeech,
+              speakerPath: 'sherpa_default',
               allowPlatformFallback: true,
             );
           } catch (_) {
@@ -295,6 +290,7 @@ class NovaTtsService {
           try {
             await ttsService.speak(
               renderedSpeech,
+              speakerPath: 'sherpa_default',
               allowPlatformFallback: true,
             );
           } catch (_) {
@@ -308,9 +304,6 @@ class NovaTtsService {
       }
     } finally {
       await playbackGuardService.markPlaybackEnded();
-      // Resume the recognizer immediately. The short in-memory echo cooldown
-      // plus recent-text comparison blocks Nova's own tail without making the
-      // user wait a fixed 550 ms after every answer.
       await streamingAsrBridgeService.clearBuffer();
       await streamingAsrBridgeService.resume();
     }
