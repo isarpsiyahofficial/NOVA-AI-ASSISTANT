@@ -1,0 +1,67 @@
+name: Nova Exhaustive Decision Graph Audit
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-decision-graph-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exhaustive-decision-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout complete repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile decision auditor
+        run: python -m py_compile tooling/audit_decision_graph.py
+
+      - name: Scan every source and configuration file
+        id: audit
+        continue-on-error: true
+        run: |
+          chmod +x tooling/audit_decision_graph.py
+          python tooling/audit_decision_graph.py --strict
+
+      - name: Publish audit summary
+        if: always()
+        run: |
+          if [[ -s build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md ]]; then
+            cat build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Decision graph audit report was not produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload complete decision evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-EXHAUSTIVE-DECISION-GRAPH-AUDIT
+          path: build/nova-decision-audit
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce zero independent decision paths
+        if: steps.audit.outcome != 'success'
+        run: |
+          echo 'NOVA decision graph still contains blocking conflicts.' >&2
+          exit 1
