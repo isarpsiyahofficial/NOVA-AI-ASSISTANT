@@ -65,6 +65,38 @@ void main() {
       expect(source, contains("effectiveRoute == 'ambient'"));
     });
 
+    test('TTS resumes ASR without a fixed post-speech delay', () {
+      final source = _read('lib/services/tts/nova_tts_service.dart');
+
+      expect(source, contains('NOVA_TTS_LOW_LATENCY_HANDOFF_V1'));
+      expect(source, isNot(contains('Duration(milliseconds: 550)')));
+      final playbackEnd = source.indexOf(
+        'await playbackGuardService.markPlaybackEnded();',
+      );
+      final clearBuffer = source.indexOf(
+        'await streamingAsrBridgeService.clearBuffer();',
+        playbackEnd,
+      );
+      final resume = source.indexOf(
+        'await streamingAsrBridgeService.resume();',
+        clearBuffer,
+      );
+      expect(playbackEnd, greaterThanOrEqualTo(0));
+      expect(clearBuffer, greaterThan(playbackEnd));
+      expect(resume, greaterThan(clearBuffer));
+    });
+
+    test('playback echo cooldown stays short and uses in-memory state', () {
+      final source = _read(
+        'lib/services/audio_runtime/nova_playback_echo_filter_service.dart',
+      );
+
+      expect(source, contains('Duration(milliseconds: 320)'));
+      expect(source, contains('static bool _active = false;'));
+      expect(source, contains('static String _lastText'));
+      expect(source, isNot(contains('Duration(milliseconds: 2600)')));
+    });
+
     test('native ASR bridge never invokes Android SpeechRecognizer fallback', () {
       final source = _read(
         'android/app/src/main/kotlin/com/example/nova/NovaNativeAudioBridgePlugin.kt',
