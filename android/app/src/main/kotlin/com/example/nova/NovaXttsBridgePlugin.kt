@@ -12,6 +12,7 @@ class NovaXttsBridgePlugin(
 ) : MethodChannel.MethodCallHandler {
 
     private val engine = NovaXttsEngine(context.applicationContext)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val CHANNEL = "nova/xtts_bridge"
@@ -37,7 +38,17 @@ class NovaXttsBridgePlugin(
 
                 "warmupXtts" -> {
                     val preferredModelKey = call.argument<String>("preferredModelKey").orEmpty()
-                    result.success(engine.warmup(preferredModelKey))
+                    Thread {
+                        val success = try {
+                            engine.warmup(preferredModelKey)
+                        } catch (_: Throwable) {
+                            false
+                        }
+                        mainHandler.post { result.success(success) }
+                    }.apply {
+                        name = "NovaSherpaTtsWarmup"
+                        isDaemon = true
+                    }.start()
                 }
 
                 "getXttsCapabilities" -> result.success(engine.getCapabilities())
@@ -65,9 +76,7 @@ class NovaXttsBridgePlugin(
                         } catch (_: Throwable) {
                             false
                         }
-                        Handler(Looper.getMainLooper()).post {
-                            result.success(success)
-                        }
+                        mainHandler.post { result.success(success) }
                     }.apply {
                         name = "NovaSherpaOfflineTts"
                         isDaemon = true
