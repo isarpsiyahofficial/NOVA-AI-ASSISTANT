@@ -1,4 +1,6 @@
 // NOVA_LOCAL_CONTACT_CALL_TARGET_RESOLVER_V1
+// ACCEPTANCE_CONTRACT: “Annemi” resolves to the unique local “Anne” contact
+// through Turkish suffix variants; ambiguity and unknown contacts are blocked.
 import '../../core/contacts/device_contact_entry.dart';
 import '../contacts/nova_device_contacts_bridge_service.dart';
 
