@@ -8,4 +8,5 @@ data class NovaStreamingAsrResult(
     val startMs: Int,
     val endMs: Int,
     val locale: String = "tr-TR",
+    val identityAudioPath: String = "",
 )
