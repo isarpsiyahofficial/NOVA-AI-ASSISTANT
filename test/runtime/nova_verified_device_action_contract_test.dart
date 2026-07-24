@@ -71,6 +71,8 @@ void main() {
       expect(request, contains('localCompanionAuthorityProof'));
       expect(controller, contains("return 'dashboard_text';"));
       expect(controller, contains("return 'call_companion_authorized_voice';"));
+      expect(controller, contains('ownerConfidence: ownerConfidence'));
+      expect(controller, contains("'ownerVerified': ownerConfidence >= 0.64"));
     });
 
     test('unverified native commands cannot be described as completed', () {
@@ -83,6 +85,22 @@ void main() {
       );
       expect(api, contains("folded.contains('doğrulanamad')"));
       expect(api, contains("folded.contains('tamamlandı')"));
+    });
+
+    test('carrier call control is not misreported as AI conversation', () {
+      final plugin = _read(
+        'android/app/src/main/kotlin/com/example/nova/NovaCallControlBridgePlugin.kt',
+      );
+
+      expect(plugin, contains('carrier_ai_audio_transport_unavailable'));
+      expect(plugin, contains('"carrierCallControlReady" to true'));
+      expect(plugin, contains('"carrierAiConversationReady" to false'));
+      expect(plugin, contains('"carrierDownlinkCaptureReady" to false'));
+      expect(plugin, contains('"carrierUplinkInjectionReady" to false'));
+      expect(
+        plugin,
+        isNot(contains('Kontrol Nova tarafına geçti. Seçili kişi için dijital insan çağrı düzeni aktif.')),
+      );
     });
   });
 }
