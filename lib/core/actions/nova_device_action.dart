@@ -135,10 +135,10 @@ class NovaDeviceActionCatalog {
           'value': <String, dynamic>{
             'type': 'string',
             'description':
-                'Yalnız place_call için izinli telefon numarası, tap_text için ekrandaki hedef metin, set_focused_text için yazılacak metin. Diğer eylemlerde boş bırak.',
+                'Yalnız place_call için izinli telefon numarası, tap_text için ekrandaki hedef metin, set_focused_text için yazılacak metin. Diğer eylemlerde boş string gönder.',
           },
         },
-        'required': <String>['action'],
+        'required': <String>['action', 'value'],
       };
 
   static Map<String, dynamic> openAiTool() => <String, dynamic>{
@@ -177,10 +177,10 @@ class NovaDeviceActionCatalog {
                 'value': <String, dynamic>{
                   'type': 'STRING',
                   'description':
-                      'Numara veya UI metni gereken eylemlerde değer; diğerlerinde boş.',
+                      'Numara veya UI metni gereken eylemlerde değer; diğerlerinde boş string.',
                 },
               },
-              'required': <String>['action'],
+              'required': <String>['action', 'value'],
             },
           },
         ],
