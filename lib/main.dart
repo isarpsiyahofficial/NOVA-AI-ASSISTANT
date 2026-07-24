@@ -74,8 +74,6 @@ Future<void> main() async {
     model: settings.activeApiModel,
   );
 
-  // There is exactly one decision root. All dashboard, voice, setup and call
-  // wrappers resolve this same service through NovaRuntimeGraphService.
   NovaRuntimeGraphService.instance.registerSharedAi(
     owner: 'main_app_root',
     service: NovaRuntimeGraphService.buildAiService(
@@ -99,11 +97,17 @@ Future<void> main() async {
     settingsService: settingsService,
   );
 
-  // Warm the selected Turkish voice without blocking the first frame. The
-  // first real AI response should not pay voice discovery/initialization cost.
+  // Both mouths are prepared outside the awaited launch path. Sherpa gives a
+  // deterministic offline Turkish voice on every supported phone; a verified
+  // platform voice remains available as the explicit fallback.
   unawaited(() async {
     try {
-      await ttsRuntimeService.ttsService.prewarmPreferredTurkishVoice();
+      await Future.wait<bool>(<Future<bool>>[
+        ttsRuntimeService.ttsService.prewarmPreferredTurkishVoice(),
+        nativeBridge.warmupSherpaTts(
+          preferredModelKey: 'sherpa_piper_tr_offline',
+        ),
+      ]);
     } catch (_) {}
   }());
 
