@@ -40,6 +40,12 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Bootstrap verified Gradle wrapper
+        shell: bash
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh
+          tooling/bootstrap_gradle_wrapper.sh
+
       - name: Restore verified voice model cache
         uses: actions/cache@v4
         with:
