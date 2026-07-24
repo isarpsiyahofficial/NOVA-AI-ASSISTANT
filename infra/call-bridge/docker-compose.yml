@@ -1,0 +1,56 @@
+services:
+  media-gateway:
+    build:
+      context: ./media_gateway
+    environment:
+      NOVA_AUDIO_SOCKET_HOST: 0.0.0.0
+      NOVA_AUDIO_SOCKET_PORT: 9019
+      NOVA_HEALTH_PORT: 8080
+      NOVA_REPORT_DIR: /reports
+      NOVA_ASR_ENCODER: /models/asr/encoder.onnx
+      NOVA_ASR_DECODER: /models/asr/decoder.onnx
+      NOVA_ASR_TOKENS: /models/asr/tokens.txt
+      NOVA_TTS_MODEL: /models/tts/model.onnx
+      NOVA_TTS_TOKENS: /models/tts/tokens.txt
+      NOVA_TTS_DATA: /models/tts/espeak-ng-data
+      NOVA_CALL_AI_PROVIDER: ${NOVA_CALL_AI_PROVIDER:-mock}
+      NOVA_CALL_AI_KEY: ${NOVA_CALL_AI_KEY:-}
+      NOVA_CALL_AI_MODEL: ${NOVA_CALL_AI_MODEL:-}
+      NOVA_CALL_AI_ENDPOINT: ${NOVA_CALL_AI_ENDPOINT:-}
+      NOVA_CALL_HANGUP_AFTER_REPLY: ${NOVA_CALL_HANGUP_AFTER_REPLY:-true}
+      NOVA_CALL_MOCK_REPLY: ${NOVA_CALL_MOCK_REPLY:-NOVA çift yönlü çağrı medya testi başarıyla tamamlandı.}
+      NOVA_LOG_LEVEL: ${NOVA_LOG_LEVEL:-INFO}
+    volumes:
+      - ../../android/app/src/main/assets/sherpa_asr:/models/asr:ro
+      - ../../android/app/src/main/assets/sherpa_tts:/models/tts:ro
+      - ./runtime/reports:/reports
+      - ./runtime:/shared
+    ports:
+      - "18080:8080"
+    restart: unless-stopped
+    networks:
+      - nova-call
+
+  asterisk:
+    build:
+      context: ./asterisk
+    environment:
+      NOVA_SIP_TRUNK_HOST: ${NOVA_SIP_TRUNK_HOST:-}
+      NOVA_SIP_TRUNK_USER: ${NOVA_SIP_TRUNK_USER:-}
+      NOVA_SIP_TRUNK_PASSWORD: ${NOVA_SIP_TRUNK_PASSWORD:-}
+      NOVA_SIP_TRUNK_FROM_DOMAIN: ${NOVA_SIP_TRUNK_FROM_DOMAIN:-}
+    volumes:
+      - ./runtime:/shared
+    ports:
+      - "15060:5060/udp"
+      - "15060:5060/tcp"
+    depends_on:
+      media-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nova-call
+
+networks:
+  nova-call:
+    driver: bridge
