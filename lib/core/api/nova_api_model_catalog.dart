@@ -1,19 +1,27 @@
-// NOVA_API_MODEL_CATALOG_V1
+// NOVA_API_MODEL_CATALOG_V2_VERIFIED_PROVIDER_IDS_2026_07
 import 'nova_ai_provider_type.dart';
 
 class NovaApiModelCatalog {
-  static const String geminiFreeTierStable = 'gemini-3.1-flash-lite';
-  static const String geminiFreeTierBalanced = 'gemini-3.5-flash';
+  // Google stable models with documented function-calling support.
+  static const String geminiFreeTierStable = 'gemini-3.5-flash-lite';
+  static const String geminiFreeTierBalanced = 'gemini-3.6-flash';
   static const String geminiStrongStable = 'gemini-3.5-flash';
+  static const String geminiFlashStable = 'gemini-3.6-flash';
+  static const String geminiLegacyFlashLite = 'gemini-3.1-flash-lite';
+
+  // Kept only for backward settings deserialization; preview/live identifiers
+  // are deliberately excluded from production presets because they can expire.
   static const String geminiLiveStable = 'gemini-3.1-flash-live-preview';
   static const String geminiLivePreview = 'gemini-2.5-flash-live-preview';
-  static const String geminiFlashStable = 'gemini-2.5-flash';
-  static const String geminiLegacyFlashLite = 'gemini-2.5-flash-lite';
-  static const String openAiLowCost = 'gpt-5.4-mini';
-  static const String openAiFlagship = 'gpt-5.5';
-  static const String qwenTrialFlash = 'qwen-flash';
-  static const String qwenTrialPlus = 'qwen-plus';
-  static const String qwenStrongMax = 'qwen-max';
+
+  // OpenAI model IDs explicitly documented for the Responses API.
+  static const String openAiLowCost = 'gpt-5-mini';
+  static const String openAiFlagship = 'gpt-5.1';
+
+  // Alibaba Model Studio recommended text models with function calling.
+  static const String qwenTrialFlash = 'qwen3.6-flash';
+  static const String qwenTrialPlus = 'qwen3.7-plus';
+  static const String qwenStrongMax = 'qwen3.7-max';
   static const String qwen35Flash = 'qwen3.5-flash';
   static const String qwen35Plus = 'qwen3.5-plus';
   static const String qwen3Max = 'qwen3-max';
@@ -35,9 +43,8 @@ class NovaApiModelCatalog {
         return const <String>[
           geminiFreeTierStable,
           geminiFreeTierBalanced,
-          geminiFlashStable,
+          geminiStrongStable,
           geminiLegacyFlashLite,
-          geminiLiveStable,
         ];
       case NovaAiProviderType.openai:
         return const <String>[openAiLowCost, openAiFlagship];
@@ -45,56 +52,45 @@ class NovaApiModelCatalog {
         return const <String>[
           qwenTrialFlash,
           qwenTrialPlus,
+          qwenStrongMax,
           qwen35Flash,
           qwen35Plus,
-          qwenStrongMax,
-          qwen3Max,
         ];
     }
   }
 
+  static bool isProductionPreset(
+    NovaAiProviderType provider,
+    String model,
+  ) => presetsFor(provider).contains(model.trim());
+
   static String labelFor(String model) {
     final normalized = model.trim();
-    if (normalized == geminiFreeTierStable) {
-      return 'Gemini ücretsiz/düşük maliyet - 3.1 Flash-Lite';
+    switch (normalized) {
+      case geminiFreeTierStable:
+        return 'Gemini 3.5 Flash-Lite — düşük gecikme/düşük maliyet';
+      case geminiFreeTierBalanced:
+        return 'Gemini 3.6 Flash — güncel dengeli';
+      case geminiStrongStable:
+        return 'Gemini 3.5 Flash — güçlü stable';
+      case geminiLegacyFlashLite:
+        return 'Gemini 3.1 Flash-Lite — uyumluluk';
+      case openAiLowCost:
+        return 'OpenAI GPT-5 mini — hızlı ve ekonomik';
+      case openAiFlagship:
+        return 'OpenAI GPT-5.1 — güçlü agent modeli';
+      case qwenTrialFlash:
+        return 'Qwen 3.6 Flash — hızlı ve ekonomik';
+      case qwenTrialPlus:
+        return 'Qwen 3.7 Plus — dengeli';
+      case qwenStrongMax:
+        return 'Qwen 3.7 Max — güçlü';
+      case qwen35Flash:
+        return 'Qwen 3.5 Flash — uyumluluk';
+      case qwen35Plus:
+        return 'Qwen 3.5 Plus — uyumluluk';
+      default:
+        return normalized.isEmpty ? 'Model seçilmedi' : normalized;
     }
-    if (normalized == geminiFreeTierBalanced ||
-        normalized == geminiStrongStable) {
-      return 'Gemini ücretsiz/dengeli - 3.5 Flash';
-    }
-    if (normalized == geminiFlashStable) {
-      return 'Gemini 2.5 hızlı';
-    }
-    if (normalized == geminiLegacyFlashLite) {
-      return 'Gemini 2.5 düşük maliyet uyumluluk';
-    }
-    if (normalized == geminiLiveStable) {
-      return 'Gemini Live sesli önizleme';
-    }
-    if (normalized == openAiLowCost) {
-      return 'OpenAI düşük maliyet';
-    }
-    if (normalized == openAiFlagship) {
-      return 'OpenAI güçlü';
-    }
-    if (normalized == qwenTrialFlash) {
-      return 'Qwen deneme/düşük maliyet - Flash';
-    }
-    if (normalized == qwenTrialPlus) {
-      return 'Qwen deneme/dengeli - Plus';
-    }
-    if (normalized == qwen35Flash) {
-      return 'Qwen 3.5 Flash - hızlı/ucuz';
-    }
-    if (normalized == qwen35Plus) {
-      return 'Qwen 3.5 Plus - dengeli ücretli';
-    }
-    if (normalized == qwenStrongMax) {
-      return 'Qwen Max - güçlü ücretli';
-    }
-    if (normalized == qwen3Max) {
-      return 'Qwen3 Max - en güçlü ücretli';
-    }
-    return normalized.isEmpty ? 'Model seçilmedi' : normalized;
   }
 }
