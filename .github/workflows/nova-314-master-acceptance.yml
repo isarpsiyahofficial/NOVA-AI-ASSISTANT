@@ -1,0 +1,127 @@
+name: Nova 314 Master Acceptance
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-master-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
+jobs:
+  automated-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap verified Gradle wrapper
+        shell: bash
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh
+          tooling/bootstrap_gradle_wrapper.sh
+
+      - name: Restore checksum-verified speech model cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision native ASR VAD Voice-ID and TTS assets
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Compile Python call and acceptance infrastructure
+        run: |
+          python -m py_compile \
+            infra/call-bridge/media_gateway/service.py \
+            tooling/nova_acceptance_catalog.py \
+            tooling/verify_nova_acceptance.py
+
+      - name: Validate Docker Compose call bridge definition
+        run: docker compose -f infra/call-bridge/docker-compose.yml config > build/nova-call-bridge-compose.yml
+
+      - name: Run core runtime tests
+        run: >-
+          flutter test
+          test/runtime/nova_runtime_integrity_contract_test.dart
+          test/runtime/nova_verified_device_action_contract_test.dart
+          test/runtime/nova_contact_call_target_resolver_test.dart
+
+      - name: Analyze production entry points
+        run: >-
+          flutter analyze
+          lib/main.dart
+          lib/core/actions/nova_device_action.dart
+          lib/core/ai/ai_request.dart
+          lib/core/turn/nova_core_turn_controller.dart
+          lib/services/actions/nova_device_action_executor_service.dart
+          lib/services/api/api_service.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/tts/nova_tts_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/nova/nova_dashboard_page.dart
+
+      - name: Compile native Kotlin
+        working-directory: android
+        run: ./gradlew :app:compileDebugKotlin --stacktrace
+
+      - name: Build debug APK
+        run: flutter build apk --debug --no-pub
+
+      - name: Run strict 314-item automated acceptance
+        shell: bash
+        run: |
+          python tooling/verify_nova_acceptance.py --strict
+          cat build/nova-acceptance/NOVA_ACCEPTANCE_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload master acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-314-MASTER-ACCEPTANCE
+          path: |
+            build/nova-acceptance
+            build/nova-call-bridge-compose.yml
+            build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: warn
+          retention-days: 14
