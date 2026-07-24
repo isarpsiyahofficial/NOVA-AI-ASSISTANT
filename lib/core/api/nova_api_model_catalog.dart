@@ -1,24 +1,21 @@
-// NOVA_API_MODEL_CATALOG_V2_VERIFIED_PROVIDER_IDS_2026_07
+// NOVA_API_MODEL_CATALOG_V3_VERIFIED_IDS_AND_MIGRATION_2026_07
 import 'nova_ai_provider_type.dart';
 
 class NovaApiModelCatalog {
-  // Google stable models with documented function-calling support.
   static const String geminiFreeTierStable = 'gemini-3.5-flash-lite';
   static const String geminiFreeTierBalanced = 'gemini-3.6-flash';
   static const String geminiStrongStable = 'gemini-3.5-flash';
   static const String geminiFlashStable = 'gemini-3.6-flash';
   static const String geminiLegacyFlashLite = 'gemini-3.1-flash-lite';
 
-  // Kept only for backward settings deserialization; preview/live identifiers
-  // are deliberately excluded from production presets because they can expire.
+  // Deserialization-only compatibility markers. Preview/live model IDs are not
+  // offered as production presets because providers can retire them quickly.
   static const String geminiLiveStable = 'gemini-3.1-flash-live-preview';
   static const String geminiLivePreview = 'gemini-2.5-flash-live-preview';
 
-  // OpenAI model IDs explicitly documented for the Responses API.
   static const String openAiLowCost = 'gpt-5-mini';
   static const String openAiFlagship = 'gpt-5.1';
 
-  // Alibaba Model Studio recommended text models with function calling.
   static const String qwenTrialFlash = 'qwen3.6-flash';
   static const String qwenTrialPlus = 'qwen3.7-plus';
   static const String qwenStrongMax = 'qwen3.7-max';
@@ -63,6 +60,51 @@ class NovaApiModelCatalog {
     NovaAiProviderType provider,
     String model,
   ) => presetsFor(provider).contains(model.trim());
+
+  static String migrateSavedModelId(
+    NovaAiProviderType provider,
+    String rawModel,
+  ) {
+    final value = rawModel.trim();
+    if (value.isEmpty) return defaultModelFor(provider);
+
+    switch (provider) {
+      case NovaAiProviderType.openai:
+        switch (value) {
+          case 'gpt-5.4-mini':
+          case 'gpt-5-mini-2025-08-07':
+            return openAiLowCost;
+          case 'gpt-5.5':
+          case 'gpt-5':
+          case 'gpt-5-2025-08-07':
+            return openAiFlagship;
+          default:
+            return value;
+        }
+      case NovaAiProviderType.qwen:
+        switch (value) {
+          case 'qwen-flash':
+            return qwenTrialFlash;
+          case 'qwen-plus':
+            return qwenTrialPlus;
+          case 'qwen-max':
+          case 'qwen3-max':
+            return qwenStrongMax;
+          default:
+            return value;
+        }
+      case NovaAiProviderType.gemini:
+        switch (value) {
+          case 'gemini-3.1-flash-live-preview':
+          case 'gemini-2.5-flash-live-preview':
+          case 'gemini-2.0-flash':
+          case 'gemini-2.0-flash-lite':
+            return geminiFreeTierStable;
+          default:
+            return value;
+        }
+    }
+  }
 
   static String labelFor(String model) {
     final normalized = model.trim();
