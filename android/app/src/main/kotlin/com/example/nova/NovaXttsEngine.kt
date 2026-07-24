@@ -39,6 +39,13 @@ class NovaXttsEngine(
     private val modelPath = "sherpa_tts/model.onnx"
     private val tokensPath = "sherpa_tts/tokens.txt"
     private val dataDir = "sherpa_tts/espeak-ng-data"
+    private val defaultProfiles = setOf(
+        "",
+        "default",
+        "dfki",
+        "sherpa_default",
+        "sherpa_piper_tr_offline",
+    )
 
     fun isReady(): Boolean = warmedUp && engine != null
 
@@ -139,7 +146,8 @@ class NovaXttsEngine(
             lastMessage = "Paketli offline ses yalnız Türkçe için yapılandırıldı."
             return false
         }
-        if (speakerPath.isNotBlank()) {
+        val normalizedSpeaker = speakerPath.trim().lowercase()
+        if (normalizedSpeaker !in defaultProfiles) {
             // Piper/VITS tek konuşmacılıdır. Bir referans dosyasını klon sesi gibi
             // kabul etmek yerine açıkça desteklenmediğini bildiriyoruz.
             lastMessage = "Piper Türkçe TTS referans ses klonlamayı desteklemiyor."
