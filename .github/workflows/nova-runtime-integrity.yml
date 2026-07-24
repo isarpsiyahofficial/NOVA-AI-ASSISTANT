@@ -43,7 +43,9 @@ jobs:
       - name: Verify changed runtime formatting
         run: >-
           dart format --output=none --set-exit-if-changed
+          lib/main.dart
           lib/core/turn/nova_core_turn_controller.dart
+          lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
 
@@ -53,7 +55,9 @@ jobs:
       - name: Analyze runtime entry points
         run: >-
           flutter analyze
+          lib/main.dart
           lib/core/turn/nova_core_turn_controller.dart
+          lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
 
       - name: Compile debug APK
