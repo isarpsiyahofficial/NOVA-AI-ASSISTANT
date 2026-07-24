@@ -20,7 +20,7 @@ concurrency:
 jobs:
   exhaustive-decision-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Checkout complete repository
         uses: actions/checkout@v4
@@ -32,8 +32,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Compile decision auditor
-        run: python -m py_compile tooling/audit_decision_graph.py
+      - name: Compile decision audit tooling
+        run: |
+          python -m py_compile \
+            tooling/audit_decision_graph.py \
+            tooling/export_source_snapshot.py
 
       - name: Scan every source and configuration file
         id: audit
@@ -41,6 +44,12 @@ jobs:
         run: |
           chmod +x tooling/audit_decision_graph.py
           python tooling/audit_decision_graph.py --strict
+
+      - name: Export complete read-only source snapshot
+        if: always()
+        run: |
+          chmod +x tooling/export_source_snapshot.py
+          python tooling/export_source_snapshot.py
 
       - name: Publish audit summary
         if: always()
