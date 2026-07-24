@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LAB_DIR="$ROOT_DIR/infra/call-bridge"
+cd "$LAB_DIR"
+
+rm -rf runtime
+mkdir -p runtime/sounds runtime/recordings runtime/reports runtime/logs
+chmod -R 0777 runtime
+
+compose=(docker compose -f docker-compose.yml)
+
+cleanup() {
+  local exit_code=$?
+  "${compose[@]}" logs --no-color > runtime/logs/docker-compose.log 2>&1 || true
+  "${compose[@]}" exec -T asterisk asterisk -rx "core show channels verbose" > runtime/logs/asterisk-channels.log 2>&1 || true
+  "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" > runtime/logs/asterisk-audiosocket-modules.log 2>&1 || true
+  if [[ "${NOVA_KEEP_CALL_LAB:-false}" != "true" ]]; then
+    "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
+  fi
+  exit "$exit_code"
+}
+trap cleanup EXIT
+
+"${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
+"${compose[@]}" up -d --build
+
+for _ in $(seq 1 90); do
+  if curl -fsS http://127.0.0.1:18080/health | grep -q '"ready": true'; then
+    break
+  fi
+  sleep 2
+done
+curl -fsS http://127.0.0.1:18080/health | tee runtime/logs/media-health.json | grep -q '"ready": true'
+
+for _ in $(seq 1 60); do
+  if "${compose[@]}" exec -T asterisk asterisk -rx "core show uptime" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+"${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
+  | tee runtime/logs/asterisk-audiosocket-modules.log \
+  | grep -q 'app_audiosocket.so'
+"${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
+  | grep -q 'res_audiosocket.so'
+
+"${compose[@]}" exec -T media-gateway \
+  python /app/service.py synthesize \
+    --text "Nova gerçek çift yönlü çağrı testini doğrula" \
+    --output /shared/sounds/nova-test-command.wav \
+  | tee runtime/logs/fixture-generation.json
+
+test -s runtime/sounds/nova-test-command.wav
+"${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload"
+
+originate_output="$(
+  "${compose[@]}" exec -T asterisk \
+    asterisk -rx "channel originate Local/9000@nova-test-caller extension 7000@nova-call-test"
+)"
+printf '%s\n' "$originate_output" | tee runtime/logs/originate.log
+
+completed=false
+for _ in $(seq 1 90); do
+  if curl -fsS http://127.0.0.1:18080/sessions/latest > runtime/logs/latest-session.json 2>/dev/null; then
+    if python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('runtime/logs/latest-session.json')
+try:
+    data = json.loads(p.read_text())
+except Exception:
+    raise SystemExit(1)
+raise SystemExit(0 if data.get('completed_at', 0) and data.get('outgoing_bytes', 0) > 0 else 1)
+PY
+    then
+      completed=true
+      break
+    fi
+  fi
+  sleep 2
+done
+
+if [[ "$completed" != "true" ]]; then
+  echo "NOVA AudioSocket call session did not complete" >&2
+  exit 1
+fi
+
+"${compose[@]}" exec -T media-gateway \
+  python /app/service.py assert-latest \
+    --report-dir /reports \
+    --expect-token nova \
+    --expect-token gercek \
+    --expect-token cift \
+    --min-incoming-bytes 6000 \
+    --min-outgoing-bytes 6000 \
+    --min-rms 30 \
+  | tee runtime/logs/assert-session.json
+
+"${compose[@]}" exec -T media-gateway \
+  python /app/service.py inspect-wav \
+    --directory /shared/recordings \
+    --pattern 'test-caller-*.wav' \
+    --min-duration 2.0 \
+    --min-rms 15 \
+  | tee runtime/logs/assert-caller-recording.json
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+session = json.loads(Path('runtime/logs/latest-session.json').read_text())
+summary = {
+    'success': bool(session.get('success')),
+    'session_id': session.get('session_id'),
+    'transcript': session.get('transcript'),
+    'reply': session.get('reply'),
+    'incoming_bytes': session.get('incoming_bytes'),
+    'outgoing_bytes': session.get('outgoing_bytes'),
+    'incoming_rms': session.get('incoming_rms'),
+    'outgoing_rms': session.get('outgoing_rms'),
+    'stt_ms': session.get('stt_ms'),
+    'ai_ms': session.get('ai_ms'),
+    'tts_ms': session.get('tts_ms'),
+    'proof': 'Asterisk AudioSocket caller PCM -> Whisper -> AI decision -> Piper TTS -> same caller channel',
+}
+Path('runtime/NOVA_CALL_BRIDGE_E2E_RESULT.json').write_text(
+    json.dumps(summary, ensure_ascii=False, indent=2),
+    encoding='utf-8',
+)
+print(json.dumps(summary, ensure_ascii=False, indent=2))
+if not summary['success']:
+    raise SystemExit(1)
+PY
+
+echo "NOVA bidirectional call bridge E2E passed."
