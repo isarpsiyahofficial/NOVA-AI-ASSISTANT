@@ -74,11 +74,14 @@ jobs:
         run: |
           python -m py_compile \
             infra/call-bridge/media_gateway/service.py \
+            infra/call-bridge/control_gateway/service.py \
             tooling/nova_acceptance_catalog.py \
             tooling/verify_nova_acceptance.py
 
       - name: Validate Docker Compose call bridge definition
-        run: docker compose -f infra/call-bridge/docker-compose.yml config > build/nova-call-bridge-compose.yml
+        run: |
+          mkdir -p build
+          docker compose -f infra/call-bridge/docker-compose.yml config > build/nova-call-bridge-compose.yml
 
       - name: Run core runtime tests
         run: >-
@@ -93,9 +96,13 @@ jobs:
           lib/main.dart
           lib/core/actions/nova_device_action.dart
           lib/core/ai/ai_request.dart
+          lib/core/api/nova_secure_token_store.dart
+          lib/core/settings/nova_settings.dart
           lib/core/turn/nova_core_turn_controller.dart
           lib/services/actions/nova_device_action_executor_service.dart
           lib/services/api/api_service.dart
+          lib/services/call/nova_carrier_media_bridge_service.dart
+          lib/services/settings/nova_settings_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
           lib/services/tts/nova_tts_service.dart
           lib/ui/launch/nova_launch_gate_page.dart
