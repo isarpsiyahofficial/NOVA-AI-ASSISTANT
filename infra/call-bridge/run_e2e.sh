@@ -13,9 +13,11 @@ compose=(docker compose -f docker-compose.yml)
 
 cleanup() {
   local exit_code=$?
+  "${compose[@]}" ps -a > runtime/logs/docker-compose-ps.log 2>&1 || true
   "${compose[@]}" logs --no-color > runtime/logs/docker-compose.log 2>&1 || true
   "${compose[@]}" exec -T asterisk asterisk -rx "core show channels verbose" > runtime/logs/asterisk-channels.log 2>&1 || true
   "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" > runtime/logs/asterisk-audiosocket-modules.log 2>&1 || true
+  "${compose[@]}" exec -T asterisk asterisk -rx "dialplan show nova-call-test" > runtime/logs/asterisk-dialplan.log 2>&1 || true
   if [[ "${NOVA_KEEP_CALL_LAB:-false}" != "true" ]]; then
     "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
   fi
@@ -24,15 +26,17 @@ cleanup() {
 trap cleanup EXIT
 
 "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
-"${compose[@]}" up -d --build
+"${compose[@]}" build --progress=plain 2>&1 | tee runtime/logs/docker-compose-build.log
+"${compose[@]}" up -d 2>&1 | tee runtime/logs/docker-compose-up.log
+"${compose[@]}" ps -a | tee runtime/logs/docker-compose-ps-start.log
 
 for _ in $(seq 1 90); do
-  if curl -fsS http://127.0.0.1:18080/health | grep -q '"ready": true'; then
+  if curl -fsS http://127.0.0.1:18080/health | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'; then
     break
   fi
   sleep 2
 done
-curl -fsS http://127.0.0.1:18080/health | tee runtime/logs/media-health.json | grep -q '"ready": true'
+curl -fsS http://127.0.0.1:18080/health | tee runtime/logs/media-health.json | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'
 
 for _ in $(seq 1 60); do
   if "${compose[@]}" exec -T asterisk asterisk -rx "core show uptime" >/dev/null 2>&1; then
@@ -40,12 +44,24 @@ for _ in $(seq 1 60); do
   fi
   sleep 1
 done
+"${compose[@]}" exec -T asterisk asterisk -rx "core show uptime" \
+  | tee runtime/logs/asterisk-uptime.log
 
 "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
   | tee runtime/logs/asterisk-audiosocket-modules.log \
   | grep -q 'app_audiosocket.so'
 "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
   | grep -q 'res_audiosocket.so'
+
+for _ in $(seq 1 60); do
+  if curl -fsS http://127.0.0.1:18090/health | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'; then
+    break
+  fi
+  sleep 1
+done
+curl -fsS http://127.0.0.1:18090/health \
+  | tee runtime/logs/control-health.json \
+  | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'
 
 "${compose[@]}" exec -T media-gateway \
   python /app/service.py synthesize \
@@ -54,7 +70,11 @@ done
   | tee runtime/logs/fixture-generation.json
 
 test -s runtime/sounds/nova-test-command.wav
-"${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload"
+"${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload" \
+  | tee runtime/logs/dialplan-reload.log
+"${compose[@]}" exec -T asterisk asterisk -rx "dialplan show nova-call-test" \
+  | tee runtime/logs/asterisk-dialplan.log \
+  | grep -q 'AudioSocket'
 
 originate_output="$(
   "${compose[@]}" exec -T asterisk \
