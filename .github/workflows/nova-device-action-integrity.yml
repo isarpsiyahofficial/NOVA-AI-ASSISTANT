@@ -45,9 +45,13 @@ jobs:
           lib/services/actions/nova_device_action_executor_service.dart
           lib/services/api/api_service.dart
           test/runtime/nova_verified_device_action_contract_test.dart
+          test/runtime/nova_contact_call_target_resolver_test.dart
 
       - name: Run verified action contracts
-        run: flutter test test/runtime/nova_verified_device_action_contract_test.dart
+        run: >-
+          flutter test
+          test/runtime/nova_verified_device_action_contract_test.dart
+          test/runtime/nova_contact_call_target_resolver_test.dart
 
       - name: Analyze verified action runtime
         run: >-
