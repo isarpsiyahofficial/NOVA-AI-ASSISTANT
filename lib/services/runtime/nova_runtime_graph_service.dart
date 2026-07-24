@@ -1,5 +1,5 @@
 // ignore_for_file: avoid_print
-// NOVA_RUNTIME_GRAPH_SINGLE_BRAIN_CUTOVER_V37_FULL_AUTHORITY_SURFACE
+// NOVA_RUNTIME_GRAPH_SINGLE_BRAIN_CUTOVER_V38_STRICT_DUPLICATE_GUARD
 import '../../core/ai/nova_ai_service.dart';
 import '../../core/behavior/nova_persona.dart';
 import '../../core/behavior/response_style.dart';
@@ -43,6 +43,19 @@ class NovaRuntimeGraphService {
 
   NovaRuntimeGraphService._();
 
+  bool get hasSharedAi => _sharedAiService != null;
+  String get sharedAiOwner => _sharedAiOwner;
+
+  NovaAiService get sharedAiOrThrow {
+    final current = _sharedAiService;
+    if (current == null) {
+      throw StateError(
+        'Nova shared AI root is not registered. main.dart must register it before any turn surface starts.',
+      );
+    }
+    return current;
+  }
+
   NovaAiService registerSharedAi({
     required NovaAiService service,
     required String owner,
@@ -60,8 +73,13 @@ class NovaRuntimeGraphService {
         _duplicateDecisionFactories.add(duplicate);
       }
       print(
-        'NOVA_RUNTIME_GRAPH_DUPLICATE_AI_WRAPPED owner=$cleanOwner existing=$_sharedAiOwner duplicateHash=${identityHashCode(service)}',
+        'NOVA_RUNTIME_GRAPH_DUPLICATE_AI_REJECTED owner=$cleanOwner existing=$_sharedAiOwner duplicateHash=${identityHashCode(service)}',
       );
+      assert(() {
+        throw StateError(
+          'A second NovaAiService decision root was created by $cleanOwner. Existing owner: $_sharedAiOwner.',
+        );
+      }());
     }
     _registerCoreSources();
     return _sharedAiService!;
@@ -157,7 +175,7 @@ class NovaRuntimeGraphService {
         ),
         'decisionWrapperCount': _decisionWrappers.length,
         'policy':
-            'V37: all detected decision/authority/speech/call/runtime surfaces are registered as wrappers/delegates or security primitives; normal speech must pass SingleBrainAuthority and TTS authority proof; call/native feature primitives stay intact and do not become model authority',
+            'V38: exactly one NovaAiService decision root; duplicate roots are rejected in debug/test; all speech, call and runtime surfaces remain wrappers or security primitives and must pass SingleBrainAuthority before TTS.',
       },
     );
   }
