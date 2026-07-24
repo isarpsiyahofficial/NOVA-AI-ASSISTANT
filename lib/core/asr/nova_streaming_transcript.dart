@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
-// NOVA_ABSOLUTE_FINAL_CLEANUP_V1
 class NovaStreamingTranscript {
   final String text;
   final bool isFinal;
@@ -8,6 +6,7 @@ class NovaStreamingTranscript {
   final int startMs;
   final int endMs;
   final String locale;
+  final String identityAudioPath;
 
   const NovaStreamingTranscript({
     required this.text,
@@ -17,20 +16,23 @@ class NovaStreamingTranscript {
     required this.startMs,
     required this.endMs,
     this.locale = 'tr-TR',
+    this.identityAudioPath = '',
   });
 
   bool get hasText => text.trim().isNotEmpty;
   String get detectedLocale => locale;
+  bool get hasIdentityAudioEvidence => identityAudioPath.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() => <String, dynamic>{
-    'text': text,
-    'isFinal': isFinal,
-    'confidence': confidence,
-    'segmentId': segmentId,
-    'startMs': startMs,
-    'endMs': endMs,
-    'locale': locale,
-  };
+        'text': text,
+        'isFinal': isFinal,
+        'confidence': confidence,
+        'segmentId': segmentId,
+        'startMs': startMs,
+        'endMs': endMs,
+        'locale': locale,
+        'identityAudioPath': identityAudioPath,
+      };
 
   factory NovaStreamingTranscript.fromMap(Map<String, dynamic> map) {
     return NovaStreamingTranscript(
@@ -41,6 +43,8 @@ class NovaStreamingTranscript {
       startMs: map['startMs'] as int? ?? 0,
       endMs: map['endMs'] as int? ?? 0,
       locale: (map['locale'] as String? ?? 'tr-TR').trim(),
+      identityAudioPath:
+          (map['identityAudioPath'] as String? ?? '').trim(),
     );
   }
 }
