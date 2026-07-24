@@ -192,6 +192,7 @@ class NovaStreamingAsrBridgePlugin(
             startMs = 0,
             endMs = 0,
             locale = "tr-TR",
+            identityAudioPath = "",
         )
     }
 
@@ -210,6 +211,7 @@ class NovaStreamingAsrBridgePlugin(
                 "startMs" to payload.startMs,
                 "endMs" to payload.endMs,
                 "locale" to payload.locale,
+                "identityAudioPath" to payload.identityAudioPath,
             ),
             "message" to message,
             "createdAt" to java.time.Instant.now().toString(),
