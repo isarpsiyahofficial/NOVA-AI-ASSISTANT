@@ -49,7 +49,9 @@ class NovaVoiceIdentityBridgeService {
   static const MethodChannel _channel = MethodChannel(
     'nova/voice_identity_bridge',
   );
+
   const NovaVoiceIdentityBridgeService();
+
   Future<NovaVoiceIdentityWarmupResult> warmup() async {
     try {
       final raw = await _channel.invokeMethod<dynamic>('warmupVoiceIdentity');
@@ -76,12 +78,14 @@ class NovaVoiceIdentityBridgeService {
     required String audioPath,
   }) async {
     try {
-      final raw = await _channel
-          .invokeMethod<dynamic>('enrollVoiceprintFromFile', {
-            'voiceId': voiceId.trim(),
-            'displayName': displayName.trim(),
-            'audioPath': audioPath.trim(),
-          });
+      final raw = await _channel.invokeMethod<dynamic>(
+        'enrollVoiceprintFromFile',
+        <String, dynamic>{
+          'voiceId': voiceId.trim(),
+          'displayName': displayName.trim(),
+          'audioPath': audioPath.trim(),
+        },
+      );
       final map = raw is Map
           ? Map<String, dynamic>.from(raw)
           : const <String, dynamic>{};
@@ -110,7 +114,10 @@ class NovaVoiceIdentityBridgeService {
     try {
       final raw = await _channel.invokeMethod<dynamic>(
         'identifyVoiceFromFile',
-        {'audioPath': audioPath.trim(), 'minSimilarity': minSimilarity},
+        <String, dynamic>{
+          'audioPath': audioPath.trim(),
+          'minSimilarity': minSimilarity,
+        },
       );
       final map = raw is Map
           ? Map<String, dynamic>.from(raw)
@@ -134,6 +141,33 @@ class NovaVoiceIdentityBridgeService {
         message: 'Ses eşleşmesi sırasında beklenmeyen hata oluştu.',
         embeddingSize: 0,
       );
+    }
+  }
+
+  Future<bool> removeVoiceprint(String voiceId) async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'removeVoiceprint',
+        <String, dynamic>{'voiceId': voiceId.trim()},
+      );
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> clearAllVoiceprints() async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>('clearAllVoiceprints');
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] as bool? ?? false;
+    } catch (_) {
+      return false;
     }
   }
 }
