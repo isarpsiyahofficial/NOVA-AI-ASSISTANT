@@ -25,8 +25,32 @@ services:
       - ../../android/app/src/main/assets/sherpa_tts:/models/tts:ro
       - ./runtime/reports:/reports
       - ./runtime:/shared
+    restart: unless-stopped
+    networks:
+      - nova-call
+
+  call-control:
+    build:
+      context: ./control_gateway
+    environment:
+      NOVA_CALL_CONTROL_HOST: 0.0.0.0
+      NOVA_CALL_CONTROL_PORT: 8090
+      NOVA_CALL_CONTROL_TOKEN: ${NOVA_CALL_CONTROL_TOKEN:-nova-ci-control-token-not-for-production}
+      NOVA_ASTERISK_AMI_HOST: asterisk
+      NOVA_ASTERISK_AMI_PORT: 5038
+      NOVA_ASTERISK_AMI_USER: ${NOVA_ASTERISK_AMI_USER:-nova-control}
+      NOVA_ASTERISK_AMI_SECRET: ${NOVA_ASTERISK_AMI_SECRET:-nova-ci-ami-secret-not-for-production}
+      NOVA_MEDIA_GATEWAY_BASE_URL: http://media-gateway:8080
+      NOVA_CALL_CONTROL_DATA_DIR: /shared/control
+    volumes:
+      - ./runtime:/shared
     ports:
-      - "18080:8080"
+      - "18090:8090"
+    depends_on:
+      media-gateway:
+        condition: service_healthy
+      asterisk:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - nova-call
@@ -39,6 +63,7 @@ services:
       NOVA_SIP_TRUNK_USER: ${NOVA_SIP_TRUNK_USER:-}
       NOVA_SIP_TRUNK_PASSWORD: ${NOVA_SIP_TRUNK_PASSWORD:-}
       NOVA_SIP_TRUNK_FROM_DOMAIN: ${NOVA_SIP_TRUNK_FROM_DOMAIN:-}
+      NOVA_ASTERISK_AMI_SECRET: ${NOVA_ASTERISK_AMI_SECRET:-nova-ci-ami-secret-not-for-production}
     volumes:
       - ./runtime:/shared
     ports:
