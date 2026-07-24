@@ -1,0 +1,60 @@
+name: Nova Runtime Integrity
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify changed runtime formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          lib/core/turn/nova_core_turn_controller.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          test/runtime/nova_runtime_integrity_contract_test.dart
+
+      - name: Run runtime integrity contracts
+        run: flutter test test/runtime/nova_runtime_integrity_contract_test.dart
+
+      - name: Analyze runtime entry points
+        run: >-
+          flutter analyze
+          lib/core/turn/nova_core_turn_controller.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+
+      - name: Compile debug APK
+        run: flutter build apk --debug --no-pub
