@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import com.example.nova.NovaStreamingVoiceGate
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -17,31 +18,66 @@ class NovaStreamingAsrBridgePlugin(
     private var sink: EventChannel.EventSink? = null
 
     private fun stopForegroundServiceSafely() {
-        try { context.stopService(Intent(context, NovaAsrForegroundService::class.java)) } catch (_: Throwable) {}
+        try {
+            context.stopService(Intent(context, NovaAsrForegroundService::class.java))
+        } catch (_: Throwable) {
+        }
         engine.setForegroundServiceRunning(false)
+    }
+
+    private fun startVoiceGate(): Pair<Boolean, String> {
+        val state = NovaStreamingVoiceGate.stateMap()
+        if (state["running"] == true) {
+            return true to "Streaming ses kapısı zaten çalışıyor."
+        }
+        val started = NovaStreamingVoiceGate.start(context)
+        return (started["success"] as? Boolean == true) to
+            (started["message"]?.toString() ?: "Streaming ses kapısı yanıt vermedi.")
+    }
+
+    private fun stopVoiceGate() {
+        try {
+            NovaStreamingVoiceGate.stop()
+        } catch (_: Throwable) {
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "initializeStreamingAsr" -> result.success(engine.initialize())
+
             "startStreamingAsr" -> {
-                val startForegroundService = call.argument<Boolean>("startForegroundService") ?: true
+                val startForegroundService =
+                    call.argument<Boolean>("startForegroundService") ?: true
                 val currentState = engine.stateMap()
                 if (currentState["running"] as? Boolean == true) {
+                    val (gateReady, gateMessage) = startVoiceGate()
+                    if (!gateReady) {
+                        emit(
+                            "error",
+                            NovaStreamingAsrResult("", false, 0f, 0, 0, 0, "tr-TR"),
+                            gateMessage,
+                        )
+                        result.success(false)
+                        return
+                    }
+                    engine.resume()
                     emit(
                         "status",
                         NovaStreamingAsrResult("", false, 0f, 0, 0, 0, "tr-TR"),
-                        "Streaming ASR zaten çalışıyor; ikinci start idempotent olarak kabul edildi.",
+                        "Streaming ASR ve tek mikrofon kapısı zaten çalışıyor; ikinci start idempotent kabul edildi.",
                     )
                     result.success(true)
                     return
                 }
+
                 if (startForegroundService) {
                     try {
                         val intent = Intent(context, NovaAsrForegroundService::class.java)
                         context.startForegroundService(intent)
                         engine.setForegroundServiceRunning(true)
                     } catch (t: Throwable) {
+                        stopVoiceGate()
                         stopForegroundServiceSafely()
                         emit(
                             "error",
@@ -53,14 +89,14 @@ class NovaStreamingAsrBridgePlugin(
                     }
                 }
 
-                val gateState = com.example.nova.NovaStreamingVoiceGate.start(context)
-                val gateSuccess = gateState["success"] as? Boolean ?: false
-                if (!gateSuccess) {
+                val (gateReady, gateMessage) = startVoiceGate()
+                if (!gateReady) {
+                    stopVoiceGate()
                     stopForegroundServiceSafely()
                     emit(
                         "error",
                         NovaStreamingAsrResult("", false, 0f, 0, 0, 0, "tr-TR"),
-                        gateState["message"]?.toString() ?: "Streaming ses kapısı/mikrofon açılamadı.",
+                        gateMessage,
                     )
                     result.success(false)
                     return
@@ -68,25 +104,56 @@ class NovaStreamingAsrBridgePlugin(
 
                 val started = engine.start(::emit)
                 if (!started) {
-                    com.example.nova.NovaStreamingVoiceGate.stop()
+                    engine.stop()
+                    stopVoiceGate()
                     stopForegroundServiceSafely()
                     emit(
                         "error",
                         NovaStreamingAsrResult("", false, 0f, 0, 0, 0, "tr-TR"),
-                        "Streaming ASR engine başlatılamadı; foreground bildirim güvenli kapatıldı.",
+                        "Streaming ASR engine başlatılamadı; mikrofon ve foreground bildirim güvenli kapatıldı.",
                     )
                 }
                 result.success(started)
             }
-            "pauseStreamingAsr" -> result.success(engine.pause())
-            "resumeStreamingAsr" -> result.success(engine.resume())
-            "clearStreamingAsrBuffer" -> result.success(engine.clearBuffer())
-            "stopStreamingAsr" -> {
-                stopForegroundServiceSafely()
-                result.success(engine.stop())
+
+            "pauseStreamingAsr" -> {
+                val paused = engine.pause()
+                stopVoiceGate()
+                result.success(paused)
             }
+
+            "resumeStreamingAsr" -> {
+                val (gateReady, gateMessage) = startVoiceGate()
+                if (!gateReady) {
+                    emit(
+                        "error",
+                        NovaStreamingAsrResult("", false, 0f, 0, 0, 0, "tr-TR"),
+                        gateMessage,
+                    )
+                    result.success(false)
+                    return
+                }
+                result.success(engine.resume())
+            }
+
+            "clearStreamingAsrBuffer" -> {
+                NovaStreamingVoiceGate.clearBuffer()
+                result.success(engine.clearBuffer())
+            }
+
+            "stopStreamingAsr" -> {
+                val stopped = engine.stop()
+                stopVoiceGate()
+                stopForegroundServiceSafely()
+                result.success(stopped)
+            }
+
             "flushStreamingAsr" -> result.success(engine.flush())
-            "getStreamingAsrState" -> result.success(engine.stateMap())
+            "getStreamingAsrState" -> {
+                val engineState = engine.stateMap().toMutableMap()
+                engineState["voiceGate"] = NovaStreamingVoiceGate.stateMap()
+                result.success(engineState)
+            }
             else -> result.notImplemented()
         }
     }
@@ -128,8 +195,14 @@ class NovaStreamingAsrBridgePlugin(
 
         fun register(flutterEngine: FlutterEngine, context: Context) {
             val plugin = NovaStreamingAsrBridgePlugin(context)
-            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler(plugin)
-            EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL).setStreamHandler(plugin)
+            MethodChannel(
+                flutterEngine.dartExecutor.binaryMessenger,
+                METHOD_CHANNEL,
+            ).setMethodCallHandler(plugin)
+            EventChannel(
+                flutterEngine.dartExecutor.binaryMessenger,
+                EVENT_CHANNEL,
+            ).setStreamHandler(plugin)
         }
     }
 }
