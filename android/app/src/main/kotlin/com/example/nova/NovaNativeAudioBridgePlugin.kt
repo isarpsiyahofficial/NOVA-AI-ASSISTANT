@@ -49,33 +49,6 @@ class NovaNativeAudioBridgePlugin(
                     result.success(payload)
                 }
 
-                fun fallbackToPlatformRecognizer(reason: String) {
-                    NovaSpeechRecognizerHelper(context).transcribeTurkishOnce(
-                        mode = mode,
-                        maxDurationSeconds = maxDurationSeconds.coerceIn(8, 60),
-                        callback = object : NovaSpeechRecognizerHelper.Callback {
-                            override fun onResult(success: Boolean, text: String, locale: String, message: String) {
-                                finish(
-                                    mapOf(
-                                        "success" to success,
-                                        "recognizedText" to text,
-                                        "detectedLocale" to locale,
-                                        "message" to if (success) {
-                                            "Platform SpeechRecognizer fallback kullanıldı. Önceki ASR durumu: $reason"
-                                        } else {
-                                            "Embedded ASR ve platform fallback tamamlanamadı. Embedded: $reason | Platform: $message"
-                                        },
-                                        "usedEmbeddedAsr" to false,
-                                        "usedPlatformSpeechRecognizerFallback" to true,
-                                        "audioInputPolicy" to NovaAudioInputPolicy.getState(context),
-                                        "streamingAsrState" to streamingAsrEngine.stateMap(),
-                                    )
-                                )
-                            }
-                        }
-                    )
-                }
-
                 val embeddedReady = try {
                     streamingAsrEngine.initialize()
                 } catch (t: Throwable) {
@@ -83,7 +56,18 @@ class NovaNativeAudioBridgePlugin(
                 }
 
                 if (!embeddedReady) {
-                    fallbackToPlatformRecognizer("Embedded Sherpa ASR hazır değil")
+                    finish(
+                        mapOf(
+                            "success" to false,
+                            "recognizedText" to "",
+                            "detectedLocale" to "tr-TR",
+                            "message" to "Embedded Sherpa ASR hazır değil. Platform SpeechRecognizer fallback kullanılmadı.",
+                            "usedEmbeddedAsr" to false,
+                            "usedPlatformSpeechRecognizerFallback" to false,
+                            "audioInputPolicy" to NovaAudioInputPolicy.getState(context),
+                            "streamingAsrState" to streamingAsrEngine.stateMap(),
+                        )
+                    )
                     return@setMethodCallHandler
                 }
 
@@ -92,25 +76,37 @@ class NovaNativeAudioBridgePlugin(
                         mode = mode,
                         maxDurationSeconds = maxDurationSeconds,
                     ) { success, text, locale, message, usedEmbedded ->
-                        if (success && text.trim().length >= 2) {
-                            finish(
-                                mapOf(
-                                    "success" to true,
-                                    "recognizedText" to text,
-                                    "detectedLocale" to locale,
-                                    "message" to message,
-                                    "usedEmbeddedAsr" to usedEmbedded,
-                                    "usedPlatformSpeechRecognizerFallback" to false,
-                                    "audioInputPolicy" to NovaAudioInputPolicy.getState(context),
-                                    "streamingAsrState" to streamingAsrEngine.stateMap(),
-                                )
+                        val cleanText = text.trim()
+                        finish(
+                            mapOf(
+                                "success" to (success && cleanText.length >= 2 && usedEmbedded),
+                                "recognizedText" to if (success && usedEmbedded) cleanText else "",
+                                "detectedLocale" to locale.ifBlank { "tr-TR" },
+                                "message" to if (success && cleanText.length >= 2 && usedEmbedded) {
+                                    message.ifBlank { "Embedded Sherpa ASR transcript üretti." }
+                                } else {
+                                    message.ifBlank { "Embedded Sherpa ASR kullanılabilir transcript üretmedi." }
+                                },
+                                "usedEmbeddedAsr" to usedEmbedded,
+                                "usedPlatformSpeechRecognizerFallback" to false,
+                                "audioInputPolicy" to NovaAudioInputPolicy.getState(context),
+                                "streamingAsrState" to streamingAsrEngine.stateMap(),
                             )
-                        } else {
-                            fallbackToPlatformRecognizer(message.ifBlank { "Embedded ASR boş sonuç döndürdü" })
-                        }
+                        )
                     }
                 } catch (t: Throwable) {
-                    fallbackToPlatformRecognizer(t.message ?: "Embedded ASR çağrısı hata verdi")
+                    finish(
+                        mapOf(
+                            "success" to false,
+                            "recognizedText" to "",
+                            "detectedLocale" to "tr-TR",
+                            "message" to (t.message ?: "Embedded Sherpa ASR çağrısı hata verdi."),
+                            "usedEmbeddedAsr" to false,
+                            "usedPlatformSpeechRecognizerFallback" to false,
+                            "audioInputPolicy" to NovaAudioInputPolicy.getState(context),
+                            "streamingAsrState" to streamingAsrEngine.stateMap(),
+                        )
+                    )
                 }
             }
 
@@ -137,7 +133,6 @@ class NovaNativeAudioBridgePlugin(
             "getAudioInputPolicyState" -> {
                 result.success(NovaAudioInputPolicy.getState(context))
             }
-
 
             "ensureStreamingAsrReady" -> {
                 val success = streamingAsrEngine.initialize()
