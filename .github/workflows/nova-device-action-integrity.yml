@@ -39,7 +39,9 @@ jobs:
           dart format
           lib/core/actions/nova_device_action.dart
           lib/core/ai/ai_request.dart
+          lib/core/turn/nova_core_turn_controller.dart
           lib/services/actions/nova_phone_control_bridge_service.dart
+          lib/services/actions/nova_contact_call_target_resolver_service.dart
           lib/services/actions/nova_device_action_executor_service.dart
           lib/services/api/api_service.dart
           test/runtime/nova_verified_device_action_contract_test.dart
@@ -52,6 +54,8 @@ jobs:
           flutter analyze
           lib/core/actions/nova_device_action.dart
           lib/core/ai/ai_request.dart
+          lib/core/turn/nova_core_turn_controller.dart
           lib/services/actions/nova_phone_control_bridge_service.dart
+          lib/services/actions/nova_contact_call_target_resolver_service.dart
           lib/services/actions/nova_device_action_executor_service.dart
           lib/services/api/api_service.dart
