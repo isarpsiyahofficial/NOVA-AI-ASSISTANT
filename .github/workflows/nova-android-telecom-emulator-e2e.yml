@@ -1,0 +1,108 @@
+name: Nova Android Telecom Emulator E2E
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-telecom-emulator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
+jobs:
+  telecom-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap Gradle wrapper
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh
+          tooling/bootstrap_gradle_wrapper.sh
+
+      - name: Restore native speech models
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision verified native models
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
+
+      - name: Build debuggable native-model APK
+        run: |
+          flutter pub get
+          flutter build apk --debug --no-pub
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run emulator GSM call controls
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            chmod +x tooling/run_android_telecom_emulator_e2e.sh
+            tooling/run_android_telecom_emulator_e2e.sh build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Publish Telecom proof summary
+        if: always()
+        run: |
+          if [[ -s build/telecom-e2e/NOVA_ANDROID_TELECOM_E2E_RESULT.json ]]; then
+            cat build/telecom-e2e/NOVA_ANDROID_TELECOM_E2E_RESULT.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Telecom E2E result was not produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Telecom evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-ANDROID-TELECOM-E2E-EVIDENCE
+          path: build/telecom-e2e
+          if-no-files-found: warn
+          retention-days: 14
