@@ -1,0 +1,57 @@
+name: Nova Verified Device Actions
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-device-actions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verified-device-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format action runtime in CI workspace
+        run: >-
+          dart format
+          lib/core/actions/nova_device_action.dart
+          lib/core/ai/ai_request.dart
+          lib/services/actions/nova_phone_control_bridge_service.dart
+          lib/services/actions/nova_device_action_executor_service.dart
+          lib/services/api/api_service.dart
+          test/runtime/nova_verified_device_action_contract_test.dart
+
+      - name: Run verified action contracts
+        run: flutter test test/runtime/nova_verified_device_action_contract_test.dart
+
+      - name: Analyze verified action runtime
+        run: >-
+          flutter analyze
+          lib/core/actions/nova_device_action.dart
+          lib/core/ai/ai_request.dart
+          lib/services/actions/nova_phone_control_bridge_service.dart
+          lib/services/actions/nova_device_action_executor_service.dart
+          lib/services/api/api_service.dart
