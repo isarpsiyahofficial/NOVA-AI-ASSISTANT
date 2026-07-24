@@ -19,13 +19,14 @@ COPY config/pjsip.conf /etc/asterisk/pjsip.conf
 COPY config/logger.conf /etc/asterisk/logger.conf
 COPY config/rtp.conf /etc/asterisk/rtp.conf
 COPY config/pjsip.carrier.conf.template /opt/nova/pjsip.carrier.conf.template
+COPY config/manager.conf /opt/nova/manager.conf.template
 COPY entrypoint.sh /opt/nova/entrypoint.sh
 
 RUN chmod +x /opt/nova/entrypoint.sh \
     && mkdir -p /shared/sounds /shared/recordings /shared/reports \
     && chmod -R 0777 /shared
 
-EXPOSE 5060/udp 5060/tcp 10000-10100/udp
+EXPOSE 5060/udp 5060/tcp 5038/tcp 10000-10100/udp
 
 HEALTHCHECK --interval=5s --timeout=4s --retries=20 CMD asterisk -rx "core show uptime" >/dev/null 2>&1 || exit 1
 
