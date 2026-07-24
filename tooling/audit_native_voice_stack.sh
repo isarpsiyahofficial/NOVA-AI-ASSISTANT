@@ -39,7 +39,7 @@ if [[ -s "$AAR" ]]; then
     printf '%s\n' '--- AAR speech API classes ---'
     tmp_classes="$(mktemp --suffix=.jar)"
     unzip -p "$AAR" classes.jar > "$tmp_classes"
-    jar tf "$tmp_classes" | grep -E 'com/k2fsa/sherpa/onnx/(OfflineTts|GenerationConfig|GeneratedAudio|OnlineRecognizer|OfflineRecognizer|SpeakerEmbedding|SileroVad|VoiceActivity)' | sort || true
+    jar tf "$tmp_classes" | grep -E 'com/k2fsa/sherpa/onnx/(OfflineTts|GenerationConfig|GeneratedAudio|OnlineRecognizer|OfflineRecognizer|SpeakerEmbedding|SileroVad|VadModelConfig|VoiceActivity|SpeechSegment)' | sort || true
     if command -v javap >/dev/null 2>&1; then
       for klass in \
         com.k2fsa.sherpa.onnx.OfflineTts \
@@ -49,7 +49,11 @@ if [[ -s "$AAR" ]]; then
         com.k2fsa.sherpa.onnx.GenerationConfig \
         com.k2fsa.sherpa.onnx.GeneratedAudio \
         com.k2fsa.sherpa.onnx.OnlineRecognizer \
-        com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractor; do
+        com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractor \
+        com.k2fsa.sherpa.onnx.SileroVadModelConfig \
+        com.k2fsa.sherpa.onnx.VadModelConfig \
+        com.k2fsa.sherpa.onnx.VoiceActivityDetector \
+        com.k2fsa.sherpa.onnx.SpeechSegment; do
         printf '%s\n' "--- javap $klass ---"
         javap -classpath "$tmp_classes" -public "$klass" 2>&1 || true
       done
@@ -140,7 +144,7 @@ require_any "Piper espeak-ng data" \
 
 printf '%s\n' '--- Native implementation references ---'
 grep -RIn --include='*.kt' --include='*.java' \
-  -E 'OfflineRecognizer|OnlineRecognizer|SpeakerEmbedding|OfflineTts|createVoiceClone|SpeechRecognizer' \
+  -E 'OfflineRecognizer|OnlineRecognizer|SpeakerEmbedding|OfflineTts|VoiceActivityDetector|createVoiceClone|SpeechRecognizer' \
   android/app/src/main/kotlin android/app/src/main/java 2>/dev/null || true
 
 printf '%s\n' '--- Duplicate engine declarations ---'
