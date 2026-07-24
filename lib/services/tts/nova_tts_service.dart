@@ -1,3 +1,4 @@
+// NOVA_TTS_LOW_LATENCY_HANDOFF_V2_SHERPA_PRIMARY
 // NOVA_TTS_LOW_LATENCY_HANDOFF_V3_VERIFIED_SHERPA_PRIMARY
 import 'package:flutter/foundation.dart';
 
@@ -81,8 +82,6 @@ class NovaTtsService {
     final response = authorityResponse;
     final proofBoundText = response?.displayText.trim() ?? '';
 
-    // Never keep a caller-supplied variation when a sealed model response is
-    // available. The exact proof-bound text is the only speakable value.
     if (proofBoundText.isNotEmpty &&
         !AiResponse.authorityTextMatches(authorityText, response)) {
       authorityText = proofBoundText;
@@ -105,7 +104,9 @@ class NovaTtsService {
     }
 
     if (response == null) {
-      debugPrint('NOVA_TTS_FINAL_TEXT_CONTRACT_BLOCK source=$source reason=no_response');
+      debugPrint(
+        'NOVA_TTS_FINAL_TEXT_CONTRACT_BLOCK source=$source reason=no_response',
+      );
       return;
     }
 
@@ -143,10 +144,16 @@ class NovaTtsService {
 
     await ttsService.setLanguage(localeCode);
     await ttsService.setSpeechRate(
-      settings.speechRate > 0 ? settings.speechRate.clamp(0.56, 0.70) : 0.60,
+      (settings.speechRate > 0
+              ? settings.speechRate.clamp(0.56, 0.70)
+              : 0.60)
+          .toDouble(),
     );
     await ttsService.setPitch(
-      settings.speechPitch > 0 ? settings.speechPitch.clamp(1.04, 1.18) : 1.10,
+      (settings.speechPitch > 0
+              ? settings.speechPitch.clamp(1.04, 1.18)
+              : 1.10)
+          .toDouble(),
     );
 
     debugPrint(
@@ -164,6 +171,7 @@ class NovaTtsService {
       switch (mode) {
         case NovaTtsMode.system:
           await ttsService.speakSystem(authorityText);
+          return;
         case NovaTtsMode.neuralLocal:
         case NovaTtsMode.cloned:
           try {
@@ -179,6 +187,7 @@ class NovaTtsService {
               rethrow;
             }
           }
+          return;
       }
     } finally {
       await playbackGuardService.markPlaybackEnded();
