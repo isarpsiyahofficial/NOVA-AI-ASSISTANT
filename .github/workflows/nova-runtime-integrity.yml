@@ -46,6 +46,7 @@ jobs:
           lib/main.dart
           lib/core/turn/nova_core_turn_controller.dart
           lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
@@ -59,6 +60,7 @@ jobs:
           lib/main.dart
           lib/core/turn/nova_core_turn_controller.dart
           lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
 
