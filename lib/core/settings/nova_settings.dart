@@ -1,4 +1,4 @@
-// NOVA_API_FIRST_SETTINGS_V2_MODEL_ID_MIGRATION
+// NOVA_API_FIRST_SETTINGS_V3_CARRIER_MEDIA_BRIDGE
 import '../api/nova_ai_provider_type.dart';
 import '../api/nova_api_model_catalog.dart';
 
@@ -15,6 +15,9 @@ class NovaSettings {
   final bool callHandlingEnabled;
   final bool phoneManagementEnabled;
   final bool speakerCallModeEnabled;
+  final bool carrierBridgeEnabled;
+  final String carrierBridgeBaseUrl;
+  final String carrierBridgeControlToken;
   final bool wakeWordEnabled;
   final double emotionLevel;
   final int humorLevel;
@@ -37,6 +40,9 @@ class NovaSettings {
     this.callHandlingEnabled = false,
     this.phoneManagementEnabled = false,
     this.speakerCallModeEnabled = false,
+    this.carrierBridgeEnabled = false,
+    this.carrierBridgeBaseUrl = '',
+    this.carrierBridgeControlToken = '',
     this.wakeWordEnabled = true,
     this.emotionLevel = 0.5,
     this.humorLevel = 0,
@@ -60,6 +66,9 @@ class NovaSettings {
     bool? callHandlingEnabled,
     bool? phoneManagementEnabled,
     bool? speakerCallModeEnabled,
+    bool? carrierBridgeEnabled,
+    String? carrierBridgeBaseUrl,
+    String? carrierBridgeControlToken,
     bool? wakeWordEnabled,
     double? emotionLevel,
     int? humorLevel,
@@ -85,6 +94,12 @@ class NovaSettings {
           phoneManagementEnabled ?? this.phoneManagementEnabled,
       speakerCallModeEnabled:
           speakerCallModeEnabled ?? this.speakerCallModeEnabled,
+      carrierBridgeEnabled:
+          carrierBridgeEnabled ?? this.carrierBridgeEnabled,
+      carrierBridgeBaseUrl:
+          carrierBridgeBaseUrl ?? this.carrierBridgeBaseUrl,
+      carrierBridgeControlToken:
+          carrierBridgeControlToken ?? this.carrierBridgeControlToken,
       wakeWordEnabled: wakeWordEnabled ?? this.wakeWordEnabled,
       emotionLevel: emotionLevel ?? this.emotionLevel,
       humorLevel: humorLevel ?? this.humorLevel,
@@ -109,6 +124,9 @@ class NovaSettings {
         'callHandlingEnabled': callHandlingEnabled,
         'phoneManagementEnabled': phoneManagementEnabled,
         'speakerCallModeEnabled': speakerCallModeEnabled,
+        'carrierBridgeEnabled': carrierBridgeEnabled,
+        'carrierBridgeBaseUrl': carrierBridgeBaseUrl,
+        'carrierBridgeControlToken': carrierBridgeControlToken,
         'wakeWordEnabled': wakeWordEnabled,
         'emotionLevel': emotionLevel,
         'humorLevel': humorLevel,
@@ -143,6 +161,11 @@ class NovaSettings {
       callHandlingEnabled: map['callHandlingEnabled'] as bool? ?? false,
       phoneManagementEnabled: map['phoneManagementEnabled'] as bool? ?? false,
       speakerCallModeEnabled: map['speakerCallModeEnabled'] as bool? ?? false,
+      carrierBridgeEnabled: map['carrierBridgeEnabled'] as bool? ?? false,
+      carrierBridgeBaseUrl:
+          map['carrierBridgeBaseUrl']?.toString().trim() ?? '',
+      carrierBridgeControlToken:
+          map['carrierBridgeControlToken']?.toString().trim() ?? '',
       wakeWordEnabled: map['wakeWordEnabled'] as bool? ?? true,
       emotionLevel: (map['emotionLevel'] as num?)?.toDouble() ?? 0.5,
       humorLevel: (map['humorLevel'] as num?)?.toInt() ?? 0,
