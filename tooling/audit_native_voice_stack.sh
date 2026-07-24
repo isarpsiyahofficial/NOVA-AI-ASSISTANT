@@ -35,6 +35,26 @@ if [[ -s "$AAR" ]]; then
         warn "AAR does not contain ABI $abi"
       fi
     done
+
+    printf '%s\n' '--- AAR speech API classes ---'
+    tmp_classes="$(mktemp --suffix=.jar)"
+    unzip -p "$AAR" classes.jar > "$tmp_classes"
+    jar tf "$tmp_classes" | grep -E 'com/k2fsa/sherpa/onnx/(OfflineTts|GenerationConfig|GeneratedAudio|OnlineRecognizer|OfflineRecognizer|SpeakerEmbedding|SileroVad|VoiceActivity)' | sort || true
+    if command -v javap >/dev/null 2>&1; then
+      for klass in \
+        com.k2fsa.sherpa.onnx.OfflineTts \
+        com.k2fsa.sherpa.onnx.OfflineTtsConfig \
+        com.k2fsa.sherpa.onnx.OfflineTtsModelConfig \
+        com.k2fsa.sherpa.onnx.OfflineTtsVitsModelConfig \
+        com.k2fsa.sherpa.onnx.GenerationConfig \
+        com.k2fsa.sherpa.onnx.GeneratedAudio \
+        com.k2fsa.sherpa.onnx.OnlineRecognizer \
+        com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractor; do
+        printf '%s\n' "--- javap $klass ---"
+        javap -classpath "$tmp_classes" -public "$klass" 2>&1 || true
+      done
+    fi
+    rm -f "$tmp_classes"
   fi
 else
   fail "missing or empty $AAR"
