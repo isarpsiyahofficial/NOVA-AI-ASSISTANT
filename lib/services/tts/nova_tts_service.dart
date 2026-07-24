@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
 // NOVA_ABSOLUTE_FINAL_CLEANUP_V1
+// NOVA_TTS_LOW_LATENCY_HANDOFF_V1
 import 'package:flutter/foundation.dart';
 import '../../core/ai/ai_response.dart';
 import '../../core/runtime/freshness_controller.dart';
@@ -39,11 +40,11 @@ class NovaTtsService {
   final NovaIdentityRuntimeService identityRuntimeService;
   final NovaLiteralSweepService literalSweepService;
   final NovaStreamingAsrBridgeService streamingAsrBridgeService;
+
   const NovaTtsService({
     required this.ttsService,
     required this.settingsService,
-    this.playbackGuardService =
-        const NovaPlaybackEchoFilterService(),
+    this.playbackGuardService = const NovaPlaybackEchoFilterService(),
     this.expressiveVoiceService = const TurkishExpressiveVoiceService(),
     this.prosodyPlannerService = const NovaProsodyPlannerService(),
     this.ssmlRendererService = const NovaSsmlRendererService(),
@@ -73,7 +74,7 @@ class NovaTtsService {
         ? 'legacy_direct_tts'
         : authoritySource.trim();
     var authorityText = text.trim();
-    AiResponse? resolvedAuthorityResponse = authorityResponse;
+    final resolvedAuthorityResponse = authorityResponse;
     final proofBoundText = resolvedAuthorityResponse?.displayText.trim() ?? '';
     if (proofBoundText.isNotEmpty &&
         !AiResponse.authorityTextMatches(
@@ -87,7 +88,7 @@ class NovaTtsService {
 
     const strictTtsPolicy = false;
 
-    bool allowedByAuthority = NovaSingleBrainAuthorityService.instance
+    final allowedByAuthority = NovaSingleBrainAuthorityService.instance
         .authorizeSpeech(
           source: normalizedAuthoritySource,
           text: authorityText,
@@ -106,7 +107,8 @@ class NovaTtsService {
     }
 
     if (!allowedByAuthority) {
-      final fallbackStaticBlocked = _looksLikeFallbackOrStaticSource(normalizedAuthoritySource);
+      final fallbackStaticBlocked =
+          _looksLikeFallbackOrStaticSource(normalizedAuthoritySource);
       await NovaRuntimeSignalService.instance.record(
         kind: NovaRuntimeSignalKind.tts,
         level: NovaRuntimeSignalLevel.warning,
@@ -134,8 +136,7 @@ class NovaTtsService {
       return;
     }
 
-    if (allowedByAuthority &&
-        resolvedAuthorityResponse != null &&
+    if (resolvedAuthorityResponse != null &&
         !NovaFreshnessController.instance.isCurrent(
           resolvedAuthorityResponse,
           allowMissing: false,
@@ -161,38 +162,29 @@ class NovaTtsService {
       return;
     }
 
-    if (allowedByAuthority) {
-      await NovaRuntimeSignalService.instance.record(
-        kind: NovaRuntimeSignalKind.tts,
-        level: NovaRuntimeSignalLevel.info,
-        code: 'SPEECH_PROVENANCE_TTS_GATE',
-        message: 'SPEECH_PROVENANCE source=brain_decision_ai_output',
-        technicalDetails:
-            'source=$normalizedAuthoritySource contractStrict=$strictTtsPolicy',
-        diagnosticCandidate: false,
-        metadata: <String, dynamic>{
-          'source': 'nova_tts_service',
-          'authoritySource': normalizedAuthoritySource,
-          'tts_source': NovaSingleBrainAuthorityService.brainTtsSource,
-        },
-      );
-    }
+    await NovaRuntimeSignalService.instance.record(
+      kind: NovaRuntimeSignalKind.tts,
+      level: NovaRuntimeSignalLevel.info,
+      code: 'SPEECH_PROVENANCE_TTS_GATE',
+      message: 'SPEECH_PROVENANCE source=brain_decision_ai_output',
+      technicalDetails:
+          'source=$normalizedAuthoritySource contractStrict=$strictTtsPolicy',
+      diagnosticCandidate: false,
+      metadata: <String, dynamic>{
+        'source': 'nova_tts_service',
+        'authoritySource': normalizedAuthoritySource,
+        'tts_source': NovaSingleBrainAuthorityService.brainTtsSource,
+      },
+    );
 
     await identityRuntimeService.ensureLoaded();
     if (localeCode.toLowerCase().startsWith('tr') &&
         mode == NovaTtsMode.system) {
       mode = NovaTtsMode.neuralLocal;
     }
-    if (localeCode.toLowerCase().startsWith('tr') &&
-        mode == NovaTtsMode.neuralLocal) {
-      try {
-        await ttsService.prewarmPreferredTurkishVoice();
-      } catch (_) {}
-    }
+
     final prepared = authorityText.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (prepared.isEmpty) {
-      return;
-    }
+    if (prepared.isEmpty) return;
 
     if (resolvedAuthorityResponse == null ||
         !NovaFinalTextContract.maySpeakMetadata(
@@ -203,7 +195,7 @@ class NovaTtsService {
         kind: NovaRuntimeSignalKind.tts,
         level: NovaRuntimeSignalLevel.warning,
         code: 'FINAL_TEXT_CONTRACT_BLOCKED',
-        message: 'TTS final text contract olmadan konu?may? reddetti.',
+        message: 'TTS final text contract olmadan konuşmayı reddetti.',
         technicalDetails:
             'source=$normalizedAuthoritySource hasResponse=${resolvedAuthorityResponse != null}',
         diagnosticCandidate: true,
@@ -211,7 +203,7 @@ class NovaTtsService {
           'source': 'nova_tts_service',
           'authoritySource': normalizedAuthoritySource,
           'finalTextOwner':
-              resolvedAuthorityResponse?.metadata['novaFinalTextOwner'],
+              resolvedAuthorityResponse.metadata['novaFinalTextOwner'],
         },
       );
       debugPrint(
@@ -232,6 +224,9 @@ class NovaTtsService {
       await ttsService.stop();
     }
 
+    // main.dart prewarms the selected Turkish voice. setLanguage is still the
+    // authoritative runtime check, so every reply does not repeat a second
+    // explicit prewarm/voice scan before speaking.
     await ttsService.setLanguage(localeCode);
     final baseRate = settings.speechRate > 0
         ? settings.speechRate.clamp(0.56, 0.70)
@@ -284,7 +279,10 @@ class NovaTtsService {
           return;
         case NovaTtsMode.neuralLocal:
           try {
-            await ttsService.speak(renderedSpeech, allowPlatformFallback: true);
+            await ttsService.speak(
+              renderedSpeech,
+              allowPlatformFallback: true,
+            );
           } catch (_) {
             if (!localeCode.toLowerCase().startsWith('tr')) {
               await ttsService.speakSystem(renderedSpeech);
@@ -295,7 +293,10 @@ class NovaTtsService {
           return;
         case NovaTtsMode.cloned:
           try {
-            await ttsService.speak(renderedSpeech, allowPlatformFallback: true);
+            await ttsService.speak(
+              renderedSpeech,
+              allowPlatformFallback: true,
+            );
           } catch (_) {
             if (!localeCode.toLowerCase().startsWith('tr')) {
               await ttsService.speakSystem(renderedSpeech);
@@ -307,7 +308,9 @@ class NovaTtsService {
       }
     } finally {
       await playbackGuardService.markPlaybackEnded();
-      await Future<void>.delayed(const Duration(milliseconds: 550));
+      // Resume the recognizer immediately. The short in-memory echo cooldown
+      // plus recent-text comparison blocks Nova's own tail without making the
+      // user wait a fixed 550 ms after every answer.
       await streamingAsrBridgeService.clearBuffer();
       await streamingAsrBridgeService.resume();
     }
@@ -363,12 +366,8 @@ class NovaTtsService {
         lower.contains('haklısın')) {
       return 'warm';
     }
-    if (text.contains('!')) {
-      return 'animated';
-    }
-    if (text.contains('?') && text.length < 80) {
-      return 'curious';
-    }
+    if (text.contains('!')) return 'animated';
+    if (text.contains('?') && text.length < 80) return 'curious';
     if (personaMode.contains('support') || personaMode.contains('warm')) {
       return 'warm';
     }
