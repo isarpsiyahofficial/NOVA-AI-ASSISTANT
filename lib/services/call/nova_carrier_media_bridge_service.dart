@@ -1,4 +1,5 @@
-// NOVA_CARRIER_MEDIA_BRIDGE_CONTROL_V1
+// NOVA_CARRIER_MEDIA_BRIDGE_CONTROL_V2
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -98,8 +99,7 @@ class NovaCarrierMediaBridgeService {
         message: 'Carrier medya köprüsü ayarlarda kapalı.',
       );
     }
-    final base = settings.carrierBridgeBaseUrl.trim();
-    final baseUri = Uri.tryParse(base);
+    final baseUri = Uri.tryParse(settings.carrierBridgeBaseUrl.trim());
     if (baseUri == null || !baseUri.hasScheme || baseUri.host.isEmpty) {
       return const NovaCarrierBridgeResult(
         success: false,
@@ -129,21 +129,22 @@ class NovaCarrierMediaBridgeService {
       );
     }
 
+    final normalizedBasePath =
+        baseUri.path.replaceFirst(RegExp(r'/+$'), '');
     final uri = baseUri.replace(
-      path: '${baseUri.path.replaceFirst(RegExp(r'/+$'), '')}$path',
+      path: '$normalizedBasePath$path',
       query: null,
       fragment: null,
     );
     final client = HttpClient()..connectionTimeout = timeout;
     try {
-      final HttpClientRequest request;
-      switch (method) {
-        case 'POST':
-          request = await client.postUrl(uri).timeout(timeout);
-        case 'GET':
-          request = await client.getUrl(uri).timeout(timeout);
-        default:
-          throw UnsupportedError('Unsupported bridge method: $method');
+      late final HttpClientRequest request;
+      if (method == 'POST') {
+        request = await client.postUrl(uri).timeout(timeout);
+      } else if (method == 'GET') {
+        request = await client.getUrl(uri).timeout(timeout);
+      } else {
+        throw UnsupportedError('Unsupported bridge method: $method');
       }
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       if (token.isNotEmpty) {
@@ -161,7 +162,8 @@ class NovaCarrierMediaBridgeService {
           final decoded = jsonDecode(raw);
           if (decoded is Map) data = Map<String, dynamic>.from(decoded);
         } catch (_) {
-          data = <String, dynamic>{'raw': raw.substring(0, raw.length.clamp(0, 500))};
+          final end = raw.length > 500 ? 500 : raw.length;
+          data = <String, dynamic>{'raw': raw.substring(0, end)};
         }
       }
       final success = response.statusCode >= 200 &&
