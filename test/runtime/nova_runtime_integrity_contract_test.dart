@@ -21,7 +21,10 @@ void main() {
       );
 
       expect(source, contains('NOVA_RUNTIME_GRAPH_DUPLICATE_AI_REJECTED'));
-      expect(source, contains('A second NovaAiService decision root was created'));
+      expect(
+        source,
+        contains('A second NovaAiService decision root was created'),
+      );
       expect(source, contains('NovaAiService get sharedAiOrThrow'));
     });
 
@@ -35,6 +38,31 @@ void main() {
         source,
         isNot(contains('Platform SpeechRecognizer fallback kullanıldı')),
       );
+    });
+
+    test('ASR ownership transfer stops the native engine first', () {
+      final source = _read(
+        'lib/services/asr/nova_streaming_asr_runtime_service.dart',
+      );
+
+      expect(
+        source,
+        contains('NOVA_ASR_SINGLE_SESSION_OWNER_GUARD_V4_EXPLICIT_TRANSFER'),
+      );
+      expect(source, contains('await bridgeService.stop();'));
+      expect(source, contains("code: 'streaming_asr_owner_transferred'"));
+      expect(source, contains("'nativeStoppedBeforeTransfer': true"));
+    });
+
+    test('ambient ASR route is never forced back into conversation', () {
+      final source = _read(
+        'lib/services/asr/nova_streaming_asr_runtime_service.dart',
+      );
+
+      expect(source, contains('final forceEligibleRoute ='));
+      expect(source, contains("routeDecision.route == 'call'"));
+      expect(source, isNot(contains("routeDecision.route != 'ignore'")));
+      expect(source, contains("effectiveRoute == 'ambient'"));
     });
 
     test('native ASR bridge never invokes Android SpeechRecognizer fallback', () {
