@@ -1,12 +1,10 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
 // NOVA_ABSOLUTE_FINAL_CLEANUP_V1
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'core/ai/ai_mode.dart';
-import 'core/ai/ai_request.dart';
-import 'core/ai/ai_response.dart';
-import 'core/ai/nova_ai_service.dart';
 import 'core/behavior/nova_persona.dart';
 import 'core/behavior/response_style.dart';
 import 'core/config/app_constants.dart';
@@ -30,10 +28,8 @@ import 'services/speech/tts_service.dart';
 import 'services/stt/nova_speech_to_text_service.dart';
 import 'services/system/nova_overlay_bridge_service.dart';
 import 'services/tts/nova_tts_service.dart';
-import 'services/runtime/nova_identity_runtime_service.dart';
 import 'services/runtime/nova_runtime_graph_service.dart';
 import 'services/runtime/nova_decision_wrapper_contract_service.dart';
-import 'services/runtime/nova_single_brain_authority_service.dart';
 import 'services/voice_clone/cloned_voice_library_service.dart';
 import 'services/voice_clone/local_voice_clone_engine.dart';
 import 'services/voice_clone/voice_clone_runtime_control_service.dart';
@@ -55,9 +51,7 @@ Future<void> main() async {
   );
 
   final cloneEngine = LocalVoiceCloneEngine(nativeBridge: nativeBridge);
-
   final libraryService = ClonedVoiceLibraryService();
-
   final cloneService = VoiceCloneService(
     engine: cloneEngine,
     runtimeControl: runtimeControl,
@@ -79,7 +73,10 @@ Future<void> main() async {
     apiKey: settings.apiKey,
     model: settings.activeApiModel,
   );
-  final mainAiService = NovaRuntimeGraphService.instance.registerSharedAi(
+
+  // There is exactly one decision root. All dashboard, voice, setup and call
+  // wrappers resolve this same service through NovaRuntimeGraphService.
+  NovaRuntimeGraphService.instance.registerSharedAi(
     owner: 'main_app_root',
     service: NovaRuntimeGraphService.buildAiService(
       localModelService: const LocalModelService(),
@@ -100,6 +97,14 @@ Future<void> main() async {
       nativeBridge: nativeBridge,
     ),
     settingsService: settingsService,
+  );
+
+  // Warm the selected Turkish voice without blocking the first frame. The
+  // first real AI response should not pay voice discovery/initialization cost.
+  unawaited(
+    ttsRuntimeService.ttsService
+        .prewarmPreferredTurkishVoice()
+        .catchError((Object _) => false),
   );
 
   final reminderService = NovaReminderService();
