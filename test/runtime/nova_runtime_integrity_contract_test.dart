@@ -69,6 +69,29 @@ void main() {
       expect(source, contains("'nativeStoppedBeforeTransfer': true"));
     });
 
+    test('native ASR pause and stop release the microphone gate', () {
+      final bridge = _read(
+        'android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt',
+      );
+      final service = _read(
+        'android/app/src/main/kotlin/com/example/nova/asr/NovaAsrForegroundService.kt',
+      );
+
+      final pauseCase = bridge.indexOf('"pauseStreamingAsr"');
+      final pauseGateStop = bridge.indexOf('stopVoiceGate()', pauseCase);
+      final resumeCase = bridge.indexOf('"resumeStreamingAsr"');
+      final resumeGateStart = bridge.indexOf('startVoiceGate()', resumeCase);
+      final stopCase = bridge.indexOf('"stopStreamingAsr"');
+      final stopGateStop = bridge.indexOf('stopVoiceGate()', stopCase);
+
+      expect(pauseCase, greaterThanOrEqualTo(0));
+      expect(pauseGateStop, greaterThan(pauseCase));
+      expect(resumeGateStart, greaterThan(resumeCase));
+      expect(stopGateStop, greaterThan(stopCase));
+      expect(service, contains('return START_NOT_STICKY'));
+      expect(service, contains('NovaStreamingVoiceGate.stop()'));
+    });
+
     test('ambient ASR route is never forced back into conversation', () {
       final source = _read(
         'lib/services/asr/nova_streaming_asr_runtime_service.dart',
@@ -109,7 +132,9 @@ void main() {
       expect(source, contains("speakerPath: 'sherpa_default'"));
       expect(
         source,
-        contains('enginePolicy=sherpa_offline_primary_platform_explicit_fallback'),
+        contains(
+          'enginePolicy=sherpa_offline_primary_platform_explicit_fallback',
+        ),
       );
     });
 
@@ -162,6 +187,25 @@ void main() {
       expect(ambientGate, greaterThanOrEqualTo(0));
       expect(reminderRoute, greaterThan(ambientGate));
       expect(callRoute, greaterThan(ambientGate));
+    });
+
+    test('launch gate cannot bypass verified first-run setup', () {
+      final launch = _read('lib/ui/launch/nova_launch_gate_page.dart');
+      final setup = _read(
+        'lib/ui/onboarding/nova_first_run_setup_v2_page.dart',
+      );
+
+      expect(launch, contains('NOVA_LAUNCH_GATE_VERIFIED_SETUP_V2'));
+      expect(launch, contains('NovaFirstRunSetupV2Page('));
+      expect(launch, isNot(contains('_buildDashboard(setupRequired: true)')));
+      expect(setup, contains('enrollVoiceprintFromFile('));
+      expect(setup, contains('identifyVoiceFromFile('));
+      final enroll = setup.indexOf('enrollVoiceprintFromFile(');
+      final identify = setup.indexOf('identifyVoiceFromFile(');
+      final complete = setup.indexOf('markOnboardingCompleted()');
+      expect(enroll, greaterThanOrEqualTo(0));
+      expect(identify, greaterThan(enroll));
+      expect(complete, greaterThan(identify));
     });
 
     test('voice clone cannot report reference-file copying as a real clone', () {
