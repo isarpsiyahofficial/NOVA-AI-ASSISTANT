@@ -15,6 +15,16 @@ void main() {
       expect(source, isNot(contains('runAi: ApiService')));
     });
 
+    test('runtime graph rejects a second NovaAiService decision root', () {
+      final source = _read(
+        'lib/services/runtime/nova_runtime_graph_service.dart',
+      );
+
+      expect(source, contains('NOVA_RUNTIME_GRAPH_DUPLICATE_AI_REJECTED'));
+      expect(source, contains('A second NovaAiService decision root was created'));
+      expect(source, contains('NovaAiService get sharedAiOrThrow'));
+    });
+
     test('STT uses embedded streaming ASR without snapshot fallback', () {
       final source = _read('lib/services/stt/nova_speech_to_text_service.dart');
 
