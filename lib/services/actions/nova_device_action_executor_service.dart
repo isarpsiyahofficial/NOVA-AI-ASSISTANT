@@ -1,4 +1,4 @@
-// NOVA_POLICY_GATED_VERIFIED_DEVICE_ACTION_EXECUTOR_V1
+// NOVA_POLICY_GATED_VERIFIED_DEVICE_ACTION_EXECUTOR_V2_LOCAL_CONTACTS
 
 import '../../core/actions/nova_device_action.dart';
 import '../../core/ai/ai_request.dart';
@@ -6,18 +6,21 @@ import '../../core/call/nova_call_control_result.dart';
 import '../../core/nova/nova_action_policy.dart';
 import '../call/nova_call_control_bridge_service.dart';
 import '../call/nova_call_state_service.dart';
+import 'nova_contact_call_target_resolver_service.dart';
 import 'nova_phone_control_bridge_service.dart';
 
 class NovaDeviceActionExecutorService {
   final NovaPhoneControlBridgeService phoneBridge;
   final NovaCallControlBridgeService callControl;
   final NovaCallStateService callState;
+  final NovaContactCallTargetResolverService contactResolver;
   final NovaActionPolicy policy;
 
   const NovaDeviceActionExecutorService({
     this.phoneBridge = const NovaPhoneControlBridgeService(),
     this.callControl = const NovaCallControlBridgeService(),
     this.callState = const NovaCallStateService(),
+    this.contactResolver = const NovaContactCallTargetResolverService(),
     this.policy = const NovaActionPolicy(),
   });
 
@@ -47,6 +50,19 @@ class NovaDeviceActionExecutorService {
       );
     }
 
+    final callTarget = action == 'place_call'
+        ? await contactResolver.resolve(call.value)
+        : null;
+    if (callTarget != null && !callTarget.success) {
+      return NovaDeviceActionResult(
+        action: action,
+        success: false,
+        verified: false,
+        message: callTarget.message,
+        failureCode: 'contact_resolution_failed',
+      );
+    }
+
     final beforeCall = await callState.getSnapshot();
     final beforePhone = await phoneBridge.getStatus();
     final localCompanionProof =
@@ -55,11 +71,20 @@ class NovaDeviceActionExecutorService {
         _ownerVerified(request.metadata) || localCompanionProof;
     final ownerInitiated = request.userInitiated || localCompanionProof;
     final confirmed = request.userConfirmedThisAction || localCompanionProof;
-    final knownContact =
+    final manualOwnerCommand = request.userInitiated &&
+        !localCompanionProof &&
+        ownerVerified &&
+        confirmed;
+
+    // A locally voice-verified owner who explicitly issued the current command
+    // may control the current call. Automatic/companion actions still require a
+    // locally authorized managed contact; the model cannot grant that status.
+    final knownContact = manualOwnerCommand ||
+        callTarget?.fromContacts == true ||
         beforeCall.isAuthorizedManagedNumber ||
         request.metadata['knownContact'] == true ||
         request.metadata['authorizedContact'] == true;
-    final explicitlyAllowedContact =
+    final explicitlyAllowedContact = manualOwnerCommand ||
         beforeCall.isAuthorizedManagedNumber ||
         request.metadata['explicitlyAllowedContact'] == true ||
         request.metadata['callAnswerAllowed'] == true;
@@ -95,6 +120,7 @@ class NovaDeviceActionExecutorService {
         call: call,
         request: request,
         localCompanionProof: localCompanionProof,
+        callTarget: callTarget,
       );
       final nativeSuccess = native['success'] == true;
       final nativeMessage = native['message']?.toString().trim() ?? '';
@@ -150,6 +176,7 @@ class NovaDeviceActionExecutorService {
     required NovaDeviceActionCall call,
     required AiRequest request,
     required bool localCompanionProof,
+    NovaContactCallTargetResolution? callTarget,
   }) async {
     final action = call.action;
     final trustedSource = localCompanionProof ? 'companion' : '';
@@ -217,20 +244,28 @@ class NovaDeviceActionExecutorService {
           ),
         );
       case 'place_call':
-        final number = _normalizeDialNumber(call.value);
-        if (number.isEmpty) {
+        final target = callTarget;
+        if (target == null || !target.success || target.number.isEmpty) {
           return const <String, dynamic>{
             'success': false,
-            'message': 'Telefon numarası geçersiz veya güvenli biçimde ayrıştırılamadı.',
+            'message': 'Arama hedefi yerel olarak çözülemedi.',
           };
         }
-        final approval = await callControl.registerOwnerApprovedOutbound(number);
+        final approval = await callControl.registerOwnerApprovedOutbound(
+          target.number,
+        );
         if (!approval.success) return _callResultMap(approval);
-        return phoneBridge.executeStep(
+        final native = await phoneBridge.executeStep(
           command: 'place_call',
-          value: number,
+          value: target.number,
           userInitiated: true,
         );
+        return <String, dynamic>{
+          ...native,
+          'resolvedDialNumber': target.number,
+          'resolvedContactName': target.displayName,
+          'resolvedFromContacts': target.fromContacts,
+        };
       case 'media_next':
         return phoneBridge.executeStep(
           command: 'media_next',
@@ -313,19 +348,26 @@ class NovaDeviceActionExecutorService {
   }) async {
     final action = call.action;
     if (_isCallStateAction(action)) {
+      final expectedValue =
+          native['resolvedDialNumber']?.toString() ?? call.value;
       final afterCall = await _pollCallState(
-        (snapshot) => _callPostcondition(action, beforeCall, snapshot, call.value),
+        (snapshot) =>
+            _callPostcondition(action, beforeCall, snapshot, expectedValue),
       );
       final verified = _callPostcondition(
         action,
         beforeCall,
         afterCall,
-        call.value,
+        expectedValue,
       );
       return _NovaActionVerification(
         verified: verified,
         message: verified
-            ? _verifiedMessage(action)
+            ? _verifiedMessage(
+                action,
+                resolvedContactName:
+                    native['resolvedContactName']?.toString() ?? '',
+              )
             : 'Çağrı komutu kabul edildi ancak çağrı durumu beklenen hâle gelmedi.',
         afterState: _callStateMap(afterCall),
       );
@@ -410,12 +452,15 @@ class NovaDeviceActionExecutorService {
       case 'toggle_hold':
         return after.inCall && after.state != before.state;
       case 'place_call':
-        final expected = _normalizeDialNumber(value);
-        final actual = _normalizeDialNumber(after.normalizedActiveNumber);
-        final numberMatches = expected.isEmpty ||
-            actual == expected ||
-            (actual.length >= 7 && expected.endsWith(actual)) ||
-            (expected.length >= 7 && actual.endsWith(expected));
+        final expected =
+            NovaContactCallTargetResolverService.normalizeDialNumber(value);
+        final actual = NovaContactCallTargetResolverService.normalizeDialNumber(
+          after.normalizedActiveNumber,
+        );
+        final numberMatches = expected.isNotEmpty &&
+            (actual == expected ||
+                (actual.length >= 7 && expected.endsWith(actual)) ||
+                (expected.length >= 7 && actual.endsWith(expected)));
         return after.inCall && numberMatches;
     }
     return false;
@@ -442,7 +487,10 @@ class NovaDeviceActionExecutorService {
         'set_focused_text',
       }.contains(action);
 
-  String _verifiedMessage(String action) {
+  String _verifiedMessage(
+    String action, {
+    String resolvedContactName = '',
+  }) {
     switch (action) {
       case 'answer_call':
         return 'Gelen çağrı telefonda cevaplandı ve aktif çağrı durumu doğrulandı.';
@@ -461,7 +509,9 @@ class NovaDeviceActionExecutorService {
       case 'toggle_hold':
         return 'Çağrının bekletme durumu değiştirildi ve doğrulandı.';
       case 'place_call':
-        return 'Dış arama telefonda başlatıldı ve çağrı durumu doğrulandı.';
+        return resolvedContactName.trim().isEmpty
+            ? 'Dış arama telefonda başlatıldı ve çağrı durumu doğrulandı.'
+            : '$resolvedContactName aranıyor; çağrı durumu telefonda doğrulandı.';
       case 'back':
         return 'Telefonda geri işlemi uygulandı.';
       case 'home':
@@ -523,15 +573,6 @@ class NovaDeviceActionExecutorService {
         ? raw.toDouble()
         : double.tryParse(raw?.toString() ?? '') ?? 0.0;
     return confidence >= 0.64;
-  }
-
-  String _normalizeDialNumber(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return '';
-    final hasPlus = trimmed.startsWith('+');
-    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length < 7 || digits.length > 15) return '';
-    return hasPlus ? '+$digits' : digits;
   }
 
   Map<String, dynamic> _callResultMap(NovaCallControlResult result) =>
