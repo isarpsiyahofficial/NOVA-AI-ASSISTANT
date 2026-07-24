@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.example.nova.NovaStreamingVoiceGate
 
 class NovaAsrForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -17,10 +18,11 @@ class NovaAsrForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ensureChannel()
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Nova streaming ASR")
-            .setContentText("Sürekli dinleme hazırlanıyor; transkripsiyon motoru doğrulanınca aktif olur")
+            .setContentTitle("Nova sürekli dinleme")
+            .setContentText("Yerel mikrofon ve embedded ASR oturumu aktif")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
         ServiceCompat.startForeground(
             this,
@@ -28,10 +30,23 @@ class NovaAsrForegroundService : Service() {
             notification,
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
         )
-        return START_STICKY
+
+        // A sticky notification without a live Flutter/EventChannel consumer is
+        // misleading and can leave an orphan microphone session after process
+        // recreation. The runtime explicitly starts the service whenever the
+        // single ASR owner is restored.
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
+        try {
+            NovaStreamingAsrEngineProvider.get(applicationContext).stop()
+        } catch (_: Throwable) {
+        }
+        try {
+            NovaStreamingVoiceGate.stop()
+        } catch (_: Throwable) {
+        }
         stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
@@ -39,7 +54,14 @@ class NovaAsrForegroundService : Service() {
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(CHANNEL_ID, "Nova ASR", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Nova sürekli dinleme",
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            description = "Nova'nın cihaz üzerinde çalışan sürekli mikrofon ve konuşma tanıma oturumu"
+            setShowBadge(false)
+        }
         manager.createNotificationChannel(channel)
     }
 
