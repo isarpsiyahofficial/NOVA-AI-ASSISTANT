@@ -73,7 +73,7 @@ download_asset() {
 
   local target="$CACHE_DIR/$name"
   if [[ ! -s "$target" ]]; then
-    echo "Downloading $name"
+    echo "Downloading $name" >&2
     curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
       "${curl_headers[@]}" "$url" -o "$target.part"
     mv "$target.part" "$target"
@@ -126,7 +126,7 @@ copy_required_file "$aar_file" "$AAR_DIR/sherpa-onnx.aar" "sherpa-onnx AAR"
 
 # 2) Turkish multilingual STT baseline: Whisper Tiny INT8.
 IFS=$'\t' read -r asr_archive asr_url asr_digest < <(
-  download_asset "asr-models" '^sherpa-onnx-whisper-tiny\\.tar\\.bz2$'
+  download_asset "asr-models" '^sherpa-onnx-whisper-tiny\.tar\.bz2$'
 )
 asr_extract="$CACHE_DIR/extracted-whisper-tiny"
 extract_archive "$asr_archive" "$asr_extract"
@@ -151,13 +151,13 @@ JSON
 
 # 3) Lightweight local VAD to avoid continuously decoding silence.
 IFS=$'\t' read -r vad_file vad_url vad_digest < <(
-  download_asset "asr-models" '^silero_vad\\.onnx$'
+  download_asset "asr-models" '^silero_vad\.onnx$'
 )
 copy_required_file "$vad_file" "$ASSET_ROOT/sherpa_vad/silero_vad.onnx" "Silero VAD"
 
 # 4) Speaker verification / owner identity.
 IFS=$'\t' read -r speaker_asset speaker_url speaker_digest < <(
-  download_asset "speaker-recongition-models" 'nemo.*titanet.*(tar\\.bz2|onnx)$' 'small'
+  download_asset "speaker-recongition-models" 'nemo.*titanet.*(tar\.bz2|onnx)$' 'small'
 )
 speaker_model=""
 if [[ "$speaker_asset" == *.onnx ]]; then
@@ -174,7 +174,7 @@ copy_required_file "$speaker_model" "$ASSET_ROOT/speaker_id/nemo_en_titanet_smal
 
 # 5) Deterministic offline Turkish TTS. Prefer the medium DFKI Piper voice.
 IFS=$'\t' read -r tts_archive tts_url tts_digest < <(
-  download_asset "tts-models" '^vits-piper-tr_TR-.*-medium\\.tar\\.bz2$' 'dfki'
+  download_asset "tts-models" '^vits-piper-tr_TR-.*-medium\.tar\.bz2$' 'dfki'
 )
 tts_extract="$CACHE_DIR/extracted-turkish-tts"
 extract_archive "$tts_archive" "$tts_extract"
