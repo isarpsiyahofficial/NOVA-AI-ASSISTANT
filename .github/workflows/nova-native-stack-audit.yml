@@ -37,15 +37,31 @@ jobs:
             nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
 
       - name: Provision official sherpa voice assets
+        id: provision
+        continue-on-error: true
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           chmod +x tooling/prepare_native_voice_assets.sh
-          tooling/prepare_native_voice_assets.sh
+          set +e
+          bash -x tooling/prepare_native_voice_assets.sh 2>&1 | tee nova-native-provision.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload provisioning report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-native-provision
+          path: nova-native-provision.log
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Audit packaged voice stack
         id: audit
+        if: always()
         continue-on-error: true
         shell: bash
         run: |
@@ -57,6 +73,7 @@ jobs:
           exit 0
 
       - name: Upload native audit report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nova-native-stack-audit
@@ -65,9 +82,16 @@ jobs:
           retention-days: 14
 
       - name: Enforce native stack completeness
+        if: always()
         shell: bash
         run: |
-          if [[ "${{ steps.audit.outputs.exit_code }}" != "0" ]]; then
+          provision_code="${{ steps.provision.outputs.exit_code }}"
+          audit_code="${{ steps.audit.outputs.exit_code }}"
+          if [[ "$provision_code" != "0" ]]; then
+            echo "Native asset provisioning failed. Read nova-native-provision artifact."
+            exit 1
+          fi
+          if [[ "$audit_code" != "0" ]]; then
             echo "Native voice stack is incomplete. Read nova-native-stack-audit artifact."
             exit 1
           fi
