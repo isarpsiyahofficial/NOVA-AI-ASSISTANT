@@ -92,6 +92,52 @@ void main() {
       expect(service, contains('NovaStreamingVoiceGate.stop()'));
     });
 
+    test('microphone gate uses packaged Silero VAD as speech authority', () {
+      final gate = _read(
+        'android/app/src/main/kotlin/com/example/nova/NovaStreamingVoiceGate.kt',
+      );
+
+      expect(gate, contains('import com.k2fsa.sherpa.onnx.Vad'));
+      expect(gate, contains('private const val FRAME_SAMPLES = 512'));
+      expect(gate, contains('activeVad.acceptWaveform(floatFrame)'));
+      expect(gate, contains('activeVad.isSpeechDetected()'));
+      expect(gate, contains('fun takeCompletedSpeechPcm('));
+      expect(gate, contains('vadEngine" to "sherpa_onnx_silero_vad'));
+      expect(gate, isNot(contains('rms >= openThreshold')));
+      expect(gate, isNot(contains('speechOpenCounter >= 3')));
+    });
+
+    test('Whisper decodes each VAD segment once and throttles partials', () {
+      final engine = _read(
+        'android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrEngine.kt',
+      );
+
+      expect(engine, contains('NovaStreamingVoiceGate.takeCompletedSpeechPcm(28)'));
+      expect(engine, contains('decodeFinalSegment(completed, onEvent)'));
+      expect(engine, contains('PARTIAL_DECODE_INTERVAL_MS = 2_800L'));
+      expect(
+        engine,
+        contains('decodePolicy" to "silero_segment_once_partial_throttled'),
+      );
+      final loopStart = engine.indexOf('private fun startContinuousLoop(');
+      final warmupStart = engine.indexOf('private fun warmupRecognizer(');
+      final loop = engine.substring(loopStart, warmupStart);
+      expect(loop, isNot(contains('decodeStreamingSnapshot(')));
+      expect(loop, isNot(contains('Thread.sleep(1500')));
+    });
+
+    test('heavy native ASR operations run on one worker thread', () {
+      final bridge = _read(
+        'android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt',
+      );
+
+      expect(bridge, contains('Executors.newSingleThreadExecutor'));
+      expect(bridge, contains('NovaAsrNativeWorker'));
+      expect(bridge, contains('"initializeStreamingAsr" -> runAsync'));
+      expect(bridge, contains('"startStreamingAsr" ->'));
+      expect(bridge, contains('runAsync(result) { startRuntime(foreground) }'));
+    });
+
     test('ambient ASR route is never forced back into conversation', () {
       final source = _read(
         'lib/services/asr/nova_streaming_asr_runtime_service.dart',
