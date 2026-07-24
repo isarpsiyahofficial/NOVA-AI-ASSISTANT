@@ -89,6 +89,7 @@ jobs:
           test/runtime/nova_runtime_integrity_contract_test.dart
           test/runtime/nova_verified_device_action_contract_test.dart
           test/runtime/nova_contact_call_target_resolver_test.dart
+          test/runtime/nova_carrier_bridge_contract_test.dart
 
       - name: Analyze production entry points
         run: >-
