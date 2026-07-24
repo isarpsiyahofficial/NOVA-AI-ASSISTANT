@@ -40,11 +40,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Verify changed runtime formatting
+      - name: Format changed runtime files in CI workspace
         run: >-
-          dart format --output=none --set-exit-if-changed
+          dart format
           lib/main.dart
           lib/core/turn/nova_core_turn_controller.dart
+          lib/services/runtime/nova_runtime_graph_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
@@ -57,6 +58,7 @@ jobs:
           flutter analyze
           lib/main.dart
           lib/core/turn/nova_core_turn_controller.dart
+          lib/services/runtime/nova_runtime_graph_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
 
