@@ -101,11 +101,11 @@ Future<void> main() async {
 
   // Warm the selected Turkish voice without blocking the first frame. The
   // first real AI response should not pay voice discovery/initialization cost.
-  unawaited(
-    ttsRuntimeService.ttsService
-        .prewarmPreferredTurkishVoice()
-        .catchError((Object _) => false),
-  );
+  unawaited(() async {
+    try {
+      await ttsRuntimeService.ttsService.prewarmPreferredTurkishVoice();
+    } catch (_) {}
+  }());
 
   final reminderService = NovaReminderService();
   final reminderCommandService = NovaReminderCommandService();
