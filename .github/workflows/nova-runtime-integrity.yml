@@ -98,6 +98,35 @@ jobs:
           chmod +x tooling/audit_native_voice_stack.sh
           tooling/audit_native_voice_stack.sh
 
+      - name: Compile native Kotlin
+        id: kotlin_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          cd android
+          ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon 2>&1 | tee ../nova-kotlin-compile.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload native Kotlin compile log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-kotlin-compile-log
+          path: nova-kotlin-compile.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce native Kotlin compile
+        shell: bash
+        run: |
+          if [[ "${{ steps.kotlin_compile.outputs.exit_code }}" != "0" ]]; then
+            echo "Native Kotlin compile failed. Read nova-kotlin-compile-log artifact."
+            exit 1
+          fi
+
       - name: Compile debug APK with native models
         id: debug_build
         continue-on-error: true
