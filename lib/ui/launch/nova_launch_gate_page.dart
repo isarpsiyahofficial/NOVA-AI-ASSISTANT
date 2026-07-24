@@ -1,26 +1,28 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
 // NOVA_ABSOLUTE_FINAL_CLEANUP_V1
+// NOVA_LAUNCH_GATE_VERIFIED_SETUP_V2
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/behavior/nova_persona.dart';
 import '../../core/behavior/response_style.dart';
 import '../../services/api/api_service.dart';
+import '../../services/conversation/nova_conversation_session_service.dart';
 import '../../services/identity/device_owner_identity_service.dart';
 import '../../services/identity/nova_first_run_service.dart';
-import '../../services/conversation/nova_conversation_session_service.dart';
 import '../../services/identity/nova_voice_identity_bridge_service.dart';
-import '../../services/identity/nova_voice_identity_runtime_service.dart';
 import '../../services/local_model/local_model_service.dart';
+import '../../services/permissions/nova_android_permission_bridge_service.dart';
 import '../../services/reminder/nova_reminder_command_service.dart';
 import '../../services/reminder/nova_reminder_service.dart';
 import '../../services/settings/nova_settings_service.dart';
-import '../../services/permissions/nova_android_permission_bridge_service.dart';
 import '../../services/stt/nova_speech_to_text_service.dart';
 import '../../services/tts/nova_tts_service.dart';
 import '../../services/voice_clone/voice_clone_runtime_control_service.dart';
 import '../../services/voice_clone/voice_clone_service.dart';
 import '../nova/nova_dashboard_page.dart';
-import '../onboarding/nova_first_run_setup_page.dart';
+import '../onboarding/nova_first_run_setup_v2_page.dart';
 
 class NovaLaunchGatePage extends StatefulWidget {
   final NovaPersona persona;
@@ -70,15 +72,11 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
   late final NovaFirstRunService _firstRunService = NovaFirstRunService(
     ownerService: _ownerService,
   );
-  late final NovaVoiceIdentityRuntimeService _voiceIdentityRuntimeService =
-      NovaVoiceIdentityRuntimeService(
-        bridgeService: widget.voiceIdentityBridgeService,
-      );
 
   @override
   void initState() {
     super.initState();
-    _resolveEntry();
+    unawaited(_resolveEntry());
   }
 
   Future<void> _resolveEntry() async {
@@ -89,26 +87,24 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
         owner == null ||
         owner.ownerName.trim().isEmpty ||
         owner.ownerVoiceId.trim().isEmpty;
-    final shouldForceSetupForVoice = settings.activeVoiceProfileId
-        .trim()
-        .isEmpty;
+    final voiceProfileMissing = settings.activeVoiceProfileId.trim().isEmpty;
+    final apiMissing =
+        !settings.apiBrainEnabled || settings.apiKey.trim().isEmpty;
     final shouldShowSetup =
-        shouldOpenSetup || ownerMissing || shouldForceSetupForVoice;
+        shouldOpenSetup || ownerMissing || voiceProfileMissing || apiMissing;
+
     if (!mounted) return;
     setState(() {
       _showSetup = shouldShowSetup;
       _loading = false;
     });
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (shouldShowSetup) {
-        await _permissionBridgeService.getPermissionSnapshot();
-        await _warmRequestPermissions(
-          includeCallPermissions: false,
-          forceSetupEssentialPermissions: true,
-        );
-        return;
-      }
-      await _warmRequestPermissions(includeCallPermissions: true);
+      await _permissionBridgeService.getPermissionSnapshot();
+      await _warmRequestPermissions(
+        includeCallPermissions: !shouldShowSetup,
+        forceSetupEssentialPermissions: shouldShowSetup,
+      );
     });
   }
 
@@ -116,10 +112,11 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
     _justCompletedSetup = true;
     await _resolveEntry();
     if (!mounted) return;
-    Future<void>.delayed(const Duration(milliseconds: 900), () async {
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
       if (!mounted) return;
       await _permissionBridgeService.getPermissionSnapshot();
-    });
+    }());
   }
 
   Future<void> _warmRequestPermissions({
@@ -139,12 +136,12 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
         await _permissionBridgeService.requestPostNotificationsPermission();
       }
       if (includeCallPermissions) {
-        // Stabilizasyon turunda çağrı zincirini zorla açmak yerine yalnız mevcut durumu okuyoruz.
+        // Call permissions remain explicit and are not forced during setup.
       }
     } catch (_) {}
   }
 
-  Widget _buildDashboard({bool setupRequired = false}) {
+  Widget _buildDashboard() {
     return NovaDashboardPage(
       persona: widget.persona,
       responseStyle: widget.responseStyle,
@@ -159,7 +156,7 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
       conversationSessionService: widget.conversationSessionService,
       voiceIdentityBridgeService: widget.voiceIdentityBridgeService,
       deferHeavyBootstrap: _justCompletedSetup,
-      setupRequired: setupRequired,
+      setupRequired: false,
     );
   }
 
@@ -173,7 +170,15 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
     }
 
     if (_showSetup) {
-      return _buildDashboard(setupRequired: true);
+      return NovaFirstRunSetupV2Page(
+        sttService: widget.sttService,
+        ttsService: widget.ttsService,
+        apiService: widget.apiService,
+        ownerService: _ownerService,
+        firstRunService: _firstRunService,
+        voiceIdentityBridgeService: widget.voiceIdentityBridgeService,
+        onCompleted: () => unawaited(_completeSetup()),
+      );
     }
 
     return _buildDashboard();
