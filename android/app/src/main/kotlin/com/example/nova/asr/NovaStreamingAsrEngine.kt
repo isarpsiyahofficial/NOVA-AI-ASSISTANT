@@ -1,8 +1,8 @@
 package com.example.nova.asr
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.SystemClock
-import com.example.nova.NovaAppSandboxGuard
 import com.example.nova.NovaStreamingVoiceGate
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.HomophoneReplacerConfig
@@ -10,25 +10,36 @@ import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
-import java.io.File
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.min
+import kotlin.math.max
 
+/**
+ * Single embedded ASR runtime.
+ *
+ * Whisper Tiny is an offline recognizer, not a token-streaming recognizer. The
+ * old loop repeatedly decoded overlapping 8-second windows while the user was
+ * speaking. This implementation uses Silero VAD as the endpoint authority:
+ * completed speech is decoded exactly once, while a throttled short snapshot
+ * may be decoded for UI partial text only.
+ */
 class NovaStreamingAsrEngine(private val context: Context) {
     private val config = NovaStreamingAsrConfig()
     private val modelLocator = NovaAsrModelLocator(context)
-    private val endpointDetector = NovaEndpointDetector(config.endpointingMs)
     private val stabilizer = NovaPartialTranscriptStabilizer()
-    private val ringBuffer = NovaAudioFrameRingBuffer()
     private val session = NovaStreamingAsrSession()
     private val recognizerLock = Any()
+    private val decodeLock = Any()
     private val continuousLoopRunning = AtomicBoolean(false)
     private val transcriptionInFlight = AtomicBoolean(false)
 
-    @Volatile private var lastLoopTranscribeStartedAt: Long = 0L
-    @Volatile private var lastLoopTranscribeFinishedAt: Long = 0L
+    @Volatile private var lastDecodeStartedAt: Long = 0L
+    @Volatile private var lastDecodeFinishedAt: Long = 0L
+    @Volatile private var lastPartialDecodeAt: Long = 0L
+    @Volatile private var lastPartialSampleCount: Int = 0
+    @Volatile private var lastDecodeDurationMs: Long = 0L
+    @Volatile private var finalDecodeCount: Long = 0L
+    @Volatile private var partialDecodeCount: Long = 0L
+    @Volatile private var blankSegmentCount: Long = 0L
 
     @Volatile private var lastPartial: String = ""
     @Volatile private var lastError: String = ""
@@ -47,13 +58,11 @@ class NovaStreamingAsrEngine(private val context: Context) {
         sherpaReady = resolution.modelReady && warmupRecognizer(resolution)
         if (!sherpaReady) {
             lastMode = "embedded_unavailable"
-            lastError = if (resolution.message.isBlank()) {
-                "Embedded Sherpa ASR hazır değil; tek otorite streaming zinciri başlatılamadı."
-            } else {
-                resolution.message
+            lastError = resolution.message.ifBlank {
+                "Embedded Sherpa Whisper modeli hazır değil."
             }
         } else {
-            lastMode = "embedded_sherpa"
+            lastMode = "embedded_whisper_vad_ready"
             lastError = ""
         }
         return sherpaReady
@@ -62,61 +71,96 @@ class NovaStreamingAsrEngine(private val context: Context) {
     fun start(onEvent: (String, NovaStreamingAsrResult, String) -> Unit): Boolean {
         eventCallback = onEvent
         if (session.running) {
+            if (!continuousLoopRunning.get()) startContinuousLoop(onEvent)
             onEvent(
                 "status",
-                NovaStreamingAsrResult("", false, 0f, session.segmentId, 0, 0, lastLocale),
-                "Embedded Sherpa ASR zaten çalışıyor; mevcut tek oturum korunuyor.",
+                emptyResult(),
+                "Embedded Whisper + Silero VAD tek oturumu zaten çalışıyor.",
             )
-            if (!continuousLoopRunning.get()) {
-                startContinuousLoop(onEvent)
-            }
             return true
         }
-        val ready = if (sherpaReady) true else initialize()
-        if (!ready) {
+
+        if (!(sherpaReady || initialize())) {
             onEvent(
                 "error",
-                NovaStreamingAsrResult("", false, 0f, session.segmentId, 0, 0, lastLocale),
-                if (lastError.isBlank()) "Embedded Sherpa ASR başlatılamadı." else lastError,
+                emptyResult(),
+                lastError.ifBlank { "Embedded Sherpa ASR başlatılamadı." },
             )
             return false
         }
+
         session.start()
-        lastMode = "embedded_sherpa"
+        lastMode = "embedded_whisper_vad"
         onEvent(
             "status",
-            NovaStreamingAsrResult("", false, 0f, session.segmentId, 0, 0, lastLocale),
-            "Embedded Sherpa ASR tek otorite olarak başlatıldı.",
+            emptyResult(),
+            "Embedded Whisper + Silero VAD tek ASR otoritesi başlatıldı.",
         )
         startContinuousLoop(onEvent)
         return true
     }
 
+    /** Legacy diagnostic snapshot; normal STT consumes the event stream. */
     fun decodeStreamingSnapshot(
         mode: String,
         maxDurationSeconds: Int,
-        callback: (success: Boolean, text: String, locale: String, message: String, usedEmbedded: Boolean) -> Unit,
+        callback: (
+            success: Boolean,
+            text: String,
+            locale: String,
+            message: String,
+            usedEmbedded: Boolean,
+        ) -> Unit,
     ) {
-        val resolution = modelLocator.resolve()
-        if (!(sherpaReady || warmupRecognizer(resolution))) {
-            sherpaReady = false
-            lastMode = "embedded_unavailable"
-            callback(false, "", "tr-TR", if (resolution.message.isBlank()) "Embedded Sherpa ASR hazır değil." else resolution.message, true)
-            return
+        Thread {
+            val resolution = modelLocator.resolve()
+            if (!(sherpaReady || warmupRecognizer(resolution))) {
+                sherpaReady = false
+                lastMode = "embedded_unavailable"
+                callback(
+                    false,
+                    "",
+                    "tr-TR",
+                    resolution.message.ifBlank { "Embedded Sherpa ASR hazır değil." },
+                    true,
+                )
+                return@Thread
+            }
+            sherpaReady = true
+            val samples = NovaStreamingVoiceGate.snapshotRecentPcm(maxDurationSeconds)
+            if (samples.isEmpty()) {
+                callback(
+                    false,
+                    "",
+                    "tr-TR",
+                    "Silero VAD kapısında çözülecek konuşma bulunamadı.",
+                    true,
+                )
+                return@Thread
+            }
+            val transcript = decodeSamplesWithSherpa(samples, resolution)
+            if (transcript == null || transcript.text.isBlank()) {
+                callback(
+                    false,
+                    "",
+                    "tr-TR",
+                    lastError.ifBlank { "Embedded Whisper decode boş döndü." },
+                    true,
+                )
+                return@Thread
+            }
+            callback(
+                true,
+                transcript.text,
+                transcript.locale,
+                transcript.message,
+                true,
+            )
+        }.apply {
+            name = "NovaAsrDiagnosticSnapshot"
+            isDaemon = true
+            start()
         }
-        sherpaReady = true
-        val samples = NovaStreamingVoiceGate.snapshotRecentPcm(maxDurationSeconds)
-        if (samples.isEmpty()) {
-            callback(false, "", "tr-TR", "Streaming ses kapısında çözülecek taze konuşma penceresi bulunamadı.", true)
-            return
-        }
-        val transcript = decodeSamplesWithSherpa(samples, resolution)
-        if (transcript == null || transcript.text.isBlank()) {
-            callback(false, "", "tr-TR", if (lastError.isBlank()) "Embedded Sherpa decode boş döndü." else lastError, true)
-            return
-        }
-        val locale = transcript.locale.ifBlank { "tr-TR" }
-        callback(true, transcript.text, locale, transcript.message, true)
     }
 
     fun pause(): Boolean {
@@ -127,7 +171,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
     fun resume(): Boolean {
         session.resume()
         val callback = eventCallback
-        if (session.running && !continuousLoopRunning.get() && callback != null) {
+        if (session.running && callback != null && !continuousLoopRunning.get()) {
             startContinuousLoop(callback)
         }
         return true
@@ -137,31 +181,23 @@ class NovaStreamingAsrEngine(private val context: Context) {
         session.stop()
         continuousLoopRunning.set(false)
         transcriptionInFlight.set(false)
-        lastLoopTranscribeStartedAt = 0L
-        lastLoopTranscribeFinishedAt = 0L
-        stabilizer.reset()
-        endpointDetector.reset()
-        ringBuffer.clear()
-        lastPartial = ""
+        resetTurnState()
         NovaStreamingVoiceGate.clearBuffer()
         eventCallback = null
         return true
     }
 
     fun flush(): Boolean {
-        session.finalizeSegment()
-        clearBuffer()
+        val completed = NovaStreamingVoiceGate.takeCompletedSpeechPcm(28)
+        if (completed.isNotEmpty()) {
+            eventCallback?.let { callback -> decodeFinalSegment(completed, callback) }
+        }
         return true
     }
 
     fun clearBuffer(): Boolean {
-        ringBuffer.clear()
-        stabilizer.reset()
-        endpointDetector.reset()
         transcriptionInFlight.set(false)
-        lastLoopTranscribeStartedAt = 0L
-        lastLoopTranscribeFinishedAt = 0L
-        lastPartial = ""
+        resetTurnState()
         NovaStreamingVoiceGate.clearBuffer()
         return true
     }
@@ -172,9 +208,11 @@ class NovaStreamingAsrEngine(private val context: Context) {
 
     fun stateMap(): Map<String, Any> {
         val resolution = modelLocator.resolve()
+        val gate = NovaStreamingVoiceGate.stateMap()
         return mapOf(
             "initialized" to true,
             "running" to session.running,
+            "paused" to session.paused,
             "foregroundServiceRunning" to foregroundServiceRunning,
             "modelReady" to resolution.modelReady,
             "singleAuthorityConfirmed" to true,
@@ -182,7 +220,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
             "message" to if (lastError.isNotBlank()) lastError else resolution.message,
             "partialCount" to partialCount,
             "finalCount" to finalCount,
-            "droppedFrames" to ringBuffer.droppedFrames,
+            "droppedFrames" to (gate["droppedFrames"] as? Number)?.toLong().orZero(),
             "modelChecksum" to resolution.checksum,
             "lastPartial" to lastPartial,
             "lastLocale" to lastLocale,
@@ -191,142 +229,180 @@ class NovaStreamingAsrEngine(private val context: Context) {
             "decoderAssetPath" to resolution.decoderAssetPath,
             "tokenAssetPath" to resolution.tokenAssetPath,
             "configAssetPath" to resolution.configAssetPath,
+            "vadEngine" to (gate["vadEngine"] ?: "unknown"),
+            "vadReady" to (gate["vadReady"] ?: false),
+            "vadQueuedSpeechSegments" to (gate["queuedSpeechSegments"] ?: 0),
+            "lastDecodeDurationMs" to lastDecodeDurationMs,
+            "lastDecodeStartedAt" to lastDecodeStartedAt,
+            "lastDecodeFinishedAt" to lastDecodeFinishedAt,
+            "partialDecodeCount" to partialDecodeCount,
+            "finalDecodeCount" to finalDecodeCount,
+            "blankSegmentCount" to blankSegmentCount,
+            "recognizerThreads" to resolveRecognizerThreadCount(),
+            "decodePolicy" to "silero_segment_once_partial_throttled",
         )
     }
 
-    private fun startContinuousLoop(onEvent: (String, NovaStreamingAsrResult, String) -> Unit) {
+    private fun startContinuousLoop(
+        onEvent: (String, NovaStreamingAsrResult, String) -> Unit,
+    ) {
         if (!continuousLoopRunning.compareAndSet(false, true)) return
         Thread {
             try {
                 while (session.running) {
                     if (session.paused) {
-                        Thread.sleep(250)
+                        Thread.sleep(80L)
                         continue
                     }
 
-                    val gate = NovaStreamingVoiceGate.stateMap()
-                    val gateSpeechActive = gate["speechActive"] as? Boolean ?: false
-                    val gateSpeechRecent = gate["speechRecentlyActive"] as? Boolean ?: false
-                    if (!gateSpeechActive && !gateSpeechRecent) {
-                        Thread.sleep(180)
+                    val completed = NovaStreamingVoiceGate.takeCompletedSpeechPcm(28)
+                    if (completed.isNotEmpty()) {
+                        decodeFinalSegment(completed, onEvent)
                         continue
                     }
 
-                    val now = SystemClock.elapsedRealtime()
-                    val minGapMs = if (gateSpeechActive) 1500L else 2200L
-                    if (transcriptionInFlight.get() || (now - lastLoopTranscribeStartedAt) < minGapMs) {
-                        Thread.sleep(if (gateSpeechActive) 180 else 260)
-                        continue
-                    }
-
-                    val loopSegmentId = session.segmentId
-                    transcriptionInFlight.set(true)
-                    lastLoopTranscribeStartedAt = now
-                    decodeStreamingSnapshot(
-                        mode = "normalCommandListening",
-                        maxDurationSeconds = 8,
-                    ) { success, text, locale, message, embedded ->
-                        try {
-                            if (!session.running || session.paused || loopSegmentId != session.segmentId) {
-                                return@decodeStreamingSnapshot
-                            }
-
-                            if (!success) {
-                                lastError = message
-                                lastMode = if (embedded) "embedded_sherpa_error" else "embedded_sherpa_error"
-                                onEvent(
-                                    "error",
-                                    NovaStreamingAsrResult("", false, 0f, session.segmentId, 0, 0, locale),
-                                    message,
-                                )
-                                return@decodeStreamingSnapshot
-                            }
-
-                            val stabilized = stabilizer.stabilize(text).trim()
-                            if (stabilized.isBlank()) {
-                                return@decodeStreamingSnapshot
-                            }
-
-                            lastPartial = stabilized
-                            lastLocale = locale
-                            partialCount += 1
-                            val eventNow = SystemClock.elapsedRealtime()
-                            if (gateSpeechActive) {
-                                endpointDetector.markSpeech(eventNow)
-                            }
-                            onEvent(
-                                "partial",
-                                NovaStreamingAsrResult(
-                                    stabilized,
-                                    false,
-                                    if (embedded) 0.82f else 0.62f,
-                                    session.segmentId,
-                                    0,
-                                    0,
-                                    locale,
-                                ),
-                                if (embedded) "Embedded partial transcript hazır." else "Embedded partial transcript hazır.",
-                            )
-
-                            if (gateSpeechActive || !endpointDetector.shouldFinalize(eventNow)) {
-                                return@decodeStreamingSnapshot
-                            }
-
-                            finalCount += 1
-                            lastMode = if (embedded) "embedded_sherpa" else "embedded_sherpa"
-                            onEvent(
-                                "final",
-                                NovaStreamingAsrResult(
-                                    stabilized,
-                                    true,
-                                    if (embedded) 0.91f else 0.79f,
-                                    session.segmentId,
-                                    0,
-                                    0,
-                                    locale,
-                                ),
-                                if (embedded) "Embedded final transcript hazır." else "Embedded final transcript hazır.",
-                            )
-                            session.finalizeSegment()
-                            clearBuffer()
-                        } finally {
-                            lastLoopTranscribeFinishedAt = SystemClock.elapsedRealtime()
-                            transcriptionInFlight.set(false)
-                        }
-                    }
-                    Thread.sleep(if (gateSpeechActive) 260 else 340)
+                    maybeDecodePartial(onEvent)
+                    Thread.sleep(55L)
                 }
+            } catch (t: InterruptedException) {
+                Thread.currentThread().interrupt()
             } catch (t: Throwable) {
-                lastError = t.message ?: "Streaming ASR sürekli döngüsü beklenmedik şekilde durdu."
-                onEvent(
-                    "error",
-                    NovaStreamingAsrResult("", false, 0f, session.segmentId, 0, 0, lastLocale),
-                    lastError,
-                )
+                lastError = t.message
+                    ?: "Whisper + Silero sürekli ASR döngüsü durdu."
+                onEvent("error", emptyResult(), lastError)
             } finally {
                 continuousLoopRunning.set(false)
             }
-        }.start()
+        }.apply {
+            name = "NovaWhisperVadLoop"
+            isDaemon = true
+            start()
+        }
     }
 
-    private fun warmupRecognizer(resolution: NovaAsrModelLocator.ModelResolution): Boolean {
+    private fun maybeDecodePartial(
+        onEvent: (String, NovaStreamingAsrResult, String) -> Unit,
+    ) {
+        val gate = NovaStreamingVoiceGate.stateMap()
+        if (gate["speechActive"] != true || transcriptionInFlight.get()) return
+
+        val sampleCount = (gate["bufferedPcmSamples"] as? Number)?.toInt() ?: 0
+        if (sampleCount < config.sampleRate) return
+
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastPartialDecodeAt < PARTIAL_DECODE_INTERVAL_MS) return
+        if (sampleCount - lastPartialSampleCount < config.sampleRate / 2) return
+
+        val samples = NovaStreamingVoiceGate.snapshotRecentPcm(PARTIAL_WINDOW_SECONDS)
+        if (samples.size < config.sampleRate) return
+        if (!transcriptionInFlight.compareAndSet(false, true)) return
+
+        lastPartialDecodeAt = now
+        lastPartialSampleCount = sampleCount
+        partialDecodeCount += 1
+        try {
+            val transcript = decodeSamplesWithSherpa(samples, modelLocator.resolve())
+            val stabilized = stabilizer.stabilize(transcript?.text.orEmpty()).trim()
+            if (stabilized.isBlank() || stabilized == lastPartial) return
+
+            lastPartial = stabilized
+            lastLocale = transcript?.locale?.ifBlank { "tr-TR" } ?: "tr-TR"
+            partialCount += 1
+            lastMode = "embedded_whisper_partial"
+            onEvent(
+                "partial",
+                NovaStreamingAsrResult(
+                    text = stabilized,
+                    isFinal = false,
+                    confidence = 0.78f,
+                    segmentId = session.segmentId,
+                    startMs = 0,
+                    endMs = samplesToMs(samples.size),
+                    locale = lastLocale,
+                ),
+                "Silero aktif konuşma penceresinden throttled Whisper partial hazır.",
+            )
+        } finally {
+            transcriptionInFlight.set(false)
+        }
+    }
+
+    private fun decodeFinalSegment(
+        samples: ShortArray,
+        onEvent: (String, NovaStreamingAsrResult, String) -> Unit,
+    ) {
+        if (samples.size < config.sampleRate / 12) return
+        if (!transcriptionInFlight.compareAndSet(false, true)) return
+
+        val segmentId = session.segmentId
+        finalDecodeCount += 1
+        try {
+            val transcript = decodeSamplesWithSherpa(samples, modelLocator.resolve())
+            val finalText = transcript?.text.orEmpty().trim()
+            if (finalText.isBlank()) {
+                blankSegmentCount += 1
+                lastMode = "embedded_whisper_blank_segment"
+                return
+            }
+
+            lastPartial = finalText
+            lastLocale = transcript?.locale?.ifBlank { "tr-TR" } ?: "tr-TR"
+            finalCount += 1
+            lastMode = "embedded_whisper_vad_final"
+            lastError = ""
+            onEvent(
+                "final",
+                NovaStreamingAsrResult(
+                    text = finalText,
+                    isFinal = true,
+                    confidence = 0.91f,
+                    segmentId = segmentId,
+                    startMs = 0,
+                    endMs = samplesToMs(samples.size),
+                    locale = lastLocale,
+                ),
+                "Silero tamamlanmış konuşma segmenti Whisper ile bir kez çözüldü.",
+            )
+            session.finalizeSegment()
+        } finally {
+            stabilizer.reset()
+            lastPartial = ""
+            lastPartialDecodeAt = 0L
+            lastPartialSampleCount = 0
+            transcriptionInFlight.set(false)
+        }
+    }
+
+    private fun warmupRecognizer(
+        resolution: NovaAsrModelLocator.ModelResolution,
+    ): Boolean {
         synchronized(recognizerLock) {
             if (recognizer != null) return true
             if (!resolution.modelReady) return false
             return try {
-                recognizer = OfflineRecognizer(context.assets, buildRecognizerConfig(resolution))
+                recognizer = OfflineRecognizer(
+                    context.assets,
+                    buildRecognizerConfig(resolution),
+                )
                 true
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
                 recognizer = null
+                lastError = "Whisper recognizer warmup hatası: ${t.message ?: t.javaClass.simpleName}"
                 false
             }
         }
     }
 
-    private fun buildRecognizerConfig(resolution: NovaAsrModelLocator.ModelResolution): OfflineRecognizerConfig {
+    private fun buildRecognizerConfig(
+        resolution: NovaAsrModelLocator.ModelResolution,
+    ): OfflineRecognizerConfig {
         val whisperConfig = OfflineWhisperModelConfig().apply {
-            encoder = resolution.modelAssetPath.ifBlank { "sherpa_asr/encoder.onnx" }
-            decoder = resolution.decoderAssetPath.ifBlank { inferDecoderAssetPath(resolution.modelAssetPath) }
+            encoder = resolution.modelAssetPath.ifBlank {
+                "sherpa_asr/encoder.onnx"
+            }
+            decoder = resolution.decoderAssetPath.ifBlank {
+                inferDecoderAssetPath(resolution.modelAssetPath)
+            }
             language = "tr"
             task = "transcribe"
             tailPaddings = 20
@@ -335,9 +411,11 @@ class NovaStreamingAsrEngine(private val context: Context) {
         }
         val modelConfig = OfflineModelConfig().apply {
             whisper = whisperConfig
-            tokens = resolution.tokenAssetPath.ifBlank { "sherpa_asr/tokens.txt" }
+            tokens = resolution.tokenAssetPath.ifBlank {
+                "sherpa_asr/tokens.txt"
+            }
             modelType = "whisper"
-            numThreads = 2
+            numThreads = resolveRecognizerThreadCount()
             debug = false
             provider = "cpu"
         }
@@ -350,16 +428,95 @@ class NovaStreamingAsrEngine(private val context: Context) {
             this.modelConfig = modelConfig
             hr = HomophoneReplacerConfig()
             decodingMethod = "greedy_search"
-            maxActivePaths = maxOf(4, config.beamSize)
+            maxActivePaths = max(2, config.beamSize)
+        }
+    }
+
+    private fun decodeSamplesWithSherpa(
+        samples: ShortArray,
+        resolution: NovaAsrModelLocator.ModelResolution,
+    ): DecodeOutput? {
+        if (samples.isEmpty()) return null
+        val localRecognizer = synchronized(recognizerLock) {
+            if (recognizer == null && !warmupRecognizer(resolution)) return null
+            recognizer
+        } ?: return null
+
+        return synchronized(decodeLock) {
+            val startedAt = SystemClock.elapsedRealtime()
+            lastDecodeStartedAt = startedAt
+            try {
+                val stream = localRecognizer.createStream()
+                try {
+                    val floatSamples = FloatArray(samples.size) { index ->
+                        samples[index] / 32768.0f
+                    }
+                    stream.acceptWaveform(floatSamples, config.sampleRate)
+                    localRecognizer.decode(stream)
+                    val result = localRecognizer.getResult(stream)
+                    val locale = result.lang.takeIf { it.isNotBlank() } ?: "tr-TR"
+                    DecodeOutput(
+                        text = result.text.trim(),
+                        locale = locale,
+                        message = "Embedded Whisper ${samples.size} örneği çözdü.",
+                    )
+                } finally {
+                    stream.release()
+                }
+            } catch (t: Throwable) {
+                lastError = "Embedded Whisper decode hatası: ${t.message ?: t.javaClass.simpleName}"
+                null
+            } finally {
+                lastDecodeFinishedAt = SystemClock.elapsedRealtime()
+                lastDecodeDurationMs = lastDecodeFinishedAt - startedAt
+            }
         }
     }
 
     private fun inferDecoderAssetPath(modelAssetPath: String): String {
-        if (modelAssetPath.contains("encoder.onnx")) {
-            return modelAssetPath.replace("encoder.onnx", "decoder.onnx")
+        return if (modelAssetPath.contains("encoder.onnx")) {
+            modelAssetPath.replace("encoder.onnx", "decoder.onnx")
+        } else {
+            "sherpa_asr/decoder.onnx"
         }
-        return "sherpa_asr/decoder.onnx"
     }
+
+    private fun resolveRecognizerThreadCount(): Int {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        val memoryClassMb = manager?.memoryClass ?: 256
+        val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        return if (memoryClassMb >= 256 && cores >= 6) 2 else 1
+    }
+
+    private fun resetTurnState() {
+        stabilizer.reset()
+        lastPartial = ""
+        lastPartialDecodeAt = 0L
+        lastPartialSampleCount = 0
+        lastDecodeStartedAt = 0L
+        lastDecodeFinishedAt = 0L
+        lastDecodeDurationMs = 0L
+    }
+
+    private fun emptyResult(): NovaStreamingAsrResult {
+        return NovaStreamingAsrResult(
+            text = "",
+            isFinal = false,
+            confidence = 0f,
+            segmentId = session.segmentId,
+            startMs = 0,
+            endMs = 0,
+            locale = lastLocale,
+        )
+    }
+
+    private fun samplesToMs(sampleCount: Int): Int {
+        return ((sampleCount.toLong() * 1000L) / config.sampleRate)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+    }
+
+    private fun Number?.orZero(): Long = this?.toLong() ?: 0L
 
     private data class DecodeOutput(
         val text: String,
@@ -367,151 +524,11 @@ class NovaStreamingAsrEngine(private val context: Context) {
         val message: String,
     )
 
-    private fun decodeFileWithSherpa(file: File, resolution: NovaAsrModelLocator.ModelResolution): DecodeOutput? {
-        if (!file.exists() || !file.isFile) return null
-        val samples = readWavPcm16Mono(file) ?: return null
-        val localRecognizer = synchronized(recognizerLock) {
-            recognizer ?: run {
-                if (!warmupRecognizer(resolution)) return null
-                recognizer
-            }
-        } ?: return null
-
-        return try {
-            val stream = localRecognizer.createStream()
-            val chunks = samples.asList().chunked(config.chunkSize)
-            var consumed = 0
-            for (chunk in chunks) {
-                val floatChunk = FloatArray(chunk.size)
-                for (i in chunk.indices) {
-                    floatChunk[i] = chunk[i]
-                }
-                stream.acceptWaveform(floatChunk, config.sampleRate)
-                consumed += floatChunk.size
-                if (floatChunk.isNotEmpty()) {
-                    val shorts = ShortArray(min(floatChunk.size, config.chunkSize)) { idx ->
-                        (floatChunk[idx] * Short.MAX_VALUE).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-                    }
-                    ringBuffer.push(shorts)
-                }
-            }
-            localRecognizer.decode(stream)
-            val result = localRecognizer.getResult(stream)
-            stream.release()
-            val locale = result.lang.takeIf { it.isNotBlank() } ?: "tr-TR"
-            DecodeOutput(
-                text = result.text.trim(),
-                locale = locale,
-                message = "Sherpa embedded decode tamamlandı (${consumed} örnek).",
-            )
-        } catch (t: Throwable) {
-            lastError = t.message ?: "Sherpa embedded decode başarısız oldu."
-            null
-        }
-    }
-
-    private fun decodeSamplesWithSherpa(samples: ShortArray, resolution: NovaAsrModelLocator.ModelResolution): DecodeOutput? {
-        if (samples.isEmpty()) return null
-        val localRecognizer = synchronized(recognizerLock) {
-            recognizer ?: run {
-                if (!warmupRecognizer(resolution)) return null
-                recognizer
-            }
-        } ?: return null
-
-        return try {
-            val stream = localRecognizer.createStream()
-            val floatChunk = FloatArray(samples.size) { index -> samples[index] / 32768.0f }
-            stream.acceptWaveform(floatChunk, config.sampleRate)
-            localRecognizer.decode(stream)
-            val result = localRecognizer.getResult(stream)
-            stream.release()
-            val locale = result.lang.takeIf { it.isNotBlank() } ?: "tr-TR"
-            DecodeOutput(
-                text = result.text.trim(),
-                locale = locale,
-                message = "Sherpa embedded snapshot decode tamamlandı (${samples.size} örnek).",
-            )
-        } catch (t: Throwable) {
-            lastError = t.message ?: "Sherpa embedded snapshot decode başarısız oldu."
-            null
-        }
-    }
-
-    private fun readWavPcm16Mono(file: File): FloatArray? {
-        val bytes = try {
-            file.readBytes()
-        } catch (_: Throwable) {
-            return null
-        }
-        if (bytes.size < 44) return null
-        if (String(bytes, 0, 4) != "RIFF" || String(bytes, 8, 4) != "WAVE") return null
-
-        var offset = 12
-        var channels = 1
-        var sampleRate = config.sampleRate
-        var bitsPerSample = 16
-        var dataOffset = -1
-        var dataSize = -1
-
-        while (offset + 8 <= bytes.size) {
-            val chunkId = String(bytes, offset, 4)
-            val chunkSize = littleEndianInt(bytes, offset + 4)
-            val chunkStart = offset + 8
-            if (chunkStart + chunkSize > bytes.size) return null
-            when (chunkId) {
-                "fmt " -> {
-                    channels = littleEndianShort(bytes, chunkStart + 2).toInt().coerceAtLeast(1)
-                    sampleRate = littleEndianInt(bytes, chunkStart + 4)
-                    bitsPerSample = littleEndianShort(bytes, chunkStart + 14).toInt()
-                }
-                "data" -> {
-                    dataOffset = chunkStart
-                    dataSize = chunkSize
-                }
-            }
-            offset = chunkStart + chunkSize + (chunkSize % 2)
-        }
-
-        if (dataOffset < 0 || dataSize <= 0 || bitsPerSample != 16) return null
-        val raw = bytes.copyOfRange(dataOffset, dataOffset + dataSize)
-        val shortBuffer = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
-        val shortArray = ShortArray(shortBuffer.remaining())
-        shortBuffer.get(shortArray)
-        if (shortArray.isEmpty()) return null
-
-        val mono = if (channels <= 1) {
-            shortArray
-        } else {
-            val frames = shortArray.size / channels
-            ShortArray(frames) { frameIndex ->
-                var sum = 0
-                for (channel in 0 until channels) {
-                    sum += shortArray[frameIndex * channels + channel].toInt()
-                }
-                (sum / channels).toShort()
-            }
-        }
-
-        if (sampleRate != config.sampleRate) {
-            lastError = "Beklenen örnekleme oranı ${config.sampleRate} yerine $sampleRate geldi; ham decode denendi."
-        }
-
-        return FloatArray(mono.size) { index -> mono[index] / 32768.0f }
-    }
-
-    private fun littleEndianInt(bytes: ByteArray, offset: Int): Int {
-        return (bytes[offset].toInt() and 0xff) or
-            ((bytes[offset + 1].toInt() and 0xff) shl 8) or
-            ((bytes[offset + 2].toInt() and 0xff) shl 16) or
-            ((bytes[offset + 3].toInt() and 0xff) shl 24)
-    }
-
-    private fun littleEndianShort(bytes: ByteArray, offset: Int): Short {
-        return (((bytes[offset].toInt() and 0xff) or ((bytes[offset + 1].toInt() and 0xff) shl 8))).toShort()
+    companion object {
+        private const val PARTIAL_DECODE_INTERVAL_MS = 2_800L
+        private const val PARTIAL_WINDOW_SECONDS = 6
     }
 }
-
 
 data class NovaStreamingAsrDiagnosticSnapshot(
     val sherpaReady: Boolean,
@@ -529,8 +546,9 @@ fun NovaStreamingAsrEngine.buildDiagnosticSnapshot(): NovaStreamingAsrDiagnostic
         lastMode = map["lastMode"] as? String ?: "unknown",
         partialCount = map["partialCount"] as? Int ?: 0,
         finalCount = map["finalCount"] as? Int ?: 0,
-        lastError = map["lastError"] as? String ?: "",
-        foregroundServiceRunning = map["foregroundServiceRunning"] as? Boolean ?: false,
+        lastError = map["message"] as? String ?: "",
+        foregroundServiceRunning = map["foregroundServiceRunning"] as? Boolean
+            ?: false,
     )
 }
 
@@ -550,14 +568,13 @@ object NovaStreamingAsrRules {
     fun render(): String {
         return buildString {
             append("STREAMING ASR RULES\n")
-            append("- tek otorite embedded streaming zinciri korunmalı\n")
-            append("- foreground/mic durumları snapshot ile izlenebilmeli\n")
-            append("- partial/final sayaçları regresyon tespiti için tutulmalı\n")
-            append("- endpointing ve interruption ayrımı aynı akışta korunmalı")
+            append("- tek mikrofon sahibi ve tek embedded ASR otoritesi\n")
+            append("- Silero VAD sessizlikte Whisper decode başlatmaz\n")
+            append("- tamamlanan konuşma segmenti yalnız bir kez final decode edilir\n")
+            append("- partial decode cihaz yükünü korumak için throttled çalışır")
         }
     }
 }
-
 
 data class NovaStreamingAsrCrowdHint(
     val locale: String,
@@ -566,7 +583,10 @@ data class NovaStreamingAsrCrowdHint(
 )
 
 object NovaStreamingAsrCrowdHintResolver {
-    fun build(locale: String, continuousListeningEnabled: Boolean): NovaStreamingAsrCrowdHint {
+    fun build(
+        locale: String,
+        continuousListeningEnabled: Boolean,
+    ): NovaStreamingAsrCrowdHint {
         return NovaStreamingAsrCrowdHint(
             locale = locale,
             prefersShortBackchannels = locale.startsWith("tr", ignoreCase = true),
