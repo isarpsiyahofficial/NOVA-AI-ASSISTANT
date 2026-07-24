@@ -48,6 +48,42 @@ void main() {
       expect(executor, isNot(contains("call.arguments['trustedSource']")));
     });
 
+    test('same Silero segment feeds Whisper transcript and TitaNet identity', () {
+      final engine = _read(
+        'android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrEngine.kt',
+      );
+      final bridge = _read(
+        'android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt',
+      );
+      final stt = _read('lib/services/stt/nova_speech_to_text_service.dart');
+      final dashboard = _read('lib/ui/nova/nova_dashboard_page.dart');
+
+      expect(engine, contains('NovaAsrSegmentWavStore.write('));
+      expect(engine, contains('samples = samples'));
+      expect(engine, contains('identityAudioPath = identityAudioPath'));
+      expect(bridge, contains('"identityAudioPath" to payload.identityAudioPath'));
+      expect(stt, contains('identifyVoiceFromFile('));
+      expect(stt, contains('identity.voiceId.trim() == owner.ownerVoiceId.trim()'));
+      expect(stt, contains('ownerConfidence: matchedOwner ? identity.similarity : 0'));
+      expect(dashboard, contains("'ownerConfidence': sttResult?.ownerConfidence ?? 0.0"));
+      expect(dashboard, contains("'ownerVerified': sttResult?.ownerMatched ?? false"));
+    });
+
+    test('synthetic owner IDs and legacy dashboard setup cannot grant authority', () {
+      final owner = _read(
+        'lib/services/identity/device_owner_identity_service.dart',
+      );
+      final launch = _read('lib/ui/launch/nova_launch_gate_page.dart');
+      final dashboard = _read('lib/ui/nova/nova_dashboard_page.dart');
+
+      expect(owner, contains("value.startsWith('owner_')"));
+      expect(owner, contains("value.startsWith('nova_manual_owner_')"));
+      expect(launch, contains('isVerifiedVoiceprintId(settings.activeVoiceProfileId)'));
+      expect(dashboard, isNot(contains('nova_manual_owner_')));
+      expect(dashboard, isNot(contains('_completeManualSetup')));
+      expect(dashboard, contains('NOVA_APK_STANDALONE_DASHBOARD_V5_VERIFIED_RUNTIME_ONLY'));
+    });
+
     test('call actions are verified against fresh Telecom state', () {
       final executor = _read(
         'lib/services/actions/nova_device_action_executor_service.dart',
