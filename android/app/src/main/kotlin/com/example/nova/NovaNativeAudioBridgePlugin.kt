@@ -79,7 +79,7 @@ class NovaNativeAudioBridgePlugin(
                             "streamingAsrState" to streamingAsrEngine.stateMap(),
                         )
                     )
-                    return@setMethodCallHandler
+                    return
                 }
 
                 try {
