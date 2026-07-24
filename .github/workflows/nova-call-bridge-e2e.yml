@@ -1,0 +1,77 @@
+name: Nova Bidirectional Call Bridge E2E
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-call-bridge-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+  NOVA_CALL_AI_PROVIDER: mock
+  NOVA_CALL_HANGUP_AFTER_REPLY: 'true'
+
+jobs:
+  bidirectional-call:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore verified speech model cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision checksum-verified Whisper and Piper models
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
+
+      - name: Verify Docker Compose
+        run: |
+          docker version
+          docker compose version
+
+      - name: Run real AudioSocket call
+        shell: bash
+        run: |
+          chmod +x infra/call-bridge/run_e2e.sh
+          infra/call-bridge/run_e2e.sh
+
+      - name: Publish call proof summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -s infra/call-bridge/runtime/NOVA_CALL_BRIDGE_E2E_RESULT.json ]]; then
+            cat infra/call-bridge/runtime/NOVA_CALL_BRIDGE_E2E_RESULT.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'NOVA call proof result was not produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload bidirectional call evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-CALL-BRIDGE-E2E-EVIDENCE
+          path: infra/call-bridge/runtime
+          if-no-files-found: warn
+          retention-days: 14
