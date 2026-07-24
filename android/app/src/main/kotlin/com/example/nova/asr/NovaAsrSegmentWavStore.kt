@@ -7,8 +7,8 @@ import java.io.RandomAccessFile
 
 /**
  * Stores the exact Silero-completed PCM segment that Whisper decoded.
- * The returned reference remains inside the app sandbox and is consumed by
- * the TitaNet speaker-ID bridge. Old command samples are pruned aggressively.
+ * The returned reference remains inside the app-private sandbox and is consumed
+ * by the TitaNet speaker-ID bridge. Old command samples are pruned aggressively.
  */
 object NovaAsrSegmentWavStore {
     private const val SAMPLE_RATE = 16_000
