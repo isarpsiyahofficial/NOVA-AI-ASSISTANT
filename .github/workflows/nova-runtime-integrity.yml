@@ -68,8 +68,11 @@ jobs:
           lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/audio_runtime/nova_playback_echo_filter_service.dart
+          lib/services/identity/nova_voice_identity_bridge_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
           lib/services/tts/nova_tts_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/onboarding/nova_first_run_setup_v2_page.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
 
       - name: Run runtime integrity contracts
@@ -84,8 +87,11 @@ jobs:
           lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/audio_runtime/nova_playback_echo_filter_service.dart
+          lib/services/identity/nova_voice_identity_bridge_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
           lib/services/tts/nova_tts_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/onboarding/nova_first_run_setup_v2_page.dart
 
       - name: Audit packaged native voice stack
         run: |
