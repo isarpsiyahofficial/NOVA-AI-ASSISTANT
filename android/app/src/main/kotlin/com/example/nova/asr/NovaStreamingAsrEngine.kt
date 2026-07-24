@@ -16,11 +16,10 @@ import kotlin.math.max
 /**
  * Single embedded ASR runtime.
  *
- * Whisper Tiny is an offline recognizer, not a token-streaming recognizer. The
- * old loop repeatedly decoded overlapping 8-second windows while the user was
- * speaking. This implementation uses Silero VAD as the endpoint authority:
- * completed speech is decoded exactly once, while a throttled short snapshot
- * may be decoded for UI partial text only.
+ * Silero VAD owns endpointing. Every completed speech segment is decoded by
+ * Whisper exactly once. The exact same PCM segment is persisted as an app-
+ * private WAV reference so Flutter can run TitaNet speaker verification before
+ * a phone action receives owner authority.
  */
 class NovaStreamingAsrEngine(private val context: Context) {
     private val config = NovaStreamingAsrConfig()
@@ -49,6 +48,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
     @Volatile private var foregroundServiceRunning: Boolean = false
     @Volatile private var sherpaReady: Boolean = false
     @Volatile private var lastLocale: String = "tr-TR"
+    @Volatile private var lastIdentityAudioPath: String = ""
 
     private var recognizer: OfflineRecognizer? = null
     @Volatile private var eventCallback: ((String, NovaStreamingAsrResult, String) -> Unit)? = null
@@ -79,7 +79,6 @@ class NovaStreamingAsrEngine(private val context: Context) {
             )
             return true
         }
-
         if (!(sherpaReady || initialize())) {
             onEvent(
                 "error",
@@ -88,7 +87,6 @@ class NovaStreamingAsrEngine(private val context: Context) {
             )
             return false
         }
-
         session.start()
         lastMode = "embedded_whisper_vad"
         onEvent(
@@ -240,6 +238,8 @@ class NovaStreamingAsrEngine(private val context: Context) {
             "blankSegmentCount" to blankSegmentCount,
             "recognizerThreads" to resolveRecognizerThreadCount(),
             "decodePolicy" to "silero_segment_once_partial_throttled",
+            "identityEvidencePolicy" to "same_vad_segment_private_wav",
+            "lastIdentityAudioPath" to lastIdentityAudioPath,
         )
     }
 
@@ -254,21 +254,18 @@ class NovaStreamingAsrEngine(private val context: Context) {
                         Thread.sleep(80L)
                         continue
                     }
-
                     val completed = NovaStreamingVoiceGate.takeCompletedSpeechPcm(28)
                     if (completed.isNotEmpty()) {
                         decodeFinalSegment(completed, onEvent)
                         continue
                     }
-
                     maybeDecodePartial(onEvent)
                     Thread.sleep(55L)
                 }
             } catch (t: InterruptedException) {
                 Thread.currentThread().interrupt()
             } catch (t: Throwable) {
-                lastError = t.message
-                    ?: "Whisper + Silero sürekli ASR döngüsü durdu."
+                lastError = t.message ?: "Whisper + Silero sürekli ASR döngüsü durdu."
                 onEvent("error", emptyResult(), lastError)
             } finally {
                 continuousLoopRunning.set(false)
@@ -285,14 +282,11 @@ class NovaStreamingAsrEngine(private val context: Context) {
     ) {
         val gate = NovaStreamingVoiceGate.stateMap()
         if (gate["speechActive"] != true || transcriptionInFlight.get()) return
-
         val sampleCount = (gate["bufferedPcmSamples"] as? Number)?.toInt() ?: 0
         if (sampleCount < config.sampleRate) return
-
         val now = SystemClock.elapsedRealtime()
         if (now - lastPartialDecodeAt < PARTIAL_DECODE_INTERVAL_MS) return
         if (sampleCount - lastPartialSampleCount < config.sampleRate / 2) return
-
         val samples = NovaStreamingVoiceGate.snapshotRecentPcm(PARTIAL_WINDOW_SECONDS)
         if (samples.size < config.sampleRate) return
         if (!transcriptionInFlight.compareAndSet(false, true)) return
@@ -304,7 +298,6 @@ class NovaStreamingAsrEngine(private val context: Context) {
             val transcript = decodeSamplesWithSherpa(samples, modelLocator.resolve())
             val stabilized = stabilizer.stabilize(transcript?.text.orEmpty()).trim()
             if (stabilized.isBlank() || stabilized == lastPartial) return
-
             lastPartial = stabilized
             lastLocale = transcript?.locale?.ifBlank { "tr-TR" } ?: "tr-TR"
             partialCount += 1
@@ -319,6 +312,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
                     startMs = 0,
                     endMs = samplesToMs(samples.size),
                     locale = lastLocale,
+                    identityAudioPath = "",
                 ),
                 "Silero aktif konuşma penceresinden throttled Whisper partial hazır.",
             )
@@ -333,7 +327,6 @@ class NovaStreamingAsrEngine(private val context: Context) {
     ) {
         if (samples.size < config.sampleRate / 12) return
         if (!transcriptionInFlight.compareAndSet(false, true)) return
-
         val segmentId = session.segmentId
         finalDecodeCount += 1
         try {
@@ -344,7 +337,12 @@ class NovaStreamingAsrEngine(private val context: Context) {
                 lastMode = "embedded_whisper_blank_segment"
                 return
             }
-
+            val identityAudioPath = NovaAsrSegmentWavStore.write(
+                context = context,
+                samples = samples,
+                segmentId = segmentId,
+            )
+            lastIdentityAudioPath = identityAudioPath
             lastPartial = finalText
             lastLocale = transcript?.locale?.ifBlank { "tr-TR" } ?: "tr-TR"
             finalCount += 1
@@ -360,8 +358,13 @@ class NovaStreamingAsrEngine(private val context: Context) {
                     startMs = 0,
                     endMs = samplesToMs(samples.size),
                     locale = lastLocale,
+                    identityAudioPath = identityAudioPath,
                 ),
-                "Silero tamamlanmış konuşma segmenti Whisper ile bir kez çözüldü.",
+                if (identityAudioPath.isNotEmpty()) {
+                    "Silero segmenti Whisper ile bir kez çözüldü; aynı PCM TitaNet kanıtına bağlandı."
+                } else {
+                    "Silero segmenti çözüldü fakat TitaNet ses kanıtı dosyası oluşturulamadı."
+                },
             )
             session.finalizeSegment()
         } finally {
@@ -397,9 +400,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
         resolution: NovaAsrModelLocator.ModelResolution,
     ): OfflineRecognizerConfig {
         val whisperConfig = OfflineWhisperModelConfig().apply {
-            encoder = resolution.modelAssetPath.ifBlank {
-                "sherpa_asr/encoder.onnx"
-            }
+            encoder = resolution.modelAssetPath.ifBlank { "sherpa_asr/encoder.onnx" }
             decoder = resolution.decoderAssetPath.ifBlank {
                 inferDecoderAssetPath(resolution.modelAssetPath)
             }
@@ -411,9 +412,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
         }
         val modelConfig = OfflineModelConfig().apply {
             whisper = whisperConfig
-            tokens = resolution.tokenAssetPath.ifBlank {
-                "sherpa_asr/tokens.txt"
-            }
+            tokens = resolution.tokenAssetPath.ifBlank { "sherpa_asr/tokens.txt" }
             modelType = "whisper"
             numThreads = resolveRecognizerThreadCount()
             debug = false
@@ -441,7 +440,6 @@ class NovaStreamingAsrEngine(private val context: Context) {
             if (recognizer == null && !warmupRecognizer(resolution)) return null
             recognizer
         } ?: return null
-
         return synchronized(decodeLock) {
             val startedAt = SystemClock.elapsedRealtime()
             lastDecodeStartedAt = startedAt
@@ -496,6 +494,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
         lastDecodeStartedAt = 0L
         lastDecodeFinishedAt = 0L
         lastDecodeDurationMs = 0L
+        lastIdentityAudioPath = ""
     }
 
     private fun emptyResult(): NovaStreamingAsrResult {
@@ -507,6 +506,7 @@ class NovaStreamingAsrEngine(private val context: Context) {
             startMs = 0,
             endMs = 0,
             locale = lastLocale,
+            identityAudioPath = "",
         )
     }
 
@@ -571,6 +571,7 @@ object NovaStreamingAsrRules {
             append("- tek mikrofon sahibi ve tek embedded ASR otoritesi\n")
             append("- Silero VAD sessizlikte Whisper decode başlatmaz\n")
             append("- tamamlanan konuşma segmenti yalnız bir kez final decode edilir\n")
+            append("- final transcript ve TitaNet aynı PCM segmentini kullanır\n")
             append("- partial decode cihaz yükünü korumak için throttled çalışır")
         }
     }
