@@ -30,7 +30,6 @@ class NovaCallControlBridgePlugin(
         }
     }
 
-
     private fun markUserInitiatedIfPresent(call: MethodCall, action: String) {
         val userInitiated = call.argument<Boolean>("userInitiated") == true
         if (userInitiated) {
@@ -103,9 +102,23 @@ class NovaCallControlBridgePlugin(
                 }
 
                 "handOverToNova" -> {
-                    markUserInitiatedIfPresent(call, "handoff")
-                    markTrustedSourceIfPresent(call, "handoff")
-                    result.success(NovaCallControlBridge.handOverToNova())
+                    // A public Android dialer/InCallService can answer and control a
+                    // carrier call, but this APK currently has no verified carrier
+                    // downlink capture + uplink TTS injection transport. Speakerphone
+                    // plus mute is not an AI conversation transport and must never be
+                    // reported as a successful digital-human handover.
+                    result.success(
+                        mapOf(
+                            "success" to false,
+                            "verified" to false,
+                            "failureCode" to "carrier_ai_audio_transport_unavailable",
+                            "message" to "Çağrı kontrolü kullanılabilir; ancak karşı taraf sesini STT'ye taşıyan ve Nova sesini operatör hattına veren doğrulanmış çağrı ses taşıması bu APK'da hazır değil.",
+                            "carrierCallControlReady" to true,
+                            "carrierAiConversationReady" to false,
+                            "carrierDownlinkCaptureReady" to false,
+                            "carrierUplinkInjectionReady" to false
+                        )
+                    )
                 }
 
                 "handOverToUser" -> {
@@ -126,7 +139,13 @@ class NovaCallControlBridgePlugin(
                 }
 
                 "getCapabilities" -> {
-                    result.success(NovaCallControlBridge.getCapabilities())
+                    val base = NovaCallControlBridge.getCapabilities().toMutableMap()
+                    base["carrierCallControlReady"] = true
+                    base["carrierAiConversationReady"] = false
+                    base["carrierDownlinkCaptureReady"] = false
+                    base["carrierUplinkInjectionReady"] = false
+                    base["aiConversationTransport"] = "none_public_android_carrier_audio"
+                    result.success(base)
                 }
 
                 else -> result.notImplemented()
@@ -137,7 +156,8 @@ class NovaCallControlBridgePlugin(
                     "success" to false,
                     "message" to "Call control bridge hatası: ${t.message ?: "unknown"}",
                     "isMuted" to false,
-                    "isSpeakerOn" to false
+                    "isSpeakerOn" to false,
+                    "carrierAiConversationReady" to false
                 )
             )
         }
