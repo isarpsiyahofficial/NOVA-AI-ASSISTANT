@@ -53,6 +53,13 @@ void main() {
 
     test('call media path has real bidirectional PCM and evidence', () {
       final media = _read('infra/call-bridge/media_gateway/service.py');
+      final runtime = _read(
+        'infra/call-bridge/media_gateway/speech_runtime.py',
+      );
+      final launcher = _read('infra/call-bridge/media_gateway/launcher.py');
+      final dockerfile = _read(
+        'infra/call-bridge/media_gateway/Dockerfile',
+      );
       final dialplan = _read(
         'infra/call-bridge/asterisk/config/extensions.conf',
       );
@@ -60,11 +67,16 @@ void main() {
         '.github/workflows/nova-call-bridge-e2e.yml',
       );
 
-      expect(media, contains('transcribe_8k_pcm'));
-      expect(media, contains('synthesize_8k_pcm'));
       expect(media, contains('await self.send_pcm(writer, outgoing)'));
       expect(media, contains('incoming_rms'));
       expect(media, contains('outgoing_rms'));
+      expect(runtime, contains('OfflineRecognizer.from_whisper'));
+      expect(runtime, contains('OfflineTtsConfig'));
+      expect(runtime, contains('GenerationConfig'));
+      expect(runtime, contains('Sherpa Piper TTS returned empty audio'));
+      expect(runtime, isNot(contains('FeatureConfig')));
+      expect(launcher, contains('service.SherpaSpeechEngine ='));
+      expect(dockerfile, contains('/app/launcher.py'));
       expect(dialplan, contains('AudioSocket('));
       expect(dialplan, contains('[from-nova-carrier]'));
       expect(workflow, contains('Run real AudioSocket call'));
