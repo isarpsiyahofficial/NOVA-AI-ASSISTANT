@@ -10,6 +10,7 @@ RUN apt-get update \
         gettext-base \
         procps \
         sox \
+        uuid-runtime \
     && rm -rf /var/lib/apt/lists/*
 
 COPY config/asterisk.conf /etc/asterisk/asterisk.conf
