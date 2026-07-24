@@ -1,0 +1,54 @@
+name: Nova Native Stack Audit
+
+on:
+  push:
+    branches:
+      - agent/**
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-native-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Audit packaged voice stack
+        id: audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          chmod +x tooling/audit_native_voice_stack.sh
+          set +e
+          tooling/audit_native_voice_stack.sh 2>&1 | tee nova-native-stack-audit.txt
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload native audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-native-stack-audit
+          path: nova-native-stack-audit.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce native stack completeness
+        shell: bash
+        run: |
+          if [[ "${{ steps.audit.outputs.exit_code }}" != "0" ]]; then
+            echo "Native voice stack is incomplete. Read nova-native-stack-audit artifact."
+            exit 1
+          fi
