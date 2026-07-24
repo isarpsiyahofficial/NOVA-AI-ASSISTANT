@@ -1,4 +1,4 @@
-// NOVA_VERIFIED_DEVICE_ACTION_CONTRACT_V1
+// NOVA_VERIFIED_DEVICE_ACTION_CONTRACT_V2_LOCAL_CONTACT_TARGETS
 
 class NovaDeviceActionCall {
   final String action;
@@ -135,7 +135,7 @@ class NovaDeviceActionCatalog {
           'value': <String, dynamic>{
             'type': 'string',
             'description':
-                'Yalnız place_call için izinli telefon numarası, tap_text için ekrandaki hedef metin, set_focused_text için yazılacak metin. Diğer eylemlerde boş string gönder.',
+                'place_call için kullanıcının söylediği kişi adını aynen veya açıkça söylediği numarayı gönder; numara tahmin etme. Kişi adı cihazın yerel rehberinde çözülecek. tap_text için ekrandaki hedef metin, set_focused_text için yazılacak metin. Diğer eylemlerde boş string gönder.',
           },
         },
         'required': <String>['action', 'value'],
@@ -177,7 +177,7 @@ class NovaDeviceActionCatalog {
                 'value': <String, dynamic>{
                   'type': 'STRING',
                   'description':
-                      'Numara veya UI metni gereken eylemlerde değer; diğerlerinde boş string.',
+                      'place_call için kişi adı veya kullanıcının açıkça söylediği numara; numara tahmin edilmez ve kişi adı cihaz rehberinde çözülür. UI eylemlerinde hedef metin; diğerlerinde boş string.',
                 },
               },
               'required': <String>['action', 'value'],
