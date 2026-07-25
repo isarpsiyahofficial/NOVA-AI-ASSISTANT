@@ -284,6 +284,7 @@ class NovaSpeechToTextService {
       ownerConfidence: matchedOwner ? identity.similarity : 0,
       relationshipLabel: matchedOwner ? 'owner' : 'unknown',
       identityAudioPath: audioPath,
+      nativeActionToken: matchedOwner ? identity.nativeActionToken : '',
     );
   }
 }

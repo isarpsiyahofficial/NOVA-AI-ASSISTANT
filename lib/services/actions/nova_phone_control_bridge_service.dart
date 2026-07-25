@@ -1,4 +1,4 @@
-// NOVA_PHONE_CONTROL_DART_BRIDGE_V1
+// NOVA_TYPED_PHONE_CONTROL_DART_BRIDGE_V1
 import 'package:flutter/services.dart';
 
 class NovaPhoneControlBridgeService {
@@ -35,6 +35,9 @@ class NovaPhoneControlBridgeService {
     required String command,
     String value = '',
     int waitMs = 0,
+    String actionToken = '',
+    bool localUiAction = false,
+    bool companionAction = false,
     bool userInitiated = false,
     String trustedSource = '',
   }) async {
@@ -45,19 +48,23 @@ class NovaPhoneControlBridgeService {
           'command': command.trim(),
           'value': value.trim(),
           'waitMs': waitMs.clamp(0, 15000),
-          'userInitiated': userInitiated,
-          if (trustedSource.trim().isNotEmpty)
-            'trustedSource': trustedSource.trim(),
+          if (actionToken.trim().isNotEmpty)
+            'actionToken': actionToken.trim(),
+          'localUiAction': localUiAction || userInitiated,
+          'companionAction':
+              companionAction || trustedSource.trim() == 'companion',
         },
       );
       if (raw is Map) return Map<String, dynamic>.from(raw);
       return const <String, dynamic>{
         'success': false,
+        'verified': false,
         'message': 'Native telefon eylemi geçersiz yanıt verdi.',
       };
     } on PlatformException catch (error) {
       return <String, dynamic>{
         'success': false,
+        'verified': false,
         'message': error.message?.trim().isNotEmpty == true
             ? error.message!.trim()
             : 'Native telefon eyleminde platform hatası oluştu.',
@@ -65,6 +72,7 @@ class NovaPhoneControlBridgeService {
     } catch (error) {
       return <String, dynamic>{
         'success': false,
+        'verified': false,
         'message': 'Native telefon eylemi çalıştırılamadı: $error',
       };
     }

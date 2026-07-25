@@ -11,6 +11,7 @@ import '../../core/behavior/nova_persona.dart';
 import '../../core/behavior/response_style.dart';
 import '../../core/settings/nova_settings.dart';
 import '../../core/turn/nova_core_turn_controller.dart';
+import '../../core/turn/nova_turn_authority.dart';
 import '../../services/actions/nova_phone_control_bridge_service.dart';
 import '../../services/api/api_service.dart';
 import '../../services/call/nova_call_state_service.dart';
@@ -286,6 +287,19 @@ class _NovaDashboardPageState extends State<NovaDashboardPage> {
     try {
       final settings = await _settingsService.load();
       final phoneState = await _phoneBridge.getStatus();
+      final authority = source == NovaTurnSource.dashboardText
+          ? NovaTurnAuthority.localUser(
+              evidenceId: 'dashboard_text_${DateTime.now().microsecondsSinceEpoch}',
+            )
+          : (sttResult?.ownerMatched == true &&
+                  sttResult!.nativeActionToken.trim().isNotEmpty
+              ? NovaTurnAuthority.ownerVoice(
+                  ownerVoiceId: sttResult.speakerVoiceId,
+                  confidence: sttResult.ownerConfidence,
+                  nativeActionToken: sttResult.nativeActionToken,
+                  evidenceId: sttResult.identityAudioPath,
+                )
+              : const NovaTurnAuthority.unverified());
       final result = await _coreTurnController.processUserTurn(
         NovaCoreTurnRequest(
           inputText: text,
@@ -293,6 +307,8 @@ class _NovaDashboardPageState extends State<NovaDashboardPage> {
           settings: settings,
           requestedByVoice: source == NovaTurnSource.dashboardVoice,
           userInitiated: true,
+          userConfirmedThisAction: true,
+          authority: authority,
           context: <String, dynamic>{
             'screenLocked': phoneState['screenLocked'] == true,
             'userConfirmedThisAction': true,

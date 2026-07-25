@@ -39,11 +39,18 @@ void main() {
       final executor = _read(
         'lib/services/actions/nova_device_action_executor_service.dart',
       );
+      final guard = _read(
+        'lib/services/actions/nova_action_intent_guard_service.dart',
+      );
 
-      expect(executor, contains('NovaActionPolicy'));
-      expect(executor, contains("request.metadata['localCompanionAuthorityProof']"));
+      expect(executor, contains('NovaActionIntentGuardService.instance.authorize'));
+      expect(executor, contains('request.authority'));
+      expect(executor, contains('authority.toAuditMap()'));
       expect(executor, contains('policy.evaluate('));
       expect(executor, contains("failureCode: 'local_policy_blocked'"));
+      expect(guard, contains('request.canonicalUserText'));
+      expect(guard, contains('request.hasCurrentLease'));
+      expect(guard, contains('request.authority.canRequestNativeAction'));
       expect(executor, isNot(contains("call.arguments['ownerVerified']")));
       expect(executor, isNot(contains("call.arguments['trustedSource']")));
     });
@@ -65,8 +72,9 @@ void main() {
       expect(stt, contains('identifyVoiceFromFile('));
       expect(stt, contains('identity.voiceId.trim() == owner.ownerVoiceId.trim()'));
       expect(stt, contains('ownerConfidence: matchedOwner ? identity.similarity : 0'));
-      expect(dashboard, contains("'ownerConfidence': sttResult?.ownerConfidence ?? 0.0"));
-      expect(dashboard, contains("'ownerVerified': sttResult?.ownerMatched ?? false"));
+      expect(stt, contains('nativeActionToken: matchedOwner'));
+      expect(dashboard, contains('NovaTurnAuthority.ownerVoice('));
+      expect(dashboard, contains('nativeActionToken: sttResult.nativeActionToken'));
     });
 
     test('synthetic owner IDs and legacy dashboard setup cannot grant authority', () {
@@ -104,11 +112,12 @@ void main() {
       expect(request, contains("'dashboard_text'"));
       expect(request, contains("'call_companion_authorized_voice'"));
       expect(request, contains("'reminder_runtime_event'"));
-      expect(request, contains('localCompanionAuthorityProof'));
+      expect(request, contains('final NovaTurnAuthority authority'));
+      expect(request, contains('final NovaTurnLease? lease'));
       expect(controller, contains("return 'dashboard_text';"));
       expect(controller, contains("return 'call_companion_authorized_voice';"));
-      expect(controller, contains('ownerConfidence: ownerConfidence'));
-      expect(controller, contains("'ownerVerified': ownerConfidence >= 0.64"));
+      expect(controller, contains('authority: authority'));
+      expect(controller, contains('lease: lease'));
     });
 
     test('unverified native commands cannot be described as completed', () {

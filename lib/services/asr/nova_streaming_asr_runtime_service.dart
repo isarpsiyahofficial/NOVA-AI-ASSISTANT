@@ -15,6 +15,22 @@ import 'nova_asr_health_service.dart';
 import 'nova_streaming_asr_bridge_service.dart';
 import 'nova_streaming_transcript_router_service.dart';
 
+class NovaAsrPlaybackLease {
+  final String owner;
+  final int sessionToken;
+  final bool wasStarted;
+  final int issuedAtEpochMs;
+
+  const NovaAsrPlaybackLease({
+    required this.owner,
+    required this.sessionToken,
+    required this.wasStarted,
+    required this.issuedAtEpochMs,
+  });
+
+  bool get isUsable => wasStarted && owner != 'none';
+}
+
 class NovaStreamingAsrRuntimeService {
   final NovaStreamingAsrBridgeService bridgeService;
   final NovaStreamingTranscriptRouterService transcriptRouterService;
@@ -29,6 +45,8 @@ class NovaStreamingAsrRuntimeService {
   static bool _transitionInFlight = false;
   static int _sessionToken = 0;
   static String _owner = 'none';
+  static final List<String> _recentFinalFingerprints = <String>[];
+  static const int _maxFinalFingerprints = 48;
 
   NovaStreamingAsrRuntimeService({
     NovaStreamingAsrBridgeService? bridgeService,
@@ -87,6 +105,7 @@ class NovaStreamingAsrRuntimeService {
 
     _transitionInFlight = true;
     final token = ++_sessionToken;
+    _recentFinalFingerprints.clear();
     final previousOwner = _owner;
 
     try {
@@ -176,6 +195,38 @@ class NovaStreamingAsrRuntimeService {
     }
   }
 
+  static Future<NovaAsrPlaybackLease> pauseForPlayback(
+    NovaStreamingAsrBridgeService bridgeService,
+  ) async {
+    final lease = NovaAsrPlaybackLease(
+      owner: _owner,
+      sessionToken: _sessionToken,
+      wasStarted: _started,
+      issuedAtEpochMs: DateTime.now().millisecondsSinceEpoch,
+    );
+    if (!lease.isUsable) return lease;
+    await bridgeService.pause();
+    return lease;
+  }
+
+  static Future<bool> resumeAfterPlayback(
+    NovaStreamingAsrBridgeService bridgeService,
+    NovaAsrPlaybackLease lease,
+  ) async {
+    final sameSession = lease.sessionToken == _sessionToken;
+    final sameOwner = lease.owner == _owner;
+    if (!lease.isUsable || !_started || !sameSession || !sameOwner) {
+      debugPrint(
+        'NOVA_ASR_PLAYBACK_RESUME_REJECTED '
+        'leaseOwner=${lease.owner} currentOwner=$_owner '
+        'leaseSession=${lease.sessionToken} currentSession=$_sessionToken '
+        'started=$_started',
+      );
+      return false;
+    }
+    return await bridgeService.resume();
+  }
+
   Future<void> pause() async {
     await bridgeService.pause();
     _latestState = await bridgeService.getState();
@@ -210,6 +261,7 @@ class NovaStreamingAsrRuntimeService {
 
     _transitionInFlight = true;
     ++_sessionToken;
+    _recentFinalFingerprints.clear();
 
     try {
       _started = false;
@@ -227,6 +279,13 @@ class NovaStreamingAsrRuntimeService {
   Future<void> flush() => bridgeService.flush();
 
   void _handleEvent(NovaStreamingAsrEvent event) {
+    if (event.isFinal && _isDuplicateFinalEvent(event)) {
+      debugPrint(
+        'NOVA_STREAMING_ASR_FINAL_DEDUPED owner=$_owner '
+        'session=$_sessionToken segment=${event.transcript.segmentId}',
+      );
+      return;
+    }
     final routeDecision = transcriptRouterService.decide(event);
     final policyEnforcer = NovaRepairRuntimePolicyEnforcerService.instance;
     final forceEligibleRoute =
@@ -303,6 +362,30 @@ class NovaStreamingAsrRuntimeService {
       unawaited(_recordHealth());
     }
     _events.add(event);
+  }
+
+  bool _isDuplicateFinalEvent(NovaStreamingAsrEvent event) {
+    final transcript = event.transcript;
+    final normalizedText = transcript.text
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .toLowerCase();
+    if (normalizedText.isEmpty) return false;
+    final fingerprint = <Object>[
+      _sessionToken,
+      transcript.segmentId,
+      transcript.identityAudioPath.trim(),
+      normalizedText,
+    ].join('|');
+    if (_recentFinalFingerprints.contains(fingerprint)) return true;
+    _recentFinalFingerprints.add(fingerprint);
+    if (_recentFinalFingerprints.length > _maxFinalFingerprints) {
+      _recentFinalFingerprints.removeRange(
+        0,
+        _recentFinalFingerprints.length - _maxFinalFingerprints,
+      );
+    }
+    return false;
   }
 
   Future<void> _recordOwnerRejected(String requestedOwner) async {

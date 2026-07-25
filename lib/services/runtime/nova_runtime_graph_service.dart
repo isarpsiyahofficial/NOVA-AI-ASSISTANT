@@ -75,30 +75,21 @@ class NovaRuntimeGraphService {
       print(
         'NOVA_RUNTIME_GRAPH_DUPLICATE_AI_REJECTED owner=$cleanOwner existing=$_sharedAiOwner duplicateHash=${identityHashCode(service)}',
       );
-      assert(() {
-        throw StateError(
-          'A second NovaAiService decision root was created by $cleanOwner. Existing owner: $_sharedAiOwner.',
-        );
-      }());
+      throw StateError(
+        'A second NovaAiService decision root was created by $cleanOwner. Existing owner: $_sharedAiOwner.',
+      );
     }
     _registerCoreSources();
     return _sharedAiService!;
   }
 
-  NovaAiService resolveSharedAi({
-    required String requester,
-    required NovaAiService Function() factory,
-  }) {
-    final current = _sharedAiService;
-    if (current != null) {
-      registerDelegate(requester, 'shared_ai_delegate');
-      print(
-        'NOVA_RUNTIME_GRAPH_RESOLVE_SHARED requester=$requester owner=$_sharedAiOwner hash=${identityHashCode(current)}',
-      );
-      return current;
-    }
-    final created = factory();
-    return registerSharedAi(service: created, owner: requester);
+  NovaAiService resolveSharedAi({required String requester}) {
+    final current = sharedAiOrThrow;
+    registerDelegate(requester, 'shared_ai_delegate');
+    print(
+      'NOVA_RUNTIME_GRAPH_RESOLVE_SHARED requester=$requester owner=$_sharedAiOwner hash=${identityHashCode(current)}',
+    );
+    return current;
   }
 
   void registerDelegate(String name, String role) {

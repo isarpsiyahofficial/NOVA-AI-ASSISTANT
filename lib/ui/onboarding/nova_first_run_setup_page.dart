@@ -189,12 +189,6 @@ class _NovaFirstRunSetupPageState extends State<NovaFirstRunSetupPage> {
     super.initState();
     _setupAiService = NovaRuntimeGraphService.instance.resolveSharedAi(
       requester: 'setup_voice',
-      factory: () => NovaRuntimeGraphService.buildAiService(
-        localModelService: widget.localModelService,
-        apiService: widget.apiService,
-        persona: widget.persona,
-        responseStyle: widget.responseStyle,
-      ),
     );
     NovaRuntimeGraphService.instance.registerDelegate(
       'setup_voice',

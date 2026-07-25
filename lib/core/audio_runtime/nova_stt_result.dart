@@ -10,6 +10,7 @@ class NovaSttResult {
   final double ownerConfidence;
   final String relationshipLabel;
   final String identityAudioPath;
+  final String nativeActionToken;
 
   const NovaSttResult({
     required this.success,
@@ -23,6 +24,7 @@ class NovaSttResult {
     this.ownerConfidence = 0.0,
     this.relationshipLabel = 'unknown',
     this.identityAudioPath = '',
+    this.nativeActionToken = '',
   });
 
   const NovaSttResult.empty()
@@ -36,5 +38,6 @@ class NovaSttResult {
         speakerName = '',
         ownerConfidence = 0.0,
         relationshipLabel = 'unknown',
-        identityAudioPath = '';
+        identityAudioPath = '',
+        nativeActionToken = '';
 }

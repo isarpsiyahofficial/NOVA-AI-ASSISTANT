@@ -79,6 +79,14 @@ class NovaVoiceIdentityBridgePlugin(
                         minSimilarity = minSimilarity,
                     )
 
+                    val actionToken = if (identifyResult.success && identifyResult.matched) {
+                        NovaOwnerActionTokenStore.issueForMatchedOwner(
+                            context = context,
+                            voiceId = identifyResult.voiceId,
+                        )
+                    } else {
+                        ""
+                    }
                     result.success(
                         mapOf(
                             "success" to identifyResult.success,
@@ -88,8 +96,33 @@ class NovaVoiceIdentityBridgePlugin(
                             "similarity" to identifyResult.similarity.toDouble(),
                             "message" to identifyResult.message,
                             "embeddingSize" to identifyResult.embeddingSize,
+                            "nativeActionToken" to actionToken,
                         )
                     )
+                }
+
+                "markVoiceprintAsOwner" -> {
+                    val voiceId = call.argument<String>("voiceId").orEmpty()
+                    val ok = NovaOwnerActionTokenStore.setOwnerVoiceId(context, voiceId)
+                    result.success(
+                        mapOf(
+                            "success" to ok,
+                            "message" to if (ok) "Native owner voice anchor kaydedildi." else "Owner voice anchor kaydedilemedi.",
+                        )
+                    )
+                }
+
+                "bindOwnerActionTokenToTurn" -> {
+                    val token = call.argument<String>("actionToken").orEmpty()
+                    val leaseId = call.argument<String>("turnLeaseId").orEmpty()
+                    val ok = NovaOwnerActionTokenStore.bindToLease(token, leaseId)
+                    result.success(mapOf("success" to ok))
+                }
+
+                "activateOwnerActionTurn" -> {
+                    val leaseId = call.argument<String>("turnLeaseId").orEmpty()
+                    NovaOwnerActionTokenStore.activateLease(leaseId)
+                    result.success(mapOf("success" to leaseId.isNotBlank()))
                 }
 
                 "removeVoiceprint" -> {
@@ -110,6 +143,7 @@ class NovaVoiceIdentityBridgePlugin(
 
                 "clearAllVoiceprints" -> {
                     val cleared = getOrCreateEngine().clearAllVoiceprints()
+                    if (cleared) NovaOwnerActionTokenStore.clearOwner(context)
 
                     result.success(
                         mapOf(

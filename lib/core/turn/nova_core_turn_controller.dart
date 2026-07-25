@@ -2,19 +2,15 @@ import '../ai/ai_mode.dart';
 import '../ai/ai_request.dart';
 import '../ai/ai_response.dart';
 import '../ai/nova_ai_service.dart';
-import '../behavior/nova_persona.dart';
-import '../behavior/response_style.dart';
 import '../settings/nova_settings.dart';
-import '../../services/api/api_service.dart';
-import '../../services/local_model/local_model_service.dart';
 import '../../services/runtime/nova_runtime_graph_service.dart';
 import '../../services/runtime/nova_single_brain_authority_service.dart';
+import 'nova_turn_authority.dart';
+import 'nova_turn_lease.dart';
 
-// NOVA_CORE_TURN_CONTROLLER_V3_VERIFIED_SPEAKER_AUTHORITY
-// Single, auditable entry point for normal Nova user turns.
-// UI/setup/voice surfaces must never create a second decision root or call
-// ApiService.send directly. Every turn is processed by the shared NovaAiService
-// so memory, emotion, relationship and human-behaviour layers stay active.
+// NOVA_CORE_TURN_CONTROLLER_V4_TYPED_AUTHORITY_LEASE
+// The controller is the only normal user-turn entry point. It never creates a
+// fallback AI root and it never derives authority from mutable metadata.
 
 enum NovaTurnSource {
   dashboardText,
@@ -31,6 +27,8 @@ class NovaCoreTurnRequest {
   final NovaSettings settings;
   final bool requestedByVoice;
   final bool userInitiated;
+  final bool userConfirmedThisAction;
+  final NovaTurnAuthority authority;
   final Map<String, dynamic> context;
 
   const NovaCoreTurnRequest({
@@ -38,7 +36,9 @@ class NovaCoreTurnRequest {
     required this.source,
     required this.settings,
     this.requestedByVoice = false,
-    this.userInitiated = true,
+    this.userInitiated = false,
+    this.userConfirmedThisAction = false,
+    this.authority = const NovaTurnAuthority.unverified(),
     this.context = const <String, dynamic>{},
   });
 }
@@ -48,6 +48,7 @@ class NovaCoreTurnResult {
   final String finalText;
   final bool allowedToSpeak;
   final String ttsSource;
+  final NovaTurnLease lease;
   final Map<String, dynamic> trace;
 
   const NovaCoreTurnResult({
@@ -55,6 +56,7 @@ class NovaCoreTurnResult {
     required this.finalText,
     required this.allowedToSpeak,
     required this.ttsSource,
+    required this.lease,
     this.trace = const <String, dynamic>{},
   });
 }
@@ -66,56 +68,39 @@ class NovaCoreTurnController {
 
   Future<NovaCoreTurnResult> processUserTurn(NovaCoreTurnRequest turn) async {
     final input = turn.inputText.trim();
-    final turnId = turn.context['turnId']?.toString().trim().isNotEmpty == true
-        ? turn.context['turnId'].toString().trim()
-        : 'nova_core_${DateTime.now().microsecondsSinceEpoch}';
-    final settings = turn.settings;
-    final apiConfigured =
-        settings.apiBrainEnabled && settings.apiKey.trim().isNotEmpty;
-    final ownerConfidence = _ownerConfidence(turn.context);
-    final localCompanionProof =
-        turn.context['localCompanionAuthorityProof'] == true;
-    final confirmedAction = turn.userInitiated ||
-        turn.context['userConfirmedThisAction'] == true ||
-        localCompanionProof;
+    if (input.isEmpty) {
+      throw ArgumentError.value(turn.inputText, 'inputText', 'Boş tur başlatılamaz.');
+    }
 
-    // The factory is used only when an embedding/test surface invokes the
-    // controller before main.dart has registered the root service. In the real
-    // app this always resolves the exact same NovaAiService instance.
-    final sharedAi = aiService ??
-        NovaRuntimeGraphService.instance.resolveSharedAi(
-          requester: 'nova_core_turn_controller',
-          factory: () => NovaRuntimeGraphService.buildAiService(
-            localModelService: const LocalModelService(),
-            apiService: ApiService(
-              isApiConfigured: apiConfigured,
-              hasAvailableBalance: apiConfigured,
-              provider: settings.activeAiProvider,
-              apiKey: settings.apiKey.trim(),
-              model: settings.activeApiModel.trim(),
-            ),
-            persona: const NovaPersona(),
-            responseStyle: const ResponseStyle(),
-          ),
-        );
+    final sessionId = turn.context['sessionId']?.toString().trim().isNotEmpty ==
+            true
+        ? turn.context['sessionId'].toString().trim()
+        : 'nova_session';
+    final lease = NovaTurnLeaseController.instance.begin(sessionId: sessionId);
+    final turnId = lease.id;
+    final authority = turn.authority.isVerified
+        ? turn.authority
+        : const NovaTurnAuthority.unverified();
+    final sharedAi = aiService ?? NovaRuntimeGraphService.instance.sharedAiOrThrow;
 
     final brainInput = NovaBrainInput(
       text: input,
       source: _sourceKey(turn.source),
       mode: turn.source == NovaTurnSource.setupPanel ? 'setup' : 'coreTurn',
       speakerName: turn.context['speakerName']?.toString().trim() ?? '',
-      speakerVoiceId: turn.context['speakerVoiceId']?.toString().trim() ?? '',
-      relationshipLabel:
-          turn.context['relationshipLabel']?.toString().trim() ?? '',
-      ownerConfidence: ownerConfidence,
+      speakerVoiceId: authority.ownerVoiceId,
+      relationshipLabel: authority.kind.name,
+      ownerConfidence: authority.ownerConfidence,
+      authority: authority,
+      lease: lease,
       primaryTurn: true,
       allowFallbackSpeech: false,
       requiresLocalModel: false,
       metadata: <String, dynamic>{
         ...turn.context,
         'turnId': turnId,
-        'ownerConfidence': ownerConfidence,
-        'ownerVerified': ownerConfidence >= 0.64,
+        'turnLease': lease.toAuditMap(),
+        'typedAuthority': authority.toAuditMap(),
         'usedCoreTurnController': true,
         'usedSharedNovaAiService': true,
         'directApiUsed': false,
@@ -126,6 +111,7 @@ class NovaCoreTurnController {
 
     final baseRequest = AiRequest(
       prompt: input,
+      originalUserText: input,
       mode: AiMode.apiOnly,
       internetAllowed: true,
       isResearchRequest: turn.context['isResearchRequest'] == true,
@@ -136,20 +122,22 @@ class NovaCoreTurnController {
       requestedByVoice: turn.requestedByVoice,
       requestOrigin: _requestOrigin(turn.source),
       userInitiated: turn.userInitiated,
-      userConfirmedThisAction: confirmedAction,
-      activeProviderKey: settings.activeAiProvider.key,
-      activeModelId: settings.activeApiModel,
+      userConfirmedThisAction: turn.userConfirmedThisAction,
+      activeProviderKey: turn.settings.activeAiProvider.key,
+      activeModelId: turn.settings.activeApiModel,
+      authority: authority,
+      lease: lease,
       metadata: <String, dynamic>{
         ...turn.context,
         'turnId': turnId,
-        'ownerConfidence': ownerConfidence,
-        'ownerVerified': ownerConfidence >= 0.64,
         'assistantName': 'Nova',
         'runtime': 'apk_only_no_local_server',
         'source': 'nova_core_turn_controller',
         'directApiUsed': false,
         'usedCoreTurnController': true,
         'usedSharedNovaAiService': true,
+        'turnLease': lease.toAuditMap(),
+        'typedAuthority': authority.toAuditMap(),
       },
     );
 
@@ -159,30 +147,30 @@ class NovaCoreTurnController {
       mode: AiMode.apiOnly,
       runAi: sharedAi.process,
     );
+    if (!NovaTurnLeaseController.instance.isCurrent(lease)) {
+      throw StateError('Tur tamamlanmadan önce geçersiz kaldı; eski cevap atıldı.');
+    }
 
     return NovaCoreTurnResult(
       response: envelope.response,
       finalText: envelope.finalText,
       allowedToSpeak: envelope.allowedToSpeak,
       ttsSource: envelope.ttsSource,
+      lease: lease,
       trace: <String, dynamic>{
         ...envelope.metadata,
         'turnId': turnId,
+        'turnLease': lease.toAuditMap(),
+        'typedAuthority': authority.toAuditMap(),
         'usedCoreTurnController': true,
         'usedSharedNovaAiService': true,
         'directApiUsed': false,
         'selectedRoute': 'shared_nova_ai_service',
         'source': _sourceKey(turn.source),
-        'provider': settings.activeAiProvider.key,
-        'model': settings.activeApiModel,
+        'provider': turn.settings.activeAiProvider.key,
+        'model': turn.settings.activeApiModel,
       },
     );
-  }
-
-  double _ownerConfidence(Map<String, dynamic> context) {
-    final raw = context['ownerConfidence'];
-    if (raw is num) return raw.toDouble().clamp(0.0, 1.0);
-    return (double.tryParse(raw?.toString() ?? '') ?? 0.0).clamp(0.0, 1.0);
   }
 
   String _requestOrigin(NovaTurnSource source) {
@@ -202,20 +190,5 @@ class NovaCoreTurnController {
     }
   }
 
-  String _sourceKey(NovaTurnSource source) {
-    switch (source) {
-      case NovaTurnSource.dashboardText:
-        return 'dashboard_text';
-      case NovaTurnSource.dashboardVoice:
-        return 'dashboard_voice';
-      case NovaTurnSource.setupPanel:
-        return 'setup_panel';
-      case NovaTurnSource.continuousListening:
-        return 'continuous_listening';
-      case NovaTurnSource.reminderEvent:
-        return 'reminder_event';
-      case NovaTurnSource.callEvent:
-        return 'call_event';
-    }
-  }
+  String _sourceKey(NovaTurnSource source) => source.name;
 }

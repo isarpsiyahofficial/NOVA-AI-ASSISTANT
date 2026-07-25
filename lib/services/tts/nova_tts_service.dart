@@ -6,6 +6,7 @@ import '../../core/ai/ai_response.dart';
 import '../../core/runtime/freshness_controller.dart';
 import '../../core/speech/nova_final_text_contract.dart';
 import '../asr/nova_streaming_asr_bridge_service.dart';
+import '../asr/nova_streaming_asr_runtime_service.dart';
 import '../audio_runtime/nova_playback_echo_filter_service.dart';
 import '../runtime/nova_emotion_prosody_fuser_service.dart';
 import '../runtime/nova_identity_runtime_service.dart';
@@ -31,6 +32,7 @@ enum NovaTtsMode { system, neuralLocal, cloned }
 /// before playback and resumed immediately after playback without a fixed
 /// post-speech sleep.
 class NovaTtsService {
+  static NovaAsrPlaybackLease? _activePlaybackLease;
   final TtsService ttsService;
   final NovaSettingsService settingsService;
   final NovaPlaybackEchoFilterService playbackGuardService;
@@ -163,7 +165,9 @@ class NovaTtsService {
       'textChars=${authorityText.length}',
     );
 
-    await streamingAsrBridgeService.pause();
+    final playbackLease = await NovaStreamingAsrRuntimeService
+        .pauseForPlayback(streamingAsrBridgeService);
+    _activePlaybackLease = playbackLease;
     await streamingAsrBridgeService.clearBuffer();
     await playbackGuardService.markPlaybackStarted(spokenText: authorityText);
 
@@ -192,7 +196,13 @@ class NovaTtsService {
     } finally {
       await playbackGuardService.markPlaybackEnded();
       await streamingAsrBridgeService.clearBuffer();
-      await streamingAsrBridgeService.resume();
+      await NovaStreamingAsrRuntimeService.resumeAfterPlayback(
+        streamingAsrBridgeService,
+        playbackLease,
+      );
+      if (identical(_activePlaybackLease, playbackLease)) {
+        _activePlaybackLease = null;
+      }
     }
   }
 
@@ -200,6 +210,15 @@ class NovaTtsService {
     await ttsService.stop();
     await playbackGuardService.markPlaybackEnded();
     await streamingAsrBridgeService.clearBuffer();
-    await streamingAsrBridgeService.resume();
+    final lease = _activePlaybackLease;
+    if (lease != null) {
+      await NovaStreamingAsrRuntimeService.resumeAfterPlayback(
+        streamingAsrBridgeService,
+        lease,
+      );
+      if (identical(_activePlaybackLease, lease)) {
+        _activePlaybackLease = null;
+      }
+    }
   }
 }

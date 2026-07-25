@@ -391,12 +391,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
     _novaAiService = NovaRuntimeGraphService.instance.resolveSharedAi(
       requester: 'dashboard_voice',
-      factory: () => NovaRuntimeGraphService.buildAiService(
-        localModelService: widget.localModelService,
-        apiService: widget.apiService,
-        persona: widget.persona,
-        responseStyle: widget.responseStyle,
-      ),
     );
     NovaRuntimeGraphService.instance.registerDelegate(
       'dashboard_voice',

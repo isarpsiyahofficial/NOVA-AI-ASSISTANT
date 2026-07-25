@@ -72,14 +72,11 @@ class ApiService {
       );
     }
 
-    final active = ApiService(
-      isApiConfigured: true,
-      hasAvailableBalance: true,
+    final execution = _ApiExecutionConfiguration(
       provider: effectiveProvider,
       apiKey: effectiveApiKey,
       model: effectiveModel,
       timeout: timeout,
-      actionExecutor: actionExecutor,
     );
 
     final safePrompt = request.prompt.trim();
@@ -89,19 +86,19 @@ class ApiService {
         metadata: <String, dynamic>{
           ...request.metadata,
           'route': 'api_empty_prompt_blocked',
-          'provider': active.provider.key,
+          'provider': execution.provider.key,
         },
       );
     }
 
     try {
-      switch (active.provider) {
+      switch (execution.provider) {
         case NovaAiProviderType.gemini:
-          return await active._sendGemini(request, safePrompt);
+          return await _sendGemini(request, safePrompt, execution: execution);
         case NovaAiProviderType.openai:
-          return await active._sendOpenAi(request, safePrompt);
+          return await _sendOpenAi(request, safePrompt, execution: execution);
         case NovaAiProviderType.qwen:
-          return await active._sendQwen(request, safePrompt);
+          return await _sendQwen(request, safePrompt, execution: execution);
       }
     } on TimeoutException {
       return AiResponse.error(
@@ -109,7 +106,7 @@ class ApiService {
         metadata: <String, dynamic>{
           ...request.metadata,
           'route': 'api_timeout',
-          'provider': active.provider.key,
+          'provider': execution.provider.key,
         },
       );
     } catch (error) {
@@ -118,7 +115,7 @@ class ApiService {
         metadata: <String, dynamic>{
           ...request.metadata,
           'route': 'api_exception',
-          'provider': active.provider.key,
+          'provider': execution.provider.key,
           'exceptionType': error.runtimeType.toString(),
         },
       );
@@ -128,18 +125,19 @@ class ApiService {
   Future<AiResponse> _sendGemini(
     AiRequest request,
     String prompt, {
+    required _ApiExecutionConfiguration execution,
     bool allowTools = true,
     Map<String, dynamic> extraMetadata = const <String, dynamic>{},
     String expectedActionSummary = '',
   }) async {
-    final activeModel = _effectiveModel(
+    final activeModel = execution.effectiveModel(
       fallback: NovaApiModelCatalog.geminiFreeTierStable,
     );
     final toolsEnabled = allowTools && _mayOfferDeviceTools(request);
     final uri = Uri.https(
       'generativelanguage.googleapis.com',
       '/v1beta/models/$activeModel:generateContent',
-      <String, String>{'key': apiKey.trim()},
+      <String, String>{'key': execution.apiKey.trim()},
     );
     final body = <String, dynamic>{
       'contents': <Map<String, dynamic>>[
@@ -179,9 +177,10 @@ class ApiService {
 
     final response = await _postJson(
       uri,
+      timeout: execution.timeout,
       headers: <String, String>{
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey.trim(),
+        'x-goog-api-key': execution.apiKey.trim(),
       },
       body: body,
     );
@@ -191,6 +190,7 @@ class ApiService {
         return _sendGemini(
           request,
           prompt,
+          execution: execution,
           allowTools: false,
           extraMetadata: <String, dynamic>{
             ...extraMetadata,
@@ -212,6 +212,7 @@ class ApiService {
       return _sendGemini(
         request,
         _buildActionResultPrompt(result),
+        execution: execution,
         allowTools: false,
         expectedActionSummary: result.spokenOutcome,
         extraMetadata: _actionMetadata(actionCall, result),
@@ -241,11 +242,12 @@ class ApiService {
   Future<AiResponse> _sendOpenAi(
     AiRequest request,
     String prompt, {
+    required _ApiExecutionConfiguration execution,
     bool allowTools = true,
     Map<String, dynamic> extraMetadata = const <String, dynamic>{},
     String expectedActionSummary = '',
   }) async {
-    final activeModel = _effectiveModel(
+    final activeModel = execution.effectiveModel(
       fallback: NovaApiModelCatalog.openAiLowCost,
     );
     final toolsEnabled = allowTools && _mayOfferDeviceTools(request);
@@ -272,9 +274,10 @@ class ApiService {
 
     final response = await _postJson(
       uri,
+      timeout: execution.timeout,
       headers: <String, String>{
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${apiKey.trim()}',
+        'Authorization': 'Bearer ${execution.apiKey.trim()}',
       },
       body: body,
     );
@@ -284,6 +287,7 @@ class ApiService {
         return _sendOpenAi(
           request,
           prompt,
+          execution: execution,
           allowTools: false,
           extraMetadata: <String, dynamic>{
             ...extraMetadata,
@@ -305,6 +309,7 @@ class ApiService {
       return _sendOpenAi(
         request,
         _buildActionResultPrompt(result),
+        execution: execution,
         allowTools: false,
         expectedActionSummary: result.spokenOutcome,
         extraMetadata: _actionMetadata(actionCall, result),
@@ -334,11 +339,12 @@ class ApiService {
   Future<AiResponse> _sendQwen(
     AiRequest request,
     String prompt, {
+    required _ApiExecutionConfiguration execution,
     bool allowTools = true,
     Map<String, dynamic> extraMetadata = const <String, dynamic>{},
     String expectedActionSummary = '',
   }) async {
-    final activeModel = _effectiveModel(
+    final activeModel = execution.effectiveModel(
       fallback: NovaApiModelCatalog.qwenTrialFlash,
     );
     final toolsEnabled = allowTools && _mayOfferDeviceTools(request);
@@ -376,9 +382,10 @@ class ApiService {
 
     final response = await _postJson(
       uri,
+      timeout: execution.timeout,
       headers: <String, String>{
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${apiKey.trim()}',
+        'Authorization': 'Bearer ${execution.apiKey.trim()}',
       },
       body: body,
     );
@@ -388,6 +395,7 @@ class ApiService {
         return _sendQwen(
           request,
           prompt,
+          execution: execution,
           allowTools: false,
           extraMetadata: <String, dynamic>{
             ...extraMetadata,
@@ -409,6 +417,7 @@ class ApiService {
       return _sendQwen(
         request,
         _buildActionResultPrompt(result),
+        execution: execution,
         allowTools: false,
         expectedActionSummary: result.spokenOutcome,
         extraMetadata: _actionMetadata(actionCall, result),
@@ -487,19 +496,9 @@ class ApiService {
   bool _mayOfferDeviceTools(AiRequest request) {
     if (request.metadata['disableDeviceTools'] == true) return false;
     if (request.isResearchRequest || request.isSelfLearningRequest) return false;
-    final localCompanion =
-        request.metadata['localCompanionAuthorityProof'] == true;
-    if (localCompanion) return true;
-    if (!request.userInitiated || !request.userConfirmedThisAction) return false;
-    const origins = <String>{
-      'user_voice',
-      'user_ui',
-      'dashboard_stt',
-      'dashboard_text',
-      'dashboard_manual_voice_entry',
-      'background_authorized_voice',
-    };
-    return origins.contains(request.requestOrigin.trim());
+    if (!request.hasCurrentLease || !request.isSafeUserOrigin) return false;
+    if (!request.userConfirmedThisAction) return false;
+    return request.authority.canRequestNativeAction;
   }
 
   Map<String, dynamic> _actionMetadata(
@@ -670,13 +669,9 @@ class ApiService {
     );
   }
 
-  String _effectiveModel({required String fallback}) {
-    final trimmed = model.trim();
-    return trimmed.isEmpty ? fallback : trimmed;
-  }
-
   Future<_ApiHttpResponse> _postJson(
     Uri uri, {
+    required Duration timeout,
     required Map<String, String> headers,
     required Map<String, dynamic> body,
   }) async {
@@ -716,8 +711,10 @@ class ApiService {
         request.metadata['speakerName']?.toString().trim() ?? '';
     final relationship =
         request.metadata['relationshipLabel']?.toString().trim() ?? '';
-    final ownerConfidence =
-        request.metadata['ownerConfidence']?.toString().trim() ?? '';
+    final ownerConfidence = request.authority.ownerConfidence > 0
+        ? request.authority.ownerConfidence.toStringAsFixed(3)
+        : '';
+    final authorityKind = request.authority.kind.name;
     final callMode = request.metadata['callMode']?.toString().trim() ?? '';
     return <String>[
       'Sen Nova adlı telefonda çalışan ses odaklı asistansın.',
@@ -737,6 +734,7 @@ class ApiService {
         'Sahip güven sinyali: $ownerConfidence.',
       if (callMode.isNotEmpty) 'Çağrı modu: $callMode.',
       'İstek kökeni: ${request.requestOrigin}.',
+      'Tipli yetki sınıfı: $authorityKind.',
     ].join('\n');
   }
 
@@ -839,6 +837,25 @@ class ApiService {
         'responseSource': 'api_provider_raw',
       },
     );
+  }
+}
+
+class _ApiExecutionConfiguration {
+  final NovaAiProviderType provider;
+  final String apiKey;
+  final String model;
+  final Duration timeout;
+
+  const _ApiExecutionConfiguration({
+    required this.provider,
+    required this.apiKey,
+    required this.model,
+    required this.timeout,
+  });
+
+  String effectiveModel({required String fallback}) {
+    final trimmed = model.trim();
+    return trimmed.isEmpty ? fallback : trimmed;
   }
 }
 

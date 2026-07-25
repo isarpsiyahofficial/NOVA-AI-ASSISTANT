@@ -1,40 +1,35 @@
 package com.example.nova
 
 import android.content.Context
-import org.json.JSONArray
+import android.util.Log
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
+/**
+ * Minimal call authority compatibility layer.
+ *
+ * Historical denial counters, quarantine/lockdown state and automatic kill
+ * switches were removed. This object only correlates an actual UI gesture with
+ * a short action window and applies product rules that remain essential:
+ * companion/automatic call control is limited to explicitly managed contacts,
+ * and unattended answering is limited to the configured night window.
+ */
 object NovaCallAuthorityGuard {
     private const val FLUTTER_PREFS = "FlutterSharedPreferences"
     private const val STATUS_KEY = "flutter.nova_status_state_v1"
     private const val POWER_MODE_KEY = "flutter.nova_power_mode_v1"
-    private const val SCHEDULED_NIGHT_HOLD_KEY = "flutter.nova_power_manual_night_hold_until_v1"
-    private const val CALL_LOCKDOWN_UNTIL_KEY = "nova_call_security_lockdown_until_v1"
-    private const val CALL_EVENT_LOG_KEY = "nova_call_security_event_log_v1"
+    private const val SCHEDULED_NIGHT_HOLD_KEY =
+        "flutter.nova_power_manual_night_hold_until_v1"
+    private const val ACTION_WINDOW_MS = 8_000L
 
-    private const val USER_ACTION_WINDOW_MS = 5000L
-    private const val TRUSTED_SOURCE_WINDOW_MS = 5000L
-    private const val LOCKDOWN_WINDOW_MS = 120000L
-    private const val LOCKDOWN_DURATION_MS = 15 * 60 * 1000L
-
-    @Volatile
-    private var lastUserCallActionAt: Long = 0L
-
-    @Volatile
-    private var lastUserCallAction: String = ""
-
-    @Volatile
-    private var lastTrustedSourceActionAt: Long = 0L
-
-    @Volatile
-    private var lastTrustedSourceAction: String = ""
-
-    @Volatile
-    private var lastTrustedSource: String = ""
+    @Volatile private var lastUserCallActionAt: Long = 0L
+    @Volatile private var lastUserCallAction: String = ""
+    @Volatile private var lastTrustedSourceActionAt: Long = 0L
+    @Volatile private var lastTrustedSourceAction: String = ""
+    @Volatile private var lastTrustedSource: String = ""
 
     data class Decision(
         val allowed: Boolean,
@@ -42,7 +37,7 @@ object NovaCallAuthorityGuard {
         val mode: String = "blocked",
         val authorizedNumber: Boolean = false,
         val nightActive: Boolean = false,
-        val userInitiated: Boolean = false
+        val userInitiated: Boolean = false,
     ) {
         fun toMap(): Map<String, Any> = mapOf(
             "allowed" to allowed,
@@ -50,7 +45,7 @@ object NovaCallAuthorityGuard {
             "mode" to mode,
             "authorizedNumber" to authorizedNumber,
             "nightActive" to nightActive,
-            "userInitiated" to userInitiated
+            "userInitiated" to userInitiated,
         )
     }
 
@@ -60,358 +55,218 @@ object NovaCallAuthorityGuard {
     }
 
     fun isRecentUserCallAction(vararg acceptedActions: String): Boolean {
-        val now = System.currentTimeMillis()
-        if (now - lastUserCallActionAt > USER_ACTION_WINDOW_MS) return false
+        if (System.currentTimeMillis() - lastUserCallActionAt > ACTION_WINDOW_MS) {
+            return false
+        }
         if (acceptedActions.isEmpty()) return true
-        val action = lastUserCallAction
-        return acceptedActions.any { it.trim().lowercase() == action }
+        return acceptedActions.any {
+            it.trim().lowercase() == lastUserCallAction
+        }
     }
 
     fun consumeUserCallAction(vararg acceptedActions: String): Boolean {
-        val ok = isRecentUserCallAction(*acceptedActions)
-        if (ok) {
+        val allowed = isRecentUserCallAction(*acceptedActions)
+        if (allowed) {
             lastUserCallActionAt = 0L
             lastUserCallAction = ""
         }
-        return ok
+        return allowed
     }
 
     fun registerTrustedCallAction(action: String, source: String) {
-        val normalizedSource = source.trim().lowercase()
-        if (normalizedSource != "companion") return
+        if (source.trim().lowercase() != "companion") return
         lastTrustedSourceActionAt = System.currentTimeMillis()
         lastTrustedSourceAction = action.trim().lowercase()
-        lastTrustedSource = normalizedSource
+        lastTrustedSource = "companion"
     }
 
-    fun consumeTrustedCallAction(source: String, vararg acceptedActions: String): Boolean {
-        val now = System.currentTimeMillis()
-        if (now - lastTrustedSourceActionAt > TRUSTED_SOURCE_WINDOW_MS) return false
-        if (lastTrustedSource != source.trim().lowercase()) return false
-        val action = lastTrustedSourceAction
-        val ok = acceptedActions.isEmpty() || acceptedActions.any { it.trim().lowercase() == action }
-        if (ok) {
+    fun consumeTrustedCallAction(
+        source: String,
+        vararg acceptedActions: String,
+    ): Boolean {
+        val fresh = System.currentTimeMillis() - lastTrustedSourceActionAt <=
+            ACTION_WINDOW_MS
+        val sourceMatches = lastTrustedSource == source.trim().lowercase()
+        val actionMatches = acceptedActions.isEmpty() || acceptedActions.any {
+            it.trim().lowercase() == lastTrustedSourceAction
+        }
+        val allowed = fresh && sourceMatches && actionMatches
+        if (allowed || !fresh) {
             lastTrustedSourceActionAt = 0L
             lastTrustedSourceAction = ""
             lastTrustedSource = ""
         }
-        return ok
+        return allowed
     }
 
-    fun canManualCallAction(context: Context): Decision {
-        val security = securityAllowsCallFlow(context)
-        if (!security.allowed) return security
+    fun canManualCallAction(context: Context): Decision = Decision(
+        allowed = true,
+        reason = "Kullanıcının çağrı ekranındaki doğrudan işlemi.",
+        mode = "manual",
+        userInitiated = true,
+    )
+
+    fun canAutoAnswer(context: Context, rawNumber: String?): Decision {
+        val authorized = NovaAuthorizedCallRegistry
+            .isAuthorizedCallHandlingNumber(context, rawNumber)
+        val night = isNightAnswerWindowActive(context)
         return Decision(
-            allowed = true,
-            reason = "Kullanıcı çağrı ekranında manuel işlem yaptı.",
-            mode = "manual",
-            userInitiated = true
+            allowed = authorized && night,
+            reason = when {
+                !authorized -> "Otomatik cevap yalnız izin verilen kişilerde çalışır."
+                !night -> "Otomatik cevap için gece/uyku çalışma penceresi aktif değil."
+                else -> "Yetkili kişi için gece modu otomatik cevabı açık."
+            },
+            mode = if (authorized && night) {
+                "auto_answer_allowed"
+            } else {
+                "auto_answer_blocked"
+            },
+            authorizedNumber = authorized,
+            nightActive = night,
         )
     }
 
-    fun canAutoAnswer(context: Context, rawNumber: String?): Decision {
-        val security = securityAllowsCallFlow(context)
-        if (!security.allowed) return security
+    fun canNovaTakeover(context: Context, rawNumber: String?): Decision =
+        contactDecision(context, rawNumber, "handoff")
 
-        val authorized = NovaAuthorizedCallRegistry.isAuthorizedCallHandlingNumber(context, rawNumber)
+    fun canCompanionCallControl(
+        context: Context,
+        rawNumber: String?,
+    ): Decision = contactDecision(context, rawNumber, "companion_call_control")
+
+    fun canAutonomousCallControl(
+        context: Context,
+        rawNumber: String?,
+    ): Decision {
+        val contact = contactDecision(context, rawNumber, "autonomous_call_control")
         val night = isNightAnswerWindowActive(context)
-
-        return when {
-            !authorized -> {
-                recordDeniedAction(context, "auto_answer", "Otomatik cevap engellendi: kişi Nova çağrı yetki listesinde değil.", true)
-                Decision(
-                allowed = false,
-                reason = "Otomatik cevap engellendi: kişi Nova çağrı yetki listesinde değil.",
-                mode = "auto_answer_blocked",
-                authorizedNumber = false,
-                nightActive = night
-            )
-            }
-            !night -> {
-                recordDeniedAction(context, "auto_answer", "Otomatik cevap engellendi: gece modu veya süreli gece/uyku penceresi aktif değil.", true)
-                Decision(
-                allowed = false,
-                reason = "Otomatik cevap engellendi: gece modu veya süreli gece/uyku penceresi aktif değil.",
-                mode = "auto_answer_blocked",
-                authorizedNumber = true,
-                nightActive = false
-            )
-            }
-            else -> Decision(
-                allowed = true,
-                reason = "Otomatik cevap izni var: yetkili kişi ve gece/süreli gece penceresi aktif.",
-                mode = "auto_answer_allowed",
-                authorizedNumber = true,
-                nightActive = true
-            )
-        }
-    }
-
-    fun canNovaTakeover(context: Context, rawNumber: String?): Decision {
-        val security = securityAllowsCallFlow(context)
-        if (!security.allowed) return security
-
-        val authorized = NovaAuthorizedCallRegistry.isAuthorizedCallHandlingNumber(context, rawNumber)
-        return if (authorized) {
-            Decision(
-                allowed = true,
-                reason = "Nova devralma izni var: kişi çağrı yetki listesinde.",
-                mode = "handoff_allowed",
-                authorizedNumber = true,
-                nightActive = isNightAnswerWindowActive(context)
-            )
-        } else {
-            Decision(
-                allowed = false,
-                reason = "Nova devralma engellendi: kişi çağrı yetki listesinde değil.",
-                mode = "handoff_blocked",
-                authorizedNumber = false,
-                nightActive = isNightAnswerWindowActive(context)
-            )
-        }
-    }
-
-    fun canCompanionCallControl(context: Context, rawNumber: String?): Decision {
-        val security = securityAllowsCallFlow(context)
-        if (!security.allowed) return security
-
-        val authorized = NovaAuthorizedCallRegistry.isAuthorizedCallHandlingNumber(context, rawNumber)
-        return if (authorized) {
-            Decision(
-                allowed = true,
-                reason = "Companion çağrı yardımı izni var: kişi çağrı yetki listesinde.",
-                mode = "companion_call_control_allowed",
-                authorizedNumber = true,
-                nightActive = isNightAnswerWindowActive(context)
-            )
-        } else {
-            recordDeniedAction(context, "companion_call_control", "Companion çağrı yardımı engellendi: kişi çağrı yetki listesinde değil.", true)
-            Decision(
-                allowed = false,
-                reason = "Companion çağrı yardımı engellendi: kişi çağrı yetki listesinde değil.",
-                mode = "companion_call_control_blocked",
-                authorizedNumber = false,
-                nightActive = isNightAnswerWindowActive(context)
-            )
-        }
-    }
-
-    fun canAutonomousCallControl(context: Context, rawNumber: String?): Decision {
-        val security = securityAllowsCallFlow(context)
-        if (!security.allowed) return security
-
-        val authorized = NovaAuthorizedCallRegistry.isAuthorizedCallHandlingNumber(context, rawNumber)
-        val night = isNightAnswerWindowActive(context)
-        return when {
-            !authorized -> {
-                recordDeniedAction(context, "autonomous_call_control", "Arka plan çağrı kontrolü engellendi: kişi Nova çağrı yetki listesinde değil.", true)
-                Decision(
-                allowed = false,
-                reason = "Arka plan çağrı kontrolü engellendi: kişi Nova çağrı yetki listesinde değil.",
-                mode = "autonomous_call_control_blocked",
-                authorizedNumber = false,
-                nightActive = night
-            )
-            }
-            !night -> {
-                recordDeniedAction(context, "autonomous_call_control", "Arka plan çağrı kontrolü engellendi: gece modu veya süreli gece penceresi aktif değil.", true)
-                Decision(
-                allowed = false,
-                reason = "Arka plan çağrı kontrolü engellendi: gece modu veya süreli gece penceresi aktif değil.",
-                mode = "autonomous_call_control_blocked",
-                authorizedNumber = true,
-                nightActive = false
-            )
-            }
-            else -> Decision(
-                allowed = true,
-                reason = "Arka plan çağrı kontrolü izni var: yetkili kişi ve gece/süreli gece penceresi aktif.",
-                mode = "autonomous_call_control_allowed",
-                authorizedNumber = true,
-                nightActive = true
-            )
-        }
+        return contact.copy(
+            allowed = contact.allowed && night,
+            reason = if (!contact.allowed) {
+                contact.reason
+            } else if (!night) {
+                "Arka plan çağrı kontrolü için gece/uyku penceresi aktif değil."
+            } else {
+                "Yetkili kişi için arka plan çağrı kontrolü açık."
+            },
+            nightActive = night,
+        )
     }
 
     fun canStartOutgoingCall(context: Context, rawNumber: String?): Decision {
-        val security = securityAllowsCallFlow(context)
-        if (!security.allowed) return security
-
         val carrier = NovaCarrierBoundaryGuard.canPlaceCall(
             context = context,
             rawNumber = rawNumber,
-            source = "authority_guard",
-            userInitiated = false
         )
         return Decision(
             allowed = carrier.allowed,
             reason = carrier.reason,
             mode = carrier.mode,
-            authorizedNumber = NovaAuthorizedCallRegistry.isAuthorizedCallHandlingNumber(context, rawNumber),
+            authorizedNumber = NovaAuthorizedCallRegistry
+                .isAuthorizedCallHandlingNumber(context, rawNumber),
             nightActive = isNightAnswerWindowActive(context),
-            userInitiated = carrier.userInitiated
+            userInitiated = carrier.userInitiated,
         )
     }
 
     fun isNightAnswerWindowActive(context: Context): Boolean {
-        val prefs = context.applicationContext.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
+        val prefs = context.applicationContext.getSharedPreferences(
+            FLUTTER_PREFS,
+            Context.MODE_PRIVATE,
+        )
         val nowMs = System.currentTimeMillis()
-
-        val scheduledHold = prefs.getString(SCHEDULED_NIGHT_HOLD_KEY, "").orEmpty().trim()
+        val scheduledHold = prefs
+            .getString(SCHEDULED_NIGHT_HOLD_KEY, "")
+            .orEmpty()
+            .trim()
         if (parseIsoEpochMs(scheduledHold)?.let { it > nowMs } == true) return true
 
         val statusRaw = prefs.getString(STATUS_KEY, "").orEmpty().trim()
-        if (statusRaw.isNotEmpty()) {
-            try {
-                val root = JSONObject(statusRaw)
-                val active = root.optJSONObject("activeStatus")
-                if (active != null) {
-                    val expires = parseIsoEpochMs(active.optString("expiresAt", ""))
-                    if (expires != null && expires > nowMs) return true
-                }
-
-                val config = root.optJSONObject("config")
-                val start = config?.optInt("nightlySleepStartHour", 23) ?: 23
-                val end = config?.optInt("nightlySleepEndHour", 6) ?: 6
-                if (isHourWithinWindow(currentHour(), start, end)) return true
-            } catch (_: Throwable) {
-                // Bozuk status JSON güvenli tarafta kalır; varsayılan pencere kontrolüne düşer.
+        runCatching {
+            val root = JSONObject(statusRaw)
+            val active = root.optJSONObject("activeStatus")
+            val expires = active?.optString("expiresAt", "")
+            if (parseIsoEpochMs(expires.orEmpty())?.let { it > nowMs } == true) {
+                return true
             }
+            val config = root.optJSONObject("config")
+            val start = config?.optInt("nightlySleepStartHour", 23) ?: 23
+            val end = config?.optInt("nightlySleepEndHour", 6) ?: 6
+            if (isHourWithinWindow(currentHour(), start, end)) return true
         }
 
         val powerRaw = prefs.getString(POWER_MODE_KEY, "").orEmpty().trim()
-        if (powerRaw.isNotEmpty()) {
-            try {
-                val mode = JSONObject(powerRaw).optString("mode", "").trim()
-                if (mode == "passiveSleep") return true
-            } catch (_: Throwable) {
+        runCatching {
+            if (JSONObject(powerRaw).optString("mode", "") == "passiveSleep") {
+                return true
             }
         }
-
         return isHourWithinWindow(currentHour(), 23, 6)
-    }
-
-    private fun securityAllowsCallFlow(context: Context): Decision {
-        return Decision(
-            allowed = true,
-            reason = "API-first sürümde çağrı güvenlik kalkanı pasif; çağrı akışı eski kill/blackout state ile engellenmez.",
-            mode = "api_first_call_security_passive"
-        )
     }
 
     fun recordDeniedAction(
         context: Context,
         action: String,
         reason: String,
-        highRisk: Boolean
+        highRisk: Boolean,
     ) {
-        try {
-            val prefs = context.applicationContext.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
-            val now = System.currentTimeMillis()
-            val raw = prefs.getString(CALL_EVENT_LOG_KEY, "[]").orEmpty()
-            val arr = try {
-                JSONArray(raw)
-            } catch (_: Throwable) {
-                JSONArray()
-            }
-
-            val compact = JSONArray()
-            var recentHighRisk = 0
-
-            for (i in 0 until arr.length()) {
-                val item = arr.optJSONObject(i) ?: continue
-                val at = item.optLong("at", 0L)
-                if (now - at <= LOCKDOWN_WINDOW_MS) {
-                    compact.put(item)
-                    if (item.optBoolean("highRisk", false)) {
-                        recentHighRisk++
-                    }
-                }
-            }
-
-            val entry = JSONObject()
-                .put("at", now)
-                .put("action", action.trim())
-                .put("reason", reason.trim())
-                .put("highRisk", highRisk)
-                .put("apiFirstSecurityPassive", true)
-            compact.put(entry)
-
-            if (highRisk) {
-                recentHighRisk++
-            }
-
-            while (compact.length() > 40) {
-                compact.remove(0)
-            }
-
-            val editor = prefs.edit().putString(CALL_EVENT_LOG_KEY, compact.toString())
-            // API-first sürümde eski kill/blackout güvenlik kalkanı pasif kalır;
-            // yine de audit ve lockdown zaman damgası korunur ki UI/diagnostics tarafı
-            // yetkisiz çağrı denemelerini görebilsin. securityAllowsCallFlow bu değeri
-            // çağrı akışını otomatik öldürmek için kullanmaz.
-            if (highRisk && recentHighRisk >= 3) {
-                editor.putLong(CALL_LOCKDOWN_UNTIL_KEY, now + LOCKDOWN_DURATION_MS)
-            }
-            editor.apply()
-        } catch (_: Throwable) {
-            // Çağrı kontrolü log yazılamadığı için çökmemeli.
-        }
+        Log.w(
+            "NOVA_CALL_AUTHORITY",
+            "denied action=${action.trim()} highRisk=$highRisk reason=${reason.trim()}",
+        )
     }
 
     fun clearCallLockdown(context: Context) {
-        try {
-            val prefs = context.applicationContext.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
-            prefs.edit().remove(CALL_LOCKDOWN_UNTIL_KEY).apply()
-        } catch (_: Throwable) {
-        }
+        // Compatibility no-op. The automatic call lockdown no longer exists.
+    }
+
+    private fun contactDecision(
+        context: Context,
+        rawNumber: String?,
+        mode: String,
+    ): Decision {
+        val authorized = NovaAuthorizedCallRegistry
+            .isAuthorizedCallHandlingNumber(context, rawNumber)
+        return Decision(
+            allowed = authorized,
+            reason = if (authorized) {
+                "Kişi NOVA çağrı yönetimi listesinde."
+            } else {
+                "Bu çağrı kişisi NOVA çağrı yönetimi listesinde değil."
+            },
+            mode = if (authorized) "${mode}_allowed" else "${mode}_blocked",
+            authorizedNumber = authorized,
+            nightActive = isNightAnswerWindowActive(context),
+        )
     }
 
     private fun isHourWithinWindow(hour: Int, startRaw: Int, endRaw: Int): Boolean {
         val start = startRaw.coerceIn(0, 23)
         val end = endRaw.coerceIn(0, 23)
         if (start == end) return false
-        return if (start < end) {
-            hour >= start && hour < end
-        } else {
-            hour >= start || hour < end
-        }
+        return if (start < end) hour in start until end else hour >= start || hour < end
     }
 
-    private fun currentHour(): Int {
-        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    }
+    private fun currentHour(): Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
     private fun parseIsoEpochMs(raw: String): Long? {
         val value = raw.trim()
         if (value.isEmpty()) return null
-
-        val utcPatterns = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        val candidates = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" to TimeZone.getTimeZone("UTC"),
+            "yyyy-MM-dd'T'HH:mm:ss'Z'" to TimeZone.getTimeZone("UTC"),
+            "yyyy-MM-dd'T'HH:mm:ss.SSS" to TimeZone.getDefault(),
+            "yyyy-MM-dd'T'HH:mm:ss" to TimeZone.getDefault(),
         )
-        for (pattern in utcPatterns) {
-            try {
-                val formatter = SimpleDateFormat(pattern, Locale.US)
-                formatter.timeZone = TimeZone.getTimeZone("UTC")
-                formatter.parse(value)?.time?.let { return it }
-            } catch (_: Throwable) {
-            }
+        for ((pattern, zone) in candidates) {
+            val parsed = runCatching {
+                SimpleDateFormat(pattern, Locale.US).apply {
+                    timeZone = zone
+                }.parse(value)?.time
+            }.getOrNull()
+            if (parsed != null) return parsed
         }
-
-        val localPatterns = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSS",
-            "yyyy-MM-dd'T'HH:mm:ss"
-        )
-        for (pattern in localPatterns) {
-            try {
-                val formatter = SimpleDateFormat(pattern, Locale.US)
-                formatter.timeZone = TimeZone.getDefault()
-                formatter.parse(value)?.time?.let { return it }
-            } catch (_: Throwable) {
-            }
-        }
-
         return null
     }
 }

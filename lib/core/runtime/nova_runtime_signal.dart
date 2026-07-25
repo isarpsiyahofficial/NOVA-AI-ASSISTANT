@@ -1,3 +1,4 @@
+// NOVA_CANONICAL_RUNTIME_SIGNAL_V1
 import 'package:flutter/foundation.dart';
 
 enum NovaRuntimeSignalLevel { info, warning, error, critical }
@@ -16,6 +17,7 @@ enum NovaRuntimeSignalKind {
   contacts,
   learning,
   memory,
+  security,
   phoneControl,
   background,
   unknown,
@@ -45,6 +47,30 @@ class NovaRuntimeSignal {
     this.metadata = const <String, dynamic>{},
   });
 
+  NovaRuntimeSignal copyWith({
+    String? id,
+    NovaRuntimeSignalKind? kind,
+    NovaRuntimeSignalLevel? level,
+    String? code,
+    String? message,
+    String? technicalDetails,
+    bool? diagnosticCandidate,
+    DateTime? createdAt,
+    Map<String, dynamic>? metadata,
+  }) {
+    return NovaRuntimeSignal(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      level: level ?? this.level,
+      code: code ?? this.code,
+      message: message ?? this.message,
+      technicalDetails: technicalDetails ?? this.technicalDetails,
+      diagnosticCandidate: diagnosticCandidate ?? this.diagnosticCandidate,
+      createdAt: createdAt ?? this.createdAt,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
@@ -60,25 +86,23 @@ class NovaRuntimeSignal {
   }
 
   factory NovaRuntimeSignal.fromMap(Map<String, dynamic> map) {
-    final kindName = (map['kind'] as String? ?? 'unknown').trim();
-    final levelName = (map['level'] as String? ?? 'warning').trim();
+    final String kindName = (map['kind'] as String? ?? 'unknown').trim();
+    final String levelName = (map['level'] as String? ?? 'warning').trim();
+
     return NovaRuntimeSignal(
       id: (map['id'] as String? ?? '').trim(),
       kind: NovaRuntimeSignalKind.values.firstWhere(
-        (e) => e.name == kindName,
+        (NovaRuntimeSignalKind e) => e.name == kindName,
         orElse: () => NovaRuntimeSignalKind.unknown,
       ),
       level: NovaRuntimeSignalLevel.values.firstWhere(
-        (e) => e.name == levelName,
+        (NovaRuntimeSignalLevel e) => e.name == levelName,
         orElse: () => NovaRuntimeSignalLevel.warning,
       ),
       code: (map['code'] as String? ?? '').trim(),
       message: (map['message'] as String? ?? '').trim(),
       technicalDetails: (map['technicalDetails'] as String? ?? '').trim(),
-      diagnosticCandidate:
-          map['diagnosticCandidate'] as bool? ??
-          map['diagnosticCandidate'] as bool? ??
-          false,
+      diagnosticCandidate: map['diagnosticCandidate'] as bool? ?? false,
       createdAt:
           DateTime.tryParse((map['createdAt'] as String? ?? '').trim()) ??
           DateTime.now(),

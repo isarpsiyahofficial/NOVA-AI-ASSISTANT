@@ -1,11 +1,14 @@
-// NOVA_POLICY_GATED_VERIFIED_DEVICE_ACTION_EXECUTOR_V2_LOCAL_CONTACTS
+// NOVA_TYPED_POLICY_GATED_VERIFIED_DEVICE_ACTION_EXECUTOR_V3
 
 import '../../core/actions/nova_device_action.dart';
 import '../../core/ai/ai_request.dart';
 import '../../core/call/nova_call_control_result.dart';
 import '../../core/nova/nova_action_policy.dart';
+import '../../core/turn/nova_turn_authority.dart';
 import '../call/nova_call_control_bridge_service.dart';
 import '../call/nova_call_state_service.dart';
+import '../identity/nova_native_action_token_bridge_service.dart';
+import 'nova_action_intent_guard_service.dart';
 import 'nova_contact_call_target_resolver_service.dart';
 import 'nova_phone_control_bridge_service.dart';
 
@@ -15,6 +18,7 @@ class NovaDeviceActionExecutorService {
   final NovaCallStateService callState;
   final NovaContactCallTargetResolverService contactResolver;
   final NovaActionPolicy policy;
+  final NovaNativeActionTokenBridgeService tokenBridge;
 
   const NovaDeviceActionExecutorService({
     this.phoneBridge = const NovaPhoneControlBridgeService(),
@@ -22,6 +26,7 @@ class NovaDeviceActionExecutorService {
     this.callState = const NovaCallStateService(),
     this.contactResolver = const NovaContactCallTargetResolverService(),
     this.policy = const NovaActionPolicy(),
+    this.tokenBridge = const NovaNativeActionTokenBridgeService(),
   });
 
   Future<NovaDeviceActionResult> execute({
@@ -38,7 +43,6 @@ class NovaDeviceActionExecutorService {
         failureCode: 'unsupported_action',
       );
     }
-
     if (NovaDeviceActionCatalog.requiresValue(action) &&
         call.value.trim().isEmpty) {
       return NovaDeviceActionResult(
@@ -48,6 +52,48 @@ class NovaDeviceActionExecutorService {
         message: 'Bu eylem için gerekli değer verilmedi.',
         failureCode: 'missing_action_value',
       );
+    }
+
+    final intentDecision = NovaActionIntentGuardService.instance.authorize(
+      call: call,
+      request: request,
+    );
+    if (!intentDecision.allowed) {
+      return NovaDeviceActionResult(
+        action: action,
+        success: false,
+        verified: false,
+        message: intentDecision.message,
+        failureCode: intentDecision.failureCode,
+      );
+    }
+
+    final lease = request.lease!;
+    final authority = request.authority;
+    if (authority.kind == NovaTurnAuthorityKind.ownerVoice) {
+      final bound = await tokenBridge.bindTokenToTurn(
+        token: authority.nativeActionToken,
+        turnLeaseId: lease.id,
+      );
+      if (!bound) {
+        return NovaDeviceActionResult(
+          action: action,
+          success: false,
+          verified: false,
+          message: 'Native sahip eylem tokenı bu tura bağlanamadı.',
+          failureCode: 'native_token_bind_failed',
+        );
+      }
+      final activated = await tokenBridge.activateTurn(lease.id);
+      if (!activated) {
+        return NovaDeviceActionResult(
+          action: action,
+          success: false,
+          verified: false,
+          message: 'Native sahip eylem turu etkinleştirilemedi.',
+          failureCode: 'native_turn_activation_failed',
+        );
+      }
     }
 
     final callTarget = action == 'place_call'
@@ -65,42 +111,34 @@ class NovaDeviceActionExecutorService {
 
     final beforeCall = await callState.getSnapshot();
     final beforePhone = await phoneBridge.getStatus();
-    final localCompanionProof =
-        request.metadata['localCompanionAuthorityProof'] == true;
-    final ownerVerified =
-        _ownerVerified(request.metadata) || localCompanionProof;
-    final ownerInitiated = request.userInitiated || localCompanionProof;
-    final confirmed = request.userConfirmedThisAction || localCompanionProof;
-    final manualOwnerCommand = request.userInitiated &&
-        !localCompanionProof &&
-        ownerVerified &&
-        confirmed;
+    final localUiAction = authority.kind == NovaTurnAuthorityKind.localUser;
+    final ownerVoiceAction =
+        authority.kind == NovaTurnAuthorityKind.ownerVoice &&
+            authority.ownerVoiceVerified;
+    final companionAction =
+        authority.kind == NovaTurnAuthorityKind.companion &&
+            authority.companionAuthorized;
+    final typedInitiation = localUiAction || ownerVoiceAction || companionAction;
 
-    // A locally voice-verified owner who explicitly issued the current command
-    // may control the current call. Automatic/companion actions still require a
-    // locally authorized managed contact; the model cannot grant that status.
-    final knownContact = manualOwnerCommand ||
+    final knownContact = localUiAction ||
+        ownerVoiceAction ||
         callTarget?.fromContacts == true ||
-        beforeCall.isAuthorizedManagedNumber ||
-        request.metadata['knownContact'] == true ||
-        request.metadata['authorizedContact'] == true;
-    final explicitlyAllowedContact = manualOwnerCommand ||
-        beforeCall.isAuthorizedManagedNumber ||
-        request.metadata['explicitlyAllowedContact'] == true ||
-        request.metadata['callAnswerAllowed'] == true;
-    final screenLocked = localCompanionProof
-        ? false
-        : (request.isScreenLocked || beforePhone['screenLocked'] == true);
+        beforeCall.isAuthorizedManagedNumber;
+    final explicitlyAllowedContact = localUiAction ||
+        ownerVoiceAction ||
+        beforeCall.isAuthorizedManagedNumber;
+    final screenLocked = request.isScreenLocked ||
+        beforePhone['screenLocked'] == true;
 
     final policyResult = policy.evaluate(
       action: _policyAction(action),
-      ownerInitiated: ownerInitiated,
-      ownerVerified: ownerVerified,
+      ownerInitiated: typedInitiation,
+      ownerVerified: typedInitiation,
       knownContact: knownContact,
       explicitlyAllowedContact: explicitlyAllowedContact,
       callActive: beforeCall.inCall,
       screenLocked: screenLocked,
-      userConfirmedThisAction: confirmed,
+      userConfirmedThisAction: request.userConfirmedThisAction,
     );
 
     if (!policyResult.mayExecute) {
@@ -110,7 +148,11 @@ class NovaDeviceActionExecutorService {
         verified: false,
         message: policyResult.reason,
         failureCode: 'local_policy_blocked',
-        policy: policyResult.toMap(),
+        policy: <String, dynamic>{
+          ...policyResult.toMap(),
+          'typedAuthority': authority.toAuditMap(),
+          'intentBindingId': intentDecision.bindingId,
+        },
         beforeState: _combinedState(beforeCall, beforePhone),
       );
     }
@@ -119,7 +161,6 @@ class NovaDeviceActionExecutorService {
       final native = await _executeNative(
         call: call,
         request: request,
-        localCompanionProof: localCompanionProof,
         callTarget: callTarget,
       );
       final nativeSuccess = native['success'] == true;
@@ -145,17 +186,32 @@ class NovaDeviceActionExecutorService {
         beforePhone: beforePhone,
         native: native,
       );
+      if (!verification.verified) {
+        return NovaDeviceActionResult(
+          action: action,
+          success: false,
+          verified: false,
+          message:
+              'Android katmanı komutu kabul etti fakat gerçek cihaz son durumu doğrulanamadı.',
+          nativeMessage: nativeMessage,
+          failureCode: 'state_not_verified',
+          policy: policyResult.toMap(),
+          beforeState: _combinedState(beforeCall, beforePhone),
+          afterState: verification.afterState,
+        );
+      }
 
       return NovaDeviceActionResult(
         action: action,
         success: true,
-        verified: verification.verified,
-        message: verification.verified
-            ? verification.message
-            : 'Android katmanı komutu kabul etti fakat son cihaz durumu kesin olarak doğrulanamadı.',
+        verified: true,
+        message: verification.message,
         nativeMessage: nativeMessage,
-        failureCode: verification.verified ? '' : 'state_not_verified',
-        policy: policyResult.toMap(),
+        policy: <String, dynamic>{
+          ...policyResult.toMap(),
+          'typedAuthority': authority.toAuditMap(),
+          'intentBindingId': intentDecision.bindingId,
+        },
         beforeState: _combinedState(beforeCall, beforePhone),
         afterState: verification.afterState,
       );
@@ -175,90 +231,88 @@ class NovaDeviceActionExecutorService {
   Future<Map<String, dynamic>> _executeNative({
     required NovaDeviceActionCall call,
     required AiRequest request,
-    required bool localCompanionProof,
     NovaContactCallTargetResolution? callTarget,
   }) async {
     final action = call.action;
-    final trustedSource = localCompanionProof ? 'companion' : '';
-    final userInitiated = request.userInitiated && !localCompanionProof;
+    final authority = request.authority;
+    final actionToken = authority.nativeActionToken;
+    final localUiAction = authority.kind == NovaTurnAuthorityKind.localUser;
+    final companionAction = authority.kind == NovaTurnAuthorityKind.companion;
 
     switch (action) {
       case 'answer_call':
-        return _callResultMap(
-          await callControl.answerRingingCall(
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.answerRingingCall(
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'reject_call':
-        return _callResultMap(
-          await callControl.rejectRingingCall(
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.rejectRingingCall(
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'hang_up':
-        return _callResultMap(
-          await callControl.disconnectCurrentCall(
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.disconnectCurrentCall(
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'mute_call':
-        return _callResultMap(
-          await callControl.setMuted(
-            true,
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.setMuted(
+          true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'unmute_call':
-        return _callResultMap(
-          await callControl.setMuted(
-            false,
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.setMuted(
+          false,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'speaker_on':
-        return _callResultMap(
-          await callControl.routeToSpeaker(
-            true,
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.routeToSpeaker(
+          true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'speaker_off':
-        return _callResultMap(
-          await callControl.routeToSpeaker(
-            false,
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.routeToSpeaker(
+          false,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'toggle_hold':
-        return _callResultMap(
-          await callControl.toggleHold(
-            userInitiated: userInitiated,
-            trustedSource: trustedSource,
-          ),
-        );
+        return _callResultMap(await callControl.toggleHold(
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
+        ));
       case 'place_call':
         final target = callTarget;
         if (target == null || !target.success || target.number.isEmpty) {
           return const <String, dynamic>{
             'success': false,
+            'verified': false,
             'message': 'Arama hedefi yerel olarak çözülemedi.',
           };
         }
         final approval = await callControl.registerOwnerApprovedOutbound(
           target.number,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
         if (!approval.success) return _callResultMap(approval);
         final native = await phoneBridge.executeStep(
           command: 'place_call',
           value: target.number,
-          userInitiated: true,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
         return <String, dynamic>{
           ...native,
@@ -269,54 +323,74 @@ class NovaDeviceActionExecutorService {
       case 'media_next':
         return phoneBridge.executeStep(
           command: 'media_next',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'media_previous':
         return phoneBridge.executeStep(
           command: 'media_previous',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'media_pause':
         return phoneBridge.executeStep(
           command: 'media_pause',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'media_resume':
         return phoneBridge.executeStep(
           command: 'media_resume',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'media_play_pause':
         return phoneBridge.executeStep(
           command: 'media_play_pause',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'volume_up':
         return phoneBridge.executeStep(
           command: 'media_volume_up',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'volume_down':
         return phoneBridge.executeStep(
           command: 'media_volume_down',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'mute_media':
         return phoneBridge.executeStep(
           command: 'media_mute',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'open_spotify':
         return phoneBridge.executeStep(
           command: 'open_package',
           value: 'com.spotify.music',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'open_youtube_music':
         return phoneBridge.executeStep(
           command: 'open_package',
           value: 'com.google.android.apps.youtube.music',
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'back':
       case 'home':
@@ -324,18 +398,23 @@ class NovaDeviceActionExecutorService {
       case 'open_quick_settings':
         return phoneBridge.executeStep(
           command: action,
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
       case 'tap_text':
       case 'set_focused_text':
         return phoneBridge.executeStep(
           command: action,
           value: call.value,
-          userInitiated: true,
+          actionToken: actionToken,
+          localUiAction: localUiAction,
+          companionAction: companionAction,
         );
     }
     return <String, dynamic>{
       'success': false,
+      'verified': false,
       'message': 'Eylem native komuta eşlenemedi: $action',
     };
   }
@@ -561,18 +640,6 @@ class NovaDeviceActionExecutorService {
       default:
         return action;
     }
-  }
-
-  bool _ownerVerified(Map<String, dynamic> metadata) {
-    if (metadata['ownerVerified'] == true ||
-        metadata['voiceOwnerVerified'] == true) {
-      return true;
-    }
-    final raw = metadata['ownerConfidence'];
-    final confidence = raw is num
-        ? raw.toDouble()
-        : double.tryParse(raw?.toString() ?? '') ?? 0.0;
-    return confidence >= 0.64;
   }
 
   Map<String, dynamic> _callResultMap(NovaCallControlResult result) =>

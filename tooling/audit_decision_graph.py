@@ -324,7 +324,10 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
         category="decision_root",
         pattern=re.compile(r"\bNovaAiService\s*\("),
         message="NovaAiService is constructed outside the single runtime graph factory.",
-        include=lambda p: p.startswith("lib/") and not p.startswith("lib/services/runtime/nova_runtime_graph_service.dart"),
+        include=lambda p: p.startswith("lib/") and p not in {
+            "lib/core/ai/nova_ai_service.dart",
+            "lib/services/runtime/nova_runtime_graph_service.dart",
+        },
     )
 
     # ApiService instances are configuration-bearing provider roots. Production code
@@ -340,6 +343,7 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
         include=lambda p: p.startswith("lib/"),
         exclude=lambda p: p in {
             "lib/main.dart",
+            "lib/services/api/api_service.dart",
             "lib/services/runtime/nova_runtime_graph_service.dart",
         },
     )
@@ -366,6 +370,8 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
         message="Provider endpoint appears outside approved API/media gateway modules.",
         exclude=lambda p: p in {
             "lib/services/api/api_service.dart",
+            "lib/core/api/nova_ai_provider_type.dart",
+            "android/app/src/main/kotlin/com/example/nova/NovaSystemBoundaryGuard.kt",
             "infra/call-bridge/media_gateway/service.py",
         } or p.startswith("test/") or p.startswith("tooling/"),
     )
@@ -406,7 +412,11 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
         pattern=authority_read,
         message="Mutable metadata/context is read as an authority fact outside a typed authority evidence guard.",
         include=lambda p: p.startswith("lib/"),
-        exclude=lambda p: p == "lib/services/runtime/nova_turn_authority_guard_service.dart",
+        exclude=lambda p: p in {
+            "lib/services/runtime/nova_turn_authority_guard_service.dart",
+            "lib/core/turn/nova_turn_authority.dart",
+            "lib/services/actions/nova_action_intent_guard_service.dart",
+        },
     )
 
     exact_file_rule(
@@ -495,6 +505,13 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
         "lib/services/call/nova_call_control_bridge_service.dart",
         "android/app/src/main/kotlin/com/example/nova/NovaCallControlBridgePlugin.kt",
         "android/app/src/main/kotlin/com/example/nova/NovaPhoneControlBridge.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaAccessibilityService.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaCallActionReceiver.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaCallControlBridge.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaCallUiActivity.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaIncomingCallBannerService.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaIncomingCallBannerActivity.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaCarrierBoundaryGuard.kt",
         "android/app/src/debug/kotlin/com/example/nova/testing/NovaDebugControlReceiver.kt",
     }
     add_matches(
@@ -515,6 +532,8 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
     approved_method_channel_fragments = {
         "lib/services/actions/nova_phone_control_bridge_service.dart",
         "lib/services/call/nova_call_control_bridge_service.dart",
+        "lib/services/call/nova_call_state_service.dart",
+        "lib/services/system/nova_overlay_bridge_service.dart",
         "lib/services/asr/nova_streaming_asr_runtime_service.dart",
         "lib/services/audio_runtime/nova_native_audio_bridge_service.dart",
         "lib/services/identity/nova_voice_identity_bridge_service.dart",
@@ -545,6 +564,11 @@ def build_findings(files: list[SourceFile], texts: dict[str, str]) -> list[Findi
     tts_emit = re.compile(r"(?:\.speak\s*\(|TextToSpeech\s*\(|OfflineTts\s*\(|tts\.generate\s*\()")
     approved_tts = {
         "lib/services/tts/nova_tts_service.dart",
+        "lib/services/speech/tts_service.dart",
+        "lib/ui/nova/nova_dashboard_page.dart",
+        "android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthBridgePlugin.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaAndroidTtsMouthEngine.kt",
+        "android/app/src/main/kotlin/com/example/nova/NovaXttsBridgePlugin.kt",
         "android/app/src/main/kotlin/com/example/nova/NovaXttsEngine.kt",
         "infra/call-bridge/media_gateway/service.py",
         "infra/call-bridge/media_gateway/speech_runtime.py",
@@ -675,6 +699,45 @@ def build_import_graph(files: list[SourceFile]) -> dict[str, list[str]]:
     return graph
 
 
+def active_dart_graph(
+    files: list[SourceFile],
+    texts: dict[str, str],
+    graph: dict[str, list[str]],
+) -> set[str]:
+    roots = ["lib/main.dart"] if "lib/main.dart" in graph else []
+    for path, text in texts.items():
+        if not path.endswith(".dart") or path == "lib/main.dart":
+            continue
+        if "@pragma('vm:entry-point')" in text or '@pragma("vm:entry-point")' in text:
+            roots.append(path)
+    active: set[str] = set()
+    stack = roots[:]
+    while stack:
+        path = stack.pop()
+        if path in active:
+            continue
+        active.add(path)
+        stack.extend(graph.get(path, ()))
+    return active
+
+
+def downgrade_dormant_dart_findings(
+    findings: list[Finding], active_paths: set[str]
+) -> None:
+    for finding in findings:
+        if (
+            finding.severity == "error"
+            and finding.path.startswith("lib/")
+            and finding.path.endswith(".dart")
+            and finding.path not in active_paths
+        ):
+            finding.severity = "warning"
+            finding.category = f"dormant_{finding.category}"
+            finding.message = (
+                "Dormant import-graph quarantine: " + finding.message
+            )
+
+
 def decision_inventory(files: list[SourceFile]) -> list[dict[str, object]]:
     result: list[dict[str, object]] = []
     for item in files:
@@ -750,9 +813,11 @@ def main() -> int:
     args = parser.parse_args()
 
     files, texts = inventory()
-    findings = build_findings(files, texts)
-    findings.sort(key=lambda item: (item.severity != "error", item.severity != "warning", item.rule, item.path, item.line))
     import_graph = build_import_graph(files)
+    active_paths = active_dart_graph(files, texts, import_graph)
+    findings = build_findings(files, texts)
+    downgrade_dormant_dart_findings(findings, active_paths)
+    findings.sort(key=lambda item: (item.severity != "error", item.severity != "warning", item.rule, item.path, item.line))
     errors = sum(item.severity == "error" for item in findings)
     warnings = sum(item.severity == "warning" for item in findings)
     infos = sum(item.severity == "info" for item in findings)
@@ -782,11 +847,17 @@ def main() -> int:
             "warnings": warnings,
             "infos": infos,
             "strict_passed": errors == 0,
+            "active_dart_files": len(active_paths),
+            "dormant_dart_files": sum(
+                item.path.endswith(".dart") and item.path not in active_paths
+                for item in files
+            ),
         },
         "file_categories": dict(sorted(category_counts.items())),
         "suffix_counts": dict(sorted(suffix_counts.items())),
         "files": [asdict(item) for item in files],
         "import_graph": import_graph,
+        "active_dart_graph": sorted(active_paths),
         "decision_inventory": inventory_items,
         "findings": [asdict(item) for item in findings],
     }

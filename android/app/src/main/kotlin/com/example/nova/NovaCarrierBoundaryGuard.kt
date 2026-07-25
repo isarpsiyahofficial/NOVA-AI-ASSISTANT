@@ -1,30 +1,23 @@
 package com.example.nova
 
 import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
 
+/**
+ * Minimal carrier boundary.
+ *
+ * The former repeated-denial counters, long-lived kill switch and source-name
+ * quarantine were removed. This layer now does only the checks that cannot be
+ * delegated to the AI: number normalization, USSD/MMI rejection and a short,
+ * number-bound proof that the owner or the native dialer approved the call.
+ */
 object NovaCarrierBoundaryGuard {
-    private const val FLUTTER_PREFS = "FlutterSharedPreferences"
-    private const val OUTBOUND_EVENT_LOG_KEY = "nova_outbound_security_event_log_v1"
-    private const val OUTBOUND_KILL_SWITCH_UNTIL_KEY = "nova_outbound_kill_switch_until_v1"
+    private const val MANUAL_OUTBOUND_WINDOW_MS = 20_000L
+    private const val OWNER_APPROVAL_WINDOW_MS = 90_000L
 
-    private const val MANUAL_OUTBOUND_WINDOW_MS = 12000L
-    private const val OWNER_APPROVAL_WINDOW_MS = 10000L
-    private const val OUTBOUND_EVENT_WINDOW_MS = 120000L
-    private const val OUTBOUND_KILL_SWITCH_DURATION_MS = 30 * 60 * 1000L
-
-    @Volatile
-    private var lastManualOutboundAt: Long = 0L
-
-    @Volatile
-    private var lastManualOutboundNumber: String = ""
-
-    @Volatile
-    private var ownerApprovalTokenNumber: String = ""
-
-    @Volatile
-    private var ownerApprovalTokenExpiresAt: Long = 0L
+    @Volatile private var lastManualOutboundAt: Long = 0L
+    @Volatile private var lastManualOutboundNumber: String = ""
+    @Volatile private var ownerApprovalTokenNumber: String = ""
+    @Volatile private var ownerApprovalTokenExpiresAt: Long = 0L
 
     data class Decision(
         val allowed: Boolean,
@@ -32,7 +25,7 @@ object NovaCarrierBoundaryGuard {
         val mode: String = "blocked",
         val normalizedNumber: String = "",
         val highRisk: Boolean = false,
-        val userInitiated: Boolean = false
+        val userInitiated: Boolean = false,
     ) {
         fun toMap(): Map<String, Any> = mapOf(
             "allowed" to allowed,
@@ -40,13 +33,13 @@ object NovaCarrierBoundaryGuard {
             "mode" to mode,
             "normalizedNumber" to normalizedNumber,
             "highRisk" to highRisk,
-            "userInitiated" to userInitiated
+            "userInitiated" to userInitiated,
         )
     }
 
     fun registerManualOutbound(number: String) {
         val normalized = normalizeDialableNumber(number)
-        if (normalized.isEmpty()) return
+        if (normalized.isEmpty() || rejectCarrierCode(normalized) != null) return
         lastManualOutboundAt = System.currentTimeMillis()
         lastManualOutboundNumber = normalized
     }
@@ -57,299 +50,149 @@ object NovaCarrierBoundaryGuard {
             return Decision(
                 allowed = false,
                 reason = "Owner arama onayı üretilemedi: numara boş veya geçersiz.",
-                mode = "owner_approval_rejected"
+                mode = "owner_approval_rejected",
             )
         }
-        val block = rejectCarrierCode(normalized)
-        if (block != null) return block
-
+        rejectCarrierCode(normalized)?.let { return it }
         ownerApprovalTokenNumber = normalized
-        ownerApprovalTokenExpiresAt = System.currentTimeMillis() + OWNER_APPROVAL_WINDOW_MS
+        ownerApprovalTokenExpiresAt =
+            System.currentTimeMillis() + OWNER_APPROVAL_WINDOW_MS
         return Decision(
             allowed = true,
-            reason = "Tek kullanımlık owner arama onayı üretildi.",
+            reason = "Numaraya bağlı tek kullanımlık owner arama onayı üretildi.",
             mode = "owner_approval_token_created",
             normalizedNumber = normalized,
-            userInitiated = true
+            userInitiated = true,
         )
     }
 
-    fun clearOutboundKillSwitch(context: Context) {
-        try {
-            val prefs = context.applicationContext.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
-            prefs.edit().remove(OUTBOUND_KILL_SWITCH_UNTIL_KEY).apply()
-        } catch (_: Throwable) {
-        }
-    }
-
+    @Suppress("UNUSED_PARAMETER")
     fun canPlaceCall(
         context: Context,
         rawNumber: String?,
         source: String = "",
-        userInitiated: Boolean = false
+        userInitiated: Boolean = false,
     ): Decision {
         val normalized = normalizeDialableNumber(rawNumber.orEmpty())
         if (normalized.isEmpty()) {
-            return deny(context, "place_call", "Arama engellendi: numara boş veya geçersiz.", "empty_number", "", false)
-        }
-
-        rejectCarrierCode(normalized)?.let { decision ->
-            recordOutboundDenied(context, "carrier_code", decision.reason, true)
-            return decision
-        }
-
-        val killSwitch = outboundKillSwitchDecision(context)
-        if (killSwitch != null) return killSwitch
-
-        val normalizedSource = source.trim().lowercase()
-        if (normalizedSource == "companion") {
-            return deny(
-                context,
-                "place_call",
-                "Arama engellendi: companion dış arama başlatamaz.",
-                "companion_outbound_blocked",
-                normalized,
-                true
+            return Decision(
+                allowed = false,
+                reason = "Arama başlatılamadı: numara boş veya geçersiz.",
+                mode = "empty_number",
             )
         }
-
-        if (normalizedSource == "automation" || normalizedSource == "ai" || normalizedSource == "model" || normalizedSource == "background") {
-            return deny(
-                context,
-                "place_call",
-                "Arama engellendi: AI/otomasyon dış arama başlatamaz.",
-                "autonomous_outbound_blocked",
-                normalized,
-                true
-            )
-        }
-
+        rejectCarrierCode(normalized)?.let { return it }
         if (consumeManualOutbound(normalized)) {
             return Decision(
                 allowed = true,
-                reason = "Native dialer manuel araması güvenli çağrı ağı sınırından geçti.",
+                reason = "Native dialer kullanıcısının numaraya bağlı işlemi doğrulandı.",
                 mode = "native_manual_outbound",
                 normalizedNumber = normalized,
-                userInitiated = true
+                userInitiated = true,
             )
         }
-
         if (consumeOwnerApprovalToken(normalized)) {
             return Decision(
                 allowed = true,
-                reason = "Owner onay token'ı ile dış arama güvenli çağrı ağı sınırından geçti.",
+                reason = "Owner tarafından onaylanan numaraya dış arama başlatıldı.",
                 mode = "owner_token_outbound",
                 normalizedNumber = normalized,
-                userInitiated = true
+                userInitiated = true,
             )
         }
-
-        return deny(
-            context,
-            "place_call",
-            "Arama engellendi: manuel kullanıcı işlemi veya owner onay token'ı yok.",
-            "missing_outbound_token",
-            normalized,
-            true
+        return Decision(
+            allowed = false,
+            reason = "Arama başlatılamadı: bu numara için taze kullanıcı veya owner onayı yok.",
+            mode = "missing_number_bound_approval",
+            normalizedNumber = normalized,
+            highRisk = true,
         )
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun canSendDtmf(
         context: Context,
         digit: Char,
         source: String = "",
-        userInitiated: Boolean = false
+        userInitiated: Boolean = false,
     ): Decision {
-        val allowedDigit = listOf('0','1','2','3','4','5','6','7','8','9','*','#').contains(digit)
-        if (!allowedDigit) {
-            return deny(context, "dtmf", "DTMF engellendi: geçersiz karakter.", "invalid_dtmf", digit.toString(), true)
-        }
-
-        val normalizedSource = source.trim().lowercase()
-        if (normalizedSource == "companion" || normalizedSource == "automation" || normalizedSource == "ai" || normalizedSource == "model" || normalizedSource == "background") {
-            return deny(
-                context,
-                "dtmf",
-                "DTMF engellendi: companion/AI/otomasyon DTMF gönderemez.",
-                "autonomous_dtmf_blocked",
-                digit.toString(),
-                true
+        val allowed = digit in "0123456789*#"
+        return if (allowed) {
+            Decision(
+                allowed = true,
+                reason = "Geçerli DTMF karakteri.",
+                mode = "carrier_dtmf_checked",
+                normalizedNumber = digit.toString(),
+                userInitiated = userInitiated,
+            )
+        } else {
+            Decision(
+                allowed = false,
+                reason = "DTMF gönderilemedi: geçersiz karakter.",
+                mode = "invalid_dtmf",
+                normalizedNumber = digit.toString(),
             )
         }
+    }
 
-        return Decision(
-            allowed = true,
-            reason = "DTMF karakteri çağrı ağı sınır kontrolünden geçti; manuel kaynak kontrolü CallAuthorityGuard tarafından yapılacak.",
-            mode = "carrier_dtmf_checked",
-            normalizedNumber = digit.toString(),
-            userInitiated = userInitiated
-        )
+    fun clearOutboundKillSwitch(context: Context) {
+        // Compatibility no-op. The automatic kill switch no longer exists.
     }
 
     fun normalizeDialableNumber(raw: String): String {
-        val value = raw.trim()
-            .replace(" ", "")
-            .replace("-", "")
-            .replace("(", "")
-            .replace(")", "")
-            .replace("\u00A0", "")
-        if (value.isEmpty()) return ""
-
-        val decoded = value
-            .replace("%2A", "*", ignoreCase = true)
-            .replace("%23", "#", ignoreCase = true)
+        val decoded = raw.trim()
             .removePrefix("tel:")
             .removePrefix("TEL:")
-
-        val plusPrefix = decoded.startsWith("+")
+            .replace("%2A", "*", ignoreCase = true)
+            .replace("%23", "#", ignoreCase = true)
+        if (decoded.isEmpty()) return ""
         val filtered = buildString {
             decoded.forEachIndexed { index, ch ->
                 when {
                     ch.isDigit() -> append(ch)
                     ch == '+' && index == 0 -> append(ch)
-                    ch == '*' || ch == '#' -> append(ch)
-                    ch == ',' || ch == ';' -> append(ch)
+                    ch == '*' || ch == '#' || ch == ',' || ch == ';' -> append(ch)
                 }
             }
         }
-        if (filtered.isEmpty()) return ""
-        return if (plusPrefix && filtered.firstOrNull() != '+') "+$filtered" else filtered
+        val digits = filtered.count(Char::isDigit)
+        if (digits !in 7..15 && !containsCarrierControl(filtered)) return ""
+        return filtered
     }
 
     private fun rejectCarrierCode(normalized: String): Decision? {
-        val value = normalized.trim()
-        val lower = value.lowercase()
-        val hasServiceChars = value.contains("*") || value.contains("#") || value.contains(",") || value.contains(";")
-        val looksLikeUssdOrMmi =
-            value.startsWith("*") ||
-                value.startsWith("#") ||
-                value.startsWith("**") ||
-                value.startsWith("##") ||
-                value.startsWith("*#") ||
-                value.endsWith("#") ||
-                lower.contains("%2a") ||
-                lower.contains("%23") ||
-                hasServiceChars
-
-        if (!looksLikeUssdOrMmi) return null
+        if (!containsCarrierControl(normalized)) return null
         return Decision(
             allowed = false,
-            reason = "Çağrı ağı kodu engellendi: USSD/MMI/servis kodu çalıştırılamaz.",
+            reason = "USSD/MMI/operatör servis kodu telefon eylemi olarak çalıştırılamaz.",
             mode = "carrier_code_blocked",
             normalizedNumber = normalized,
-            highRisk = true
+            highRisk = true,
         )
+    }
+
+    private fun containsCarrierControl(value: String): Boolean {
+        return value.any { it == '*' || it == '#' || it == ',' || it == ';' }
     }
 
     private fun consumeManualOutbound(normalized: String): Boolean {
-        val now = System.currentTimeMillis()
-        if (now - lastManualOutboundAt > MANUAL_OUTBOUND_WINDOW_MS) return false
-        val ok = lastManualOutboundNumber == normalized
-        if (ok) {
+        val fresh = System.currentTimeMillis() - lastManualOutboundAt <=
+            MANUAL_OUTBOUND_WINDOW_MS
+        val matches = fresh && lastManualOutboundNumber == normalized
+        if (matches || !fresh) {
             lastManualOutboundAt = 0L
             lastManualOutboundNumber = ""
         }
-        return ok
+        return matches
     }
 
     private fun consumeOwnerApprovalToken(normalized: String): Boolean {
-        val now = System.currentTimeMillis()
-        if (ownerApprovalTokenExpiresAt <= now) {
-            ownerApprovalTokenNumber = ""
-            ownerApprovalTokenExpiresAt = 0L
-            return false
-        }
-        val ok = ownerApprovalTokenNumber == normalized
-        if (ok) {
+        val fresh = ownerApprovalTokenExpiresAt > System.currentTimeMillis()
+        val matches = fresh && ownerApprovalTokenNumber == normalized
+        if (matches || !fresh) {
             ownerApprovalTokenNumber = ""
             ownerApprovalTokenExpiresAt = 0L
         }
-        return ok
-    }
-
-    private fun outboundKillSwitchDecision(context: Context): Decision? {
-        return try {
-            val prefs = context.applicationContext.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
-            val until = prefs.getLong(OUTBOUND_KILL_SWITCH_UNTIL_KEY, 0L)
-            if (until > System.currentTimeMillis()) {
-                Decision(
-                    allowed = false,
-                    reason = "Dış arama güvenlik kilidi aktif. Owner onayı olmadan dış arama yapılamaz.",
-                    mode = "outbound_kill_switch_active",
-                    highRisk = true
-                )
-            } else {
-                null
-            }
-        } catch (_: Throwable) {
-            Decision(
-                allowed = false,
-                reason = "Dış arama güvenlik durumu okunamadı; güvenli tarafta engellendi.",
-                mode = "outbound_security_unreadable",
-                highRisk = true
-            )
-        }
-    }
-
-    private fun deny(
-        context: Context,
-        action: String,
-        reason: String,
-        mode: String,
-        normalized: String,
-        highRisk: Boolean
-    ): Decision {
-        recordOutboundDenied(context, action, reason, highRisk)
-        return Decision(
-            allowed = false,
-            reason = reason,
-            mode = mode,
-            normalizedNumber = normalized,
-            highRisk = highRisk
-        )
-    }
-
-    private fun recordOutboundDenied(
-        context: Context,
-        action: String,
-        reason: String,
-        highRisk: Boolean
-    ) {
-        try {
-            val prefs = context.applicationContext.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
-            val now = System.currentTimeMillis()
-            val raw = prefs.getString(OUTBOUND_EVENT_LOG_KEY, "[]").orEmpty()
-            val arr = try { JSONArray(raw) } catch (_: Throwable) { JSONArray() }
-            val compact = JSONArray()
-            var recentHighRisk = 0
-
-            for (i in 0 until arr.length()) {
-                val item = arr.optJSONObject(i) ?: continue
-                val at = item.optLong("at", 0L)
-                if (now - at <= OUTBOUND_EVENT_WINDOW_MS) {
-                    compact.put(item)
-                    if (item.optBoolean("highRisk", false)) recentHighRisk++
-                }
-            }
-
-            val entry = JSONObject()
-                .put("at", now)
-                .put("action", action)
-                .put("reason", reason)
-                .put("highRisk", highRisk)
-            compact.put(entry)
-            if (highRisk) recentHighRisk++
-
-            while (compact.length() > 60) {
-                compact.remove(0)
-            }
-
-            val editor = prefs.edit().putString(OUTBOUND_EVENT_LOG_KEY, compact.toString())
-            if (highRisk && recentHighRisk >= 3) {
-                editor.putLong(OUTBOUND_KILL_SWITCH_UNTIL_KEY, now + OUTBOUND_KILL_SWITCH_DURATION_MS)
-            }
-            editor.apply()
-        } catch (_: Throwable) {
-        }
+        return matches
     }
 }

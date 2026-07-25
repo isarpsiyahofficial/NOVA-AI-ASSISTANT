@@ -7,11 +7,14 @@ import '../../core/ai/ai_request.dart';
 import '../../core/api/nova_ai_provider_type.dart';
 import '../../core/api/nova_api_model_catalog.dart';
 import '../../core/settings/nova_settings.dart';
+import '../../core/turn/nova_turn_authority.dart';
+import '../../core/turn/nova_turn_lease.dart';
 import '../../services/api/api_service.dart';
 import '../../services/identity/device_owner_identity_service.dart';
 import '../../services/identity/nova_first_run_service.dart';
 import '../../services/identity/nova_voice_identity_bridge_service.dart';
 import '../../services/settings/nova_settings_service.dart';
+import '../../services/runtime/nova_runtime_graph_service.dart';
 import '../../services/stt/nova_speech_to_text_service.dart';
 import '../../services/tts/nova_tts_service.dart';
 
@@ -157,17 +160,28 @@ class _NovaFirstRunSetupV2PageState
       );
       await _settingsService.save(next);
 
-      final response = await widget.apiService.send(
+      final lease = NovaTurnLeaseController.instance.begin(
+        sessionId: 'first_run_setup_api_verification',
+      );
+      final response = await NovaRuntimeGraphService.instance.sharedAiOrThrow
+          .process(
         AiRequest(
           prompt:
+              'Bu bir Nova ilk kurulum bağlantı testidir. Yalnızca HAZIR kelimesini yaz.',
+          originalUserText:
               'Bu bir Nova ilk kurulum bağlantı testidir. Yalnızca HAZIR kelimesini yaz.',
           mode: AiMode.apiOnly,
           internetAllowed: true,
           isFastResponsePriority: true,
           requestedByVoice: false,
           requestOrigin: 'setup_ui',
+          userInitiated: true,
           activeProviderKey: _provider.key,
           activeModelId: selectedModel,
+          authority: NovaTurnAuthority.localUser(
+            evidenceId: 'first_run_setup_api_test_button',
+          ),
+          lease: lease,
           metadata: const <String, dynamic>{
             'source': 'first_run_setup_v2',
             'connectionTest': true,
@@ -299,6 +313,12 @@ class _NovaFirstRunSetupV2PageState
         throw StateError(
           'Ses eşleşmedi. similarity=${identity.similarity.toStringAsFixed(3)} ${identity.message}',
         );
+      }
+      final ownerMarked = await widget.voiceIdentityBridgeService
+          .markVoiceprintAsOwner(_voiceId);
+      if (!ownerMarked) {
+        await widget.voiceIdentityBridgeService.removeVoiceprint(_voiceId);
+        throw StateError('Doğrulanmış voiceprint native owner olarak işaretlenemedi.');
       }
 
       if (!mounted) return;
