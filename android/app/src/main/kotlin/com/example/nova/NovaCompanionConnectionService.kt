@@ -77,6 +77,8 @@ private class NovaManagedConnection(
     init {
         setAddress(address, TelecomManager.PRESENTATION_ALLOWED)
         setAudioModeIsVoip(true)
+        connectionCapabilities =
+            CAPABILITY_SUPPORT_HOLD or CAPABILITY_HOLD or CAPABILITY_MUTE
         setCallerDisplayName(address?.schemeSpecificPart ?: "Nova companion", TelecomManager.PRESENTATION_ALLOWED)
     }
 

@@ -64,10 +64,10 @@ curl -fsS http://127.0.0.1:18090/health \
   | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'
 
 "${compose[@]}" exec -T media-gateway \
-  python /app/service.py synthesize \
+  python /app/launcher.py synthesize \
     --text "Nova gerçek çift yönlü çağrı testini doğrula" \
     --output /shared/sounds/nova-test-command.wav \
-  | tee runtime/logs/fixture-generation.json
+  2>&1 | tee runtime/logs/fixture-generation.json
 
 test -s runtime/sounds/nova-test-command.wav
 "${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload" \

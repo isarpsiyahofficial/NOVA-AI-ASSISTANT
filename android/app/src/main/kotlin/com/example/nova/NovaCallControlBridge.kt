@@ -2,18 +2,18 @@ package com.example.nova
 
 import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.CallEndpoint
-import android.telecom.TelecomManager
 import android.telecom.VideoProfile
 import android.provider.Settings
 import android.net.Uri
 import java.util.Locale
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executors
 
 object NovaCallControlBridge {
@@ -169,19 +169,7 @@ object NovaCallControlBridge {
             }
         }
 
-        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as? TelecomManager
-            ?: return buildResult(false, "TelecomManager alınamadı.")
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                telecomManager.acceptRingingCall()
-                NovaCallRinger.stop(context)
-                buildResult(true, if (manual) "Gelen çağrı kullanıcı tarafından cevaplandı." else "Gelen çağrı yetkili gece modu kapsamında Nova tarafından cevaplandı.")
-            } else {
-                buildResult(false, "Bu Android sürümünde güvenli cevaplama desteklenmiyor.")
-            }
-        } catch (t: Throwable) {
-            buildResult(false, "Gelen çağrı cevaplanamadı: ${t.message ?: "unknown"}")
-        }
+        return buildResult(false, "Cevaplanacak gerçek Telecom çağrısı bulunamadı.")
     }
 
     fun rejectRingingCall(): Map<String, Any> {
@@ -207,17 +195,7 @@ object NovaCallControlBridge {
             if (!decision.allowed) return buildResult(false, "Çağrı reddetme engellendi: ${decision.reason}") + decision.toMap()
         }
         if (call == null) {
-            val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as? TelecomManager
-            if (telecomManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                return try {
-                    telecomManager.endCall()
-                    NovaCallRinger.stop(context)
-                    buildResult(true, if (manual) "Çağrı kullanıcı tarafından reddedildi." else "Yetkili çağrı Nova tarafından sonlandırıldı.")
-                } catch (t: Throwable) {
-                    buildResult(false, "Çağrı reddedilemedi: ${t.message ?: "unknown"}")
-                }
-            }
-            return buildResult(false, "Reddedilecek gelen çağrı bulunamadı.")
+            return buildResult(false, "Reddedilecek gerçek Telecom çağrısı bulunamadı.")
         }
 
         return try {
@@ -282,19 +260,7 @@ object NovaCallControlBridge {
             }
         }
 
-        val context = appContext ?: return buildResult(false, "Mikrofon ayarı için uygulama bağlamı hazır değil.")
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            ?: return buildResult(false, "AudioManager alınamadı.")
-        return try {
-            @Suppress("DEPRECATION")
-            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-            audioManager.isMicrophoneMute = value
-            isMuted = value
-            NovaCallStateBridge.updateMuteState(value)
-            buildResult(true, if (value) "Mikrofon kapatıldı." else "Mikrofon açıldı.")
-        } catch (t: Throwable) {
-            buildResult(false, "Mikrofon değiştirilemedi: ${t.message ?: "unknown"}")
-        }
+        return buildResult(false, "Mikrofon değiştirilecek gerçek Telecom çağrısı bulunamadı.")
     }
 
     fun routeToSpeaker(enabled: Boolean): Map<String, Any> {
@@ -314,6 +280,7 @@ object NovaCallControlBridge {
                         availableEndpoints.firstOrNull { it.endpointType == targetType } ?: currentEndpoint?.takeIf { it.endpointType == targetType }
                     } ?: return buildResult(false, "Uygun ses çıkış noktası bulunamadı.")
                     var callbackError: String? = null
+                    val completion = CountDownLatch(1)
                     val callbackExecutor: Executor = executor
                     service.requestCallEndpointChange(endpoint, callbackExecutor) { error ->
                         callbackError = error?.toString()
@@ -322,11 +289,12 @@ object NovaCallControlBridge {
                             NovaCallStateBridge.updateSpeakerState(isSpeakerOn)
                             NovaCallStateBridge.updateAudioRoute(endpointTypeLabel(endpoint.endpointType))
                         }
+                        completion.countDown()
+                    }
+                    if (!completion.await(2, TimeUnit.SECONDS)) {
+                        return buildResult(false, "Ses çıkışı değişikliği Telecom tarafından doğrulanmadı.")
                     }
                     if (callbackError != null) return buildResult(false, "Ses çıkışı değiştirilemedi: $callbackError")
-                    isSpeakerOn = endpoint.endpointType == CallEndpoint.TYPE_SPEAKER
-                    NovaCallStateBridge.updateSpeakerState(isSpeakerOn)
-                    NovaCallStateBridge.updateAudioRoute(endpointTypeLabel(endpoint.endpointType))
                     return buildResult(true, if (isSpeakerOn) "Ses hoparlöre alındı." else "Ses uygun çağrı çıkışına alındı.")
                 }
 
@@ -341,21 +309,7 @@ object NovaCallControlBridge {
             }
         }
 
-        val context = appContext ?: return buildResult(false, "Ses yönlendirmesi için uygulama bağlamı hazır değil.")
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            ?: return buildResult(false, "AudioManager alınamadı.")
-        return try {
-            @Suppress("DEPRECATION")
-            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-            @Suppress("DEPRECATION")
-            audioManager.isSpeakerphoneOn = enabled
-            isSpeakerOn = enabled
-            NovaCallStateBridge.updateSpeakerState(enabled)
-            NovaCallStateBridge.updateAudioRoute(if (enabled) "speaker" else "earpiece")
-            buildResult(true, if (enabled) "Ses hoparlöre alındı." else "Ses normal çıkışa alındı.")
-        } catch (t: Throwable) {
-            buildResult(false, "Ses çıkışı değiştirilemedi: ${t.message ?: "unknown"}")
-        }
+        return buildResult(false, "Ses çıkışı değiştirilecek gerçek Telecom çağrısı bulunamadı.")
     }
 
     fun toggleMuted(): Map<String, Any> = setMuted(!isMuted)

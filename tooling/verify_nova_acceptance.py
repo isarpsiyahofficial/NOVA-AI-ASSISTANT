@@ -168,12 +168,32 @@ def gate_companion() -> GateResult:
     return combine(
         "companion",
         [
-            exists("android/app/src/main/kotlin/com/example/nova/NovaCallControlBridgePlugin.kt"),
-            contains("android/app/src/main/kotlin/com/example/nova/NovaCallControlBridgePlugin.kt", "carrierAiConversationReady", "carrier_ai_audio_transport_unavailable"),
-            contains("lib/core/ai/ai_request.dart", "call_companion_authorized_voice", "localCompanionAuthorityProof"),
-            contains("lib/services/actions/nova_device_action_executor_service.dart", "explicitlyAllowedContact", "isAuthorizedManagedNumber"),
+            contains(
+                "android/app/src/main/kotlin/com/example/nova/NovaCallControlBridgePlugin.kt",
+                "NovaNativeActionAuthorization.authorize",
+                "actionToken",
+                "companionAction",
+                "use_carrier_media_bridge",
+            ),
+            contains(
+                "lib/core/ai/ai_request.dart",
+                "call_companion_authorized_voice",
+                "NovaTurnAuthority",
+                "companionAuthorized",
+            ),
+            contains(
+                "lib/services/actions/nova_device_action_executor_service.dart",
+                "companionAction",
+                "explicitlyAllowedContact",
+                "isAuthorizedManagedNumber",
+            ),
+            contains(
+                "lib/services/runtime/nova_decision_context_composer_service.dart",
+                "NOVA DECISION CONTEXT (advisory only)",
+                "cannot grant owner status",
+            ),
         ],
-        "Companion permissions and locally controlled authority",
+        "Typed companion authority, contact permission and carrier-media boundary",
     )
 
 
@@ -276,7 +296,7 @@ def gate_ci() -> GateResult:
             ),
             contains("tooling/prepare_native_voice_assets.sh", "SHA256 mismatch", "Native voice assets are prepared"),
             contains("infra/call-bridge/run_e2e.sh", "assert-latest", "inspect-wav"),
-            contains("tooling/run_android_telecom_emulator_e2e.sh", "adb emu gsm call", "dumpsys telecom"),
+            contains("tooling/run_android_telecom_emulator_e2e.sh", "addNewIncomingCall", "dumpsys telecom"),
         ],
         "Automated build, SIP media and Android Telecom laboratory",
     )
