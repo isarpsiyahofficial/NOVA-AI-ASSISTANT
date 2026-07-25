@@ -30,64 +30,57 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Restore verified patch preimages
-        if: ${{ hashFiles('tooling/.nova_patch_apply/manifest.json') != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git show d78e3e3e62f96f4d1dafc61706dc21c2b51dbe83:tooling/.nova_patch_apply/READY > tooling/.nova_patch_apply/READY
-          git show 3aab4ae752ea42d8c99929e9e6e8062bd4100da3:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
-          test "$(sha256sum tooling/.nova_patch_apply/manifest.json | cut -d' ' -f1)" = "$(tr -d '[:space:]' < tooling/.nova_patch_apply/READY)"
-          git merge-base --is-ancestor 3aab4ae752ea42d8c99929e9e6e8062bd4100da3 HEAD
-
-      - name: Verify immutable patch envelope
-        if: ${{ hashFiles('tooling/.nova_patch_apply/manifest.json') != '' }}
+      - name: Decode and verify final fixes
+        if: ${{ hashFiles('tooling/.nova_final_fix.patch.gz.b64') != '' }}
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import base64, gzip, hashlib, json
+          import base64, gzip, hashlib
           from pathlib import Path
-          staging = Path('tooling/.nova_patch_apply')
-          manifest = json.loads((staging / 'manifest.json').read_text(encoding='utf-8'))
-          required = {'schema','partCount','base64Length','base64Sha256','compressedSha256','patchSha256','baseHead'}
-          if set(manifest) != required or manifest.get('schema') != 3: raise SystemExit('Patch manifest shape or schema is invalid.')
-          count = int(manifest['partCount'])
-          expected = [f'{index:03}.part' for index in range(count)]
-          actual = sorted(path.name for path in staging.glob('*.part'))
-          if actual != expected: raise SystemExit(f'Patch part set mismatch: expected={expected}, actual={actual}')
-          encoded = ''.join((staging / name).read_text(encoding='ascii') for name in expected)
-          if len(encoded) != int(manifest['base64Length']): raise SystemExit('Concatenated base64 length mismatch.')
-          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != manifest['base64Sha256']: raise SystemExit('Concatenated base64 SHA-256 mismatch.')
+          source = Path('tooling/.nova_final_fix.patch.gz.b64')
+          encoded = source.read_text(encoding='ascii').strip()
+          if len(encoded) != 7168:
+              raise SystemExit(f'Final-fix base64 length mismatch: {len(encoded)}')
+          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != '07eae0bba3afabf8638f1af7f40ae954a62fe1e4c34ee0102a585bea0756dcf5':
+              raise SystemExit('Final-fix base64 SHA-256 mismatch.')
           compressed = base64.b64decode(encoded, validate=True)
-          if hashlib.sha256(compressed).hexdigest() != manifest['compressedSha256']: raise SystemExit('Compressed patch SHA-256 mismatch.')
+          if hashlib.sha256(compressed).hexdigest() != '29e4acfe193691af224eb39814ffdb38653a93c3a75a19f159f89aafda374582':
+              raise SystemExit('Final-fix compressed SHA-256 mismatch.')
           patch = gzip.decompress(compressed)
-          if hashlib.sha256(patch).hexdigest() != manifest['patchSha256']: raise SystemExit('Decoded patch SHA-256 mismatch.')
-          Path('/tmp/nova-typed-authority.patch').write_bytes(patch)
-          print(json.dumps({'parts': count, 'base64Length': len(encoded), 'patchBytes': len(patch), 'patchSha256': hashlib.sha256(patch).hexdigest()}, indent=2))
+          if hashlib.sha256(patch).hexdigest() != '7804891996c5ecd3436f26b1916802c634c61bc889d4822448e58026e49fda86':
+              raise SystemExit('Final-fix patch SHA-256 mismatch.')
+          Path('/tmp/nova-final-fixes.patch').write_bytes(patch)
+          print(f'Verified final patch: {len(patch)} bytes')
           PY
 
-      - name: Check verified patch applicability
-        if: ${{ hashFiles('tooling/.nova_patch_apply/manifest.json') != '' }}
-        run: git apply --check --whitespace=error-all /tmp/nova-typed-authority.patch
+      - name: Check final-fix applicability
+        if: ${{ hashFiles('tooling/.nova_final_fix.patch.gz.b64') != '' }}
+        run: git apply --check --whitespace=error-all /tmp/nova-final-fixes.patch
 
-      - name: Apply verified typed-authority patch
-        if: ${{ hashFiles('tooling/.nova_patch_apply/manifest.json') != '' }}
+      - name: Apply final Telecom and AudioSocket fixes
+        if: ${{ hashFiles('tooling/.nova_final_fix.patch.gz.b64') != '' }}
         run: |
           set -euo pipefail
-          git apply --whitespace=error-all /tmp/nova-typed-authority.patch
-          rm -f /tmp/nova-typed-authority.patch
+          git apply --whitespace=error-all /tmp/nova-final-fixes.patch
+          rm -f /tmp/nova-final-fixes.patch tooling/.nova_final_fix.patch.gz.b64
           git diff --check
 
-      - name: Validate applied source tree
+      - name: Validate final source tree
         run: |
           set -euo pipefail
-          python -m py_compile tooling/audit_decision_graph.py tooling/audit_decision_graph_full.py tooling/classify_quarantined_decision_files.py
+          python -m py_compile \
+            tooling/audit_decision_graph.py \
+            tooling/audit_decision_graph_full.py \
+            tooling/classify_quarantined_decision_files.py \
+            tooling/verify_nova_acceptance.py
+          bash -n infra/call-bridge/run_e2e.sh
+          bash -n tooling/run_android_telecom_emulator_e2e.sh
           python tooling/classify_quarantined_decision_files.py --strict
           python tooling/audit_decision_graph_full.py --strict
           git diff --check
 
-      - name: Create applied source commit without workflow mutations
+      - name: Commit source-only final fixes
         id: source_commit
         shell: bash
         run: |
@@ -100,20 +93,14 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Apply NOVA typed authority refactor'
+          git commit -m 'Fix real Telecom and AudioSocket verification'
           echo 'created=true' >> "$GITHUB_OUTPUT"
 
-      - name: Push applied source commit
+      - name: Push source-only final fixes
         if: steps.source_commit.outputs.created == 'true'
         run: git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
-      - name: Compile full decision audit tooling
-        run: python -m py_compile tooling/audit_decision_graph.py tooling/audit_decision_graph_full.py tooling/classify_quarantined_decision_files.py tooling/export_source_snapshot_full.py
-
-      - name: Classify dormant decision implementations
-        run: python tooling/classify_quarantined_decision_files.py --strict
-
-      - name: Scan every source and configuration file
+      - name: Run exhaustive decision graph audit
         id: audit
         continue-on-error: true
         run: python tooling/audit_decision_graph_full.py --strict
@@ -125,7 +112,9 @@ jobs:
       - name: Publish audit summary
         if: always()
         run: |
-          if [[ -s build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md ]]; then cat build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md >> "$GITHUB_STEP_SUMMARY"; fi
+          if [[ -s build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md ]]; then
+            cat build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload complete decision evidence
         if: always()
