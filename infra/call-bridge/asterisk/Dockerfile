@@ -59,6 +59,7 @@ RUN ./configure \
     && menuselect/menuselect \
         --disable BUILD_NATIVE \
         --enable app_audiosocket \
+        --enable chan_audiosocket \
         --enable res_audiosocket \
         --enable app_mixmonitor \
         --enable app_dial \
@@ -80,6 +81,7 @@ RUN ./configure \
     && ldconfig \
     && asterisk -V \
     && test -s /usr/lib/asterisk/modules/app_audiosocket.so \
+    && test -s /usr/lib/asterisk/modules/chan_audiosocket.so \
     && test -s /usr/lib/asterisk/modules/res_audiosocket.so
 
 WORKDIR /
