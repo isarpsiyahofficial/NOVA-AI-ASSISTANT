@@ -79,10 +79,24 @@ cat runtime/logs/control-health.json
 "${compose[@]}" exec -T media-gateway \
   python /app/launcher.py synthesize \
     --text "Nova gerçek çift yönlü çağrı testini doğrula" \
-    --output /shared/sounds/nova-test-command.wav \
+    --output /shared/sounds/nova-test-command-source.wav \
   2>&1 | tee runtime/logs/fixture-generation.json
 
+test -s runtime/sounds/nova-test-command-source.wav
+# Piper's Turkish model emits 22.05 kHz PCM. Asterisk Playback expects a
+# telephony-rate WAV for this deterministic Local-channel caller, so create an
+# explicit 8 kHz, mono, signed 16-bit fixture before reloading the dialplan.
+"${compose[@]}" exec -T asterisk \
+  sox /shared/sounds/nova-test-command-source.wav \
+    -r 8000 -c 1 -b 16 -e signed-integer \
+    /shared/sounds/nova-test-command.wav
+"${compose[@]}" exec -T asterisk \
+  soxi /shared/sounds/nova-test-command.wav \
+  | tee runtime/logs/fixture-format.log
 test -s runtime/sounds/nova-test-command.wav
+grep -q 'Sample Rate    : 8000' runtime/logs/fixture-format.log
+grep -q 'Channels       : 1' runtime/logs/fixture-format.log
+
 "${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload" \
   | tee runtime/logs/dialplan-reload.log
 "${compose[@]}" exec -T asterisk asterisk -rx "dialplan show nova-call-test" \
