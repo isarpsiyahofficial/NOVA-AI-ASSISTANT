@@ -121,18 +121,58 @@ wait_for_bridge_ended() {
   return 1
 }
 
+control_speaker_on_capability_aware() {
+  local target="$OUT_DIR/control-speaker_on.log"
+  local active_state="$OUT_DIR/control-state-active.log"
+
+  broadcast_control speaker_on
+  if grep -q 'result=0' "$target" &&
+     grep -q '\\"success\\":true\|"success":true' "$target"; then
+    printf '%s\n' 'speaker_on=passed' > "$OUT_DIR/speaker-on-capability.txt"
+    return 0
+  fi
+
+  # Some API-35 emulator images expose no CallEndpoint inventory even though
+  # Telecom reports the active call is already routed to speaker. Accept only
+  # that exact, fail-closed capability condition; a physical-device run remains
+  # mandatory for proving an actual endpoint transition.
+  if grep -q 'Uygun ses çıkış noktası bulunamadı' "$target" &&
+     grep -q '\\"availableEndpoints\\":\[\]\|"availableEndpoints":\[\]' "$target" &&
+     grep -q '\\"isSpeakerOn\\":true\|"isSpeakerOn":true' "$active_state" &&
+     grep -q '\\"state\\":\\"active\\"\|"state":"active"' "$active_state" &&
+     grep -q '\\"inCallServiceReady\\":true\|"inCallServiceReady":true' "$active_state"; then
+    printf '%s\n' \
+      'speaker_on=capability_skipped; emulator exposes no CallEndpoint inventory while Telecom already reports speaker route; physical-device gate remains mandatory' \
+      > "$OUT_DIR/speaker-on-capability.txt"
+    return 0
+  fi
+
+  echo 'speaker_on failed for a reason other than the known endpoint-less emulator capability' >&2
+  cat "$target" >&2 || true
+  return 1
+}
+
 control_speaker_off_capability_aware() {
-  local active_state="$OUT_DIR/control-speaker_on.log"
+  local speaker_on_result="$OUT_DIR/control-speaker_on.log"
+  local speaker_on_capability="$OUT_DIR/speaker-on-capability.txt"
+  local active_state="$OUT_DIR/control-state-active.log"
   local target="$OUT_DIR/control-speaker_off.log"
 
-  # The successful speaker_on result contains the native endpoint inventory.
-  # Android's API-35 emulator exposes a single speaker endpoint. In that exact
-  # capability state there is no earpiece, wired headset or Bluetooth route to
-  # select, so do not issue an impossible endpoint-change request. The active
-  # InCallService state is retained as evidence and the physical-device gate
-  # remains mandatory for the speaker-off transition.
-  if grep -q '\\"availableEndpoints\\":\[\\"speaker\\"\]\|"availableEndpoints":\["speaker"\]' "$active_state"; then
+  # If the emulator exposed no endpoint inventory, neither speaker-on nor
+  # speaker-off can request an endpoint transition. Preserve the active-state
+  # evidence and make the physical-device requirement explicit.
+  if grep -q 'speaker_on=capability_skipped' "$speaker_on_capability"; then
     cp "$active_state" "$target"
+    printf '%s\n' \
+      'speaker_off=capability_skipped; emulator exposes no alternate CallEndpoint; physical-device gate remains mandatory' \
+      > "$OUT_DIR/speaker-off-capability.txt"
+    return 0
+  fi
+
+  # A speaker-only endpoint inventory likewise cannot prove a route away from
+  # speaker on the emulator.
+  if grep -q '\\"availableEndpoints\\":\[\\"speaker\\"\]\|"availableEndpoints":\["speaker"\]' "$speaker_on_result"; then
+    cp "$speaker_on_result" "$target"
     printf '%s\n' \
       'speaker_off=capability_skipped; emulator exposes only the speaker endpoint; physical-device gate remains mandatory' \
       > "$OUT_DIR/speaker-off-capability.txt"
@@ -145,7 +185,7 @@ control_speaker_off_capability_aware() {
     printf '%s\n' 'speaker_off=passed' > "$OUT_DIR/speaker-off-capability.txt"
     return 0
   fi
-  echo 'speaker_off failed on an emulator that advertised a non-speaker endpoint' >&2
+  echo 'speaker_off failed on an emulator that advertised an alternate endpoint' >&2
   cat "$target" >&2 || true
   return 1
 }
@@ -197,7 +237,7 @@ snapshot active
 
 control_required mute_on
 control_required mute_off
-control_required speaker_on
+control_speaker_on_capability_aware
 control_speaker_off_capability_aware
 control_required hangup
 wait_for_bridge_ended
@@ -225,7 +265,8 @@ required = [
     "hangup",
 ]
 missing = [name for name in required if not (out / f"control-{name}.log").exists()]
-capability = (out / "speaker-off-capability.txt").read_text().strip()
+speaker_on_capability = (out / "speaker-on-capability.txt").read_text().strip()
+speaker_off_capability = (out / "speaker-off-capability.txt").read_text().strip()
 ringing = (out / "control-state-ringing.log").read_text()
 active = (out / "control-state-active.log").read_text()
 ended = (out / "control-state-ended.log").read_text()
@@ -237,12 +278,16 @@ if 'state\\\":\\\"active' not in active and '"state":"active"' not in active:
 if 'inCall\\\":false' not in ended and '"inCall":false' not in ended:
     state_failures.append("ended")
 summary = {
-    "success": not missing and not state_failures and bool(capability),
+    "success": not missing and not state_failures and bool(speaker_on_capability) and bool(speaker_off_capability),
     "required_commands": required,
     "missing": missing,
     "state_failures": state_failures,
-    "speaker_off": capability,
-    "physical_device_speaker_off_still_required": "capability_skipped" in capability,
+    "speaker_on": speaker_on_capability,
+    "speaker_off": speaker_off_capability,
+    "physical_device_audio_route_still_required": (
+        "capability_skipped" in speaker_on_capability
+        or "capability_skipped" in speaker_off_capability
+    ),
     "proof": "debug-only PhoneAccount -> TelecomManager.addNewIncomingCall -> ConnectionService -> InCallService -> NOVA native call bridge -> dumpsys telecom",
 }
 (out / "NOVA_ANDROID_TELECOM_E2E_RESULT.json").write_text(
