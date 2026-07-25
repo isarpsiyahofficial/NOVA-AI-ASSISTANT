@@ -1,0 +1,59 @@
+name: NOVA Hotfix Telecom Import
+
+on:
+  push:
+    branches:
+      - agent/single-brain-low-latency-runtime
+    paths:
+      - .github/workflows/nova-hotfix-telecom-import.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nova-hotfix-telecom-import-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply-import:
+    if: github.event.head_commit.message != 'Fix missing TelecomManager import'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/single-brain-low-latency-runtime
+
+      - name: Add required Android Telecom import
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('android/app/src/main/kotlin/com/example/nova/NovaCallControlBridge.kt')
+          source = path.read_text(encoding='utf-8')
+          required = 'import android.telecom.TelecomManager\n'
+          anchor = 'import android.telecom.CallEndpointException\n'
+          if required not in source:
+              if anchor not in source:
+                  raise SystemExit('Telecom import anchor is missing.')
+              source = source.replace(anchor, anchor + required, 1)
+              path.write_text(source, encoding='utf-8')
+          PY
+
+      - name: Commit verified source hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- android/app/src/main/kotlin/com/example/nova/NovaCallControlBridge.kt; then
+            echo 'TelecomManager import is already present.'
+            exit 0
+          fi
+          git config user.name 'NOVA CI'
+          git config user.email 'nova-ci@users.noreply.github.com'
+          git add android/app/src/main/kotlin/com/example/nova/NovaCallControlBridge.kt
+          git commit -m 'Fix missing TelecomManager import'
+          git push origin HEAD:agent/single-brain-low-latency-runtime
