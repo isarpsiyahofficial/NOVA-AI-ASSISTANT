@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   exhaustive-decision-audit:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     timeout-minutes: 35
     steps:
       - name: Checkout complete head branch
@@ -56,10 +56,12 @@ jobs:
 
       - name: Check final contract patch applicability
         if: ${{ hashFiles('tooling/.nova_contract_fix.patch.gz.b64') != '' }}
+        shell: bash
         run: git apply --check --whitespace=error-all /tmp/nova-contract-fix.patch
 
       - name: Apply final contract corrections
         if: ${{ hashFiles('tooling/.nova_contract_fix.patch.gz.b64') != '' }}
+        shell: bash
         run: |
           set -euo pipefail
           git apply --whitespace=error-all /tmp/nova-contract-fix.patch
@@ -67,6 +69,7 @@ jobs:
           git diff --check
 
       - name: Validate corrected source tree
+        shell: bash
         run: |
           set -euo pipefail
           python -m py_compile \
@@ -98,19 +101,23 @@ jobs:
 
       - name: Push source-only contract corrections
         if: steps.source_commit.outputs.created == 'true'
+        shell: bash
         run: git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
       - name: Run exhaustive decision graph audit
         id: audit
         continue-on-error: true
+        shell: bash
         run: python tooling/audit_decision_graph_full.py --strict
 
       - name: Export complete read-only source snapshot
         if: always()
+        shell: bash
         run: python tooling/export_source_snapshot_full.py
 
       - name: Publish audit summary
         if: always()
+        shell: bash
         run: |
           if [[ -s build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md ]]; then
             cat build/nova-decision-audit/NOVA_DECISION_GRAPH_AUDIT.md >> "$GITHUB_STEP_SUMMARY"
@@ -127,4 +134,5 @@ jobs:
 
       - name: Enforce zero independent decision paths
         if: steps.audit.outcome != 'success'
+        shell: bash
         run: exit 1
