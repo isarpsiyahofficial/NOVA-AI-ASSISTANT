@@ -34,8 +34,8 @@ done
 adb shell cmd role add-role-holder --user 0 android.app.role.DIALER "$PACKAGE" \
   | tee "$OUT_DIR/dialer-role.log"
 adb shell cmd role get-role-holders --user 0 android.app.role.DIALER \
-  | tee -a "$OUT_DIR/dialer-role.log" \
-  | grep -q "$PACKAGE"
+  | tee -a "$OUT_DIR/dialer-role.log"
+grep -q "$PACKAGE" "$OUT_DIR/dialer-role.log"
 
 adb shell am force-stop "$PACKAGE"
 adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1 \
@@ -60,7 +60,7 @@ control_required() {
   broadcast_control "$command" "$@"
   local target="$OUT_DIR/control-${command}.log"
   grep -q 'result=0' "$target"
-  grep -q '\\"success\\":true\|"success":true' "$target"
+  grep -q '\"success\":true\|"success":true' "$target"
 }
 
 read_state() {
@@ -76,7 +76,7 @@ wait_for_bridge_state() {
   for _ in $(seq 1 60); do
     read_state > "$OUT_DIR/control-state-${name}.log"
     if grep -q "\\\"state\\\":\\\"${expected}\\\"\|\"state\":\"${expected}\"" "$OUT_DIR/control-state-${name}.log" &&
-       grep -q '\\"inCallServiceReady\\":true\|"inCallServiceReady":true' "$OUT_DIR/control-state-${name}.log"; then
+       grep -q '\"inCallServiceReady\":true\|"inCallServiceReady":true' "$OUT_DIR/control-state-${name}.log"; then
       adb shell dumpsys telecom > "$OUT_DIR/telecom-${name}.txt"
       grep -q "$TEST_NUMBER" "$OUT_DIR/telecom-${name}.txt"
       return 0
@@ -91,8 +91,8 @@ wait_for_bridge_state() {
 wait_for_bridge_ended() {
   for _ in $(seq 1 45); do
     read_state > "$OUT_DIR/control-state-ended.log"
-    if grep -q '\\"inCall\\":false\|"inCall":false' "$OUT_DIR/control-state-ended.log" &&
-       grep -q '\\"hasOngoingCall\\":false\|"hasOngoingCall":false' "$OUT_DIR/control-state-ended.log"; then
+    if grep -q '\"inCall\":false\|"inCall":false' "$OUT_DIR/control-state-ended.log" &&
+       grep -q '\"hasOngoingCall\":false\|"hasOngoingCall":false' "$OUT_DIR/control-state-ended.log"; then
       return 0
     fi
     sleep 1
@@ -105,12 +105,12 @@ control_speaker_off_capability_aware() {
   local target="$OUT_DIR/control-speaker_off.log"
   broadcast_control speaker_off
   if grep -q 'result=0' "$target" &&
-     grep -q '\\"success\\":true\|"success":true' "$target"; then
+     grep -q '\"success\":true\|"success":true' "$target"; then
     printf '%s\n' 'speaker_off=passed' > "$OUT_DIR/speaker-off-capability.txt"
     return 0
   fi
   if grep -q 'Uygun ses çıkış noktası bulunamadı' "$target" &&
-     grep -q '\\"availableEndpoints\\":\[\\"speaker\\"\]\|"availableEndpoints":\["speaker"\]' "$target"; then
+     grep -q '\"availableEndpoints\":\[\"speaker\"\]\|"availableEndpoints":\["speaker"\]' "$target"; then
     printf '%s\n' \
       'speaker_off=capability_skipped; emulator exposes only the speaker endpoint; physical-device gate remains mandatory' \
       > "$OUT_DIR/speaker-off-capability.txt"
@@ -150,7 +150,9 @@ fi
 adb shell telecom wait-on-handlers >> "$OUT_DIR/phone-account-enable.log" 2>&1 || \
   adb shell cmd telecom wait-on-handlers >> "$OUT_DIR/phone-account-enable.log" 2>&1 || true
 adb shell dumpsys telecom > "$OUT_DIR/telecom-account-registered.txt"
-grep -q "$ACCOUNT_ID" "$OUT_DIR/telecom-account-registered.txt"
+# Android 35 redacts PhoneAccount IDs as *** in dumpsys. Verify the explicit
+# enable result and the unredacted ConnectionService component instead.
+grep -q 'enabled\.' "$OUT_DIR/phone-account-enable.log"
 grep -q "$ACCOUNT_COMPONENT" "$OUT_DIR/telecom-account-registered.txt"
 
 # Older emulator GSM injection (`adb emu gsm call`) is intentionally not used:
