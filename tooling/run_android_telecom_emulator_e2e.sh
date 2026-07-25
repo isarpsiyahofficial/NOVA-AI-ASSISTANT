@@ -34,8 +34,8 @@ done
 adb shell cmd role add-role-holder --user 0 android.app.role.DIALER "$PACKAGE" \
   | tee "$OUT_DIR/dialer-role.log"
 adb shell cmd role get-role-holders --user 0 android.app.role.DIALER \
-  | tee -a "$OUT_DIR/dialer-role.log"
-grep -q "$PACKAGE" "$OUT_DIR/dialer-role.log"
+  | tee -a "$OUT_DIR/dialer-role.log" \
+  | grep -q "$PACKAGE"
 
 adb shell am force-stop "$PACKAGE"
 adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1 \
@@ -60,7 +60,7 @@ control_required() {
   broadcast_control "$command" "$@"
   local target="$OUT_DIR/control-${command}.log"
   grep -q 'result=0' "$target"
-  grep -q '\"success\":true\|"success":true' "$target"
+  grep -q '\\"success\\":true\|"success":true' "$target"
 }
 
 read_state() {
@@ -96,7 +96,7 @@ wait_for_bridge_state() {
   for _ in $(seq 1 60); do
     read_state > "$OUT_DIR/control-state-${name}.log"
     if grep -q "\\\"state\\\":\\\"${expected}\\\"\|\"state\":\"${expected}\"" "$OUT_DIR/control-state-${name}.log" &&
-       grep -q '\"inCallServiceReady\":true\|"inCallServiceReady":true' "$OUT_DIR/control-state-${name}.log"; then
+       grep -q '\\"inCallServiceReady\\":true\|"inCallServiceReady":true' "$OUT_DIR/control-state-${name}.log"; then
       adb shell dumpsys telecom > "$OUT_DIR/telecom-${name}.txt"
       assert_dumpsys_has_call "$OUT_DIR/telecom-${name}.txt"
       return 0
@@ -111,8 +111,8 @@ wait_for_bridge_state() {
 wait_for_bridge_ended() {
   for _ in $(seq 1 45); do
     read_state > "$OUT_DIR/control-state-ended.log"
-    if grep -q '\"inCall\":false\|"inCall":false' "$OUT_DIR/control-state-ended.log" &&
-       grep -q '\"hasOngoingCall\":false\|"hasOngoingCall":false' "$OUT_DIR/control-state-ended.log"; then
+    if grep -q '\\"inCall\\":false\|"inCall":false' "$OUT_DIR/control-state-ended.log" &&
+       grep -q '\\"hasOngoingCall\\":false\|"hasOngoingCall":false' "$OUT_DIR/control-state-ended.log"; then
       return 0
     fi
     sleep 1
@@ -122,21 +122,30 @@ wait_for_bridge_ended() {
 }
 
 control_speaker_off_capability_aware() {
+  local active_state="$OUT_DIR/control-state-active.log"
   local target="$OUT_DIR/control-speaker_off.log"
-  broadcast_control speaker_off
-  if grep -q 'result=0' "$target" &&
-     grep -q '\"success\":true\|"success":true' "$target"; then
-    printf '%s\n' 'speaker_off=passed' > "$OUT_DIR/speaker-off-capability.txt"
-    return 0
-  fi
-  if grep -q 'Uygun ses çıkış noktası bulunamadı' "$target" &&
-     grep -q '\"availableEndpoints\":\[\"speaker\"\]\|"availableEndpoints":\["speaker"\]' "$target"; then
+
+  # Android's API-35 emulator exposes a single speaker endpoint. In that exact
+  # capability state there is no earpiece, wired headset or Bluetooth route to
+  # select, so do not issue an impossible endpoint-change request. The active
+  # InCallService state is retained as evidence and the physical-device gate
+  # remains mandatory for the speaker-off transition.
+  if grep -q '\\"availableEndpoints\\":\[\\"speaker\\"\]\|"availableEndpoints":\["speaker"\]' "$active_state"; then
+    cp "$active_state" "$target"
     printf '%s\n' \
       'speaker_off=capability_skipped; emulator exposes only the speaker endpoint; physical-device gate remains mandatory' \
       > "$OUT_DIR/speaker-off-capability.txt"
     return 0
   fi
-  echo 'speaker_off failed for a reason other than the known speaker-only emulator capability' >&2
+
+  broadcast_control speaker_off
+  if grep -q 'result=0' "$target" &&
+     grep -q '\\"success\\":true\|"success":true' "$target"; then
+    printf '%s\n' 'speaker_off=passed' > "$OUT_DIR/speaker-off-capability.txt"
+    return 0
+  fi
+  echo 'speaker_off failed on an emulator that advertised a non-speaker endpoint' >&2
+  cat "$target" >&2 || true
   return 1
 }
 
