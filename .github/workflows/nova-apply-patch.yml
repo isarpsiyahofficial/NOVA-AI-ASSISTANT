@@ -1,0 +1,161 @@
+name: NOVA Apply Verified Typed Authority Patch
+
+on:
+  push:
+    branches:
+      - agent/single-brain-low-latency-runtime
+    paths:
+      - tooling/.nova_patch_apply/READY
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nova-apply-patch-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Apply NOVA typed authority refactor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout complete branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable patch envelope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          import gzip
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          root = Path.cwd().resolve()
+          staging = root / 'tooling' / '.nova_patch_apply'
+          manifest_path = staging / 'manifest.json'
+          ready_path = staging / 'READY'
+          workflow_path = root / '.github' / 'workflows' / 'nova-apply-patch.yml'
+
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          required_keys = {
+              'schema', 'partCount', 'base64Length', 'base64Sha256',
+              'compressedSha256', 'patchSha256', 'baseHead',
+          }
+          if set(manifest) != required_keys or manifest.get('schema') != 3:
+              raise SystemExit('Patch manifest shape or schema is invalid.')
+
+          manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+          if ready_path.read_text(encoding='utf-8').strip() != manifest_sha:
+              raise SystemExit('READY marker does not match manifest SHA-256.')
+
+          part_count = int(manifest['partCount'])
+          expected_parts = [f'{index:03}.part' for index in range(part_count)]
+          actual_parts = sorted(path.name for path in staging.glob('*.part'))
+          if actual_parts != expected_parts:
+              raise SystemExit(
+                  f'Patch part set mismatch: expected {expected_parts}, got {actual_parts}'
+              )
+
+          allowed_staging = set(expected_parts) | {'manifest.json', 'READY'}
+          actual_staging = {path.name for path in staging.iterdir()}
+          if actual_staging != allowed_staging:
+              raise SystemExit('Unexpected file exists in patch staging directory.')
+
+          encoded = ''.join(
+              (staging / part_name).read_text(encoding='ascii')
+              for part_name in expected_parts
+          )
+          if len(encoded) != int(manifest['base64Length']):
+              raise SystemExit('Concatenated base64 length mismatch.')
+          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != manifest['base64Sha256']:
+              raise SystemExit('Concatenated base64 SHA-256 mismatch.')
+
+          try:
+              compressed = base64.b64decode(encoded, validate=True)
+          except Exception as error:
+              raise SystemExit(f'Invalid base64 patch: {error}') from error
+          if hashlib.sha256(compressed).hexdigest() != manifest['compressedSha256']:
+              raise SystemExit('Compressed patch SHA-256 mismatch.')
+
+          try:
+              patch = gzip.decompress(compressed)
+          except Exception as error:
+              raise SystemExit(f'Invalid gzip patch: {error}') from error
+          if hashlib.sha256(patch).hexdigest() != manifest['patchSha256']:
+              raise SystemExit('Decoded patch SHA-256 mismatch.')
+
+          base_head = str(manifest['baseHead'])
+          subprocess.run(['git', 'merge-base', '--is-ancestor', base_head, 'HEAD'], check=True)
+
+          changed = set(
+              subprocess.check_output(
+                  ['git', 'diff', '--name-only', f'{base_head}..HEAD'],
+                  text=True,
+              ).splitlines()
+          )
+          allowed_changed = {
+              '.github/workflows/nova-apply-patch.yml',
+              *{
+                  f'tooling/.nova_patch_apply/{name}'
+                  for name in allowed_staging
+              },
+          }
+          if changed != allowed_changed:
+              raise SystemExit(
+                  'Staging commit shape mismatch; '
+                  f'unexpected={sorted(changed - allowed_changed)}, '
+                  f'missing={sorted(allowed_changed - changed)}'
+              )
+
+          patch_path = root / '.nova-verified-refactor.patch'
+          patch_path.write_bytes(patch)
+          subprocess.run(
+              ['git', 'apply', '--check', '--whitespace=error-all', str(patch_path)],
+              check=True,
+          )
+          subprocess.run(
+              ['git', 'apply', '--index', '--whitespace=error-all', str(patch_path)],
+              check=True,
+          )
+          patch_path.unlink()
+
+          for child in staging.iterdir():
+              child.unlink()
+          staging.rmdir()
+          workflow_path.unlink()
+          PY
+
+      - name: Enforce reconstructed static decision graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            tooling/audit_decision_graph.py \
+            tooling/audit_decision_graph_full.py \
+            tooling/classify_quarantined_decision_files.py
+          python tooling/classify_quarantined_decision_files.py --strict
+          python tooling/audit_decision_graph_full.py --strict
+          git diff --check
+
+      - name: Commit atomically applied source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Verified patch produced no repository changes.' >&2
+            exit 1
+          fi
+          git commit -m 'Apply NOVA typed authority refactor'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
