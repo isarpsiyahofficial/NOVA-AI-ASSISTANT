@@ -83,13 +83,17 @@ jobs:
           mkdir -p build
           docker compose -f infra/call-bridge/docker-compose.yml config > build/nova-call-bridge-compose.yml
 
-      - name: Run core runtime tests
-        run: >-
-          flutter test
-          test/runtime/nova_runtime_integrity_contract_test.dart
-          test/runtime/nova_verified_device_action_contract_test.dart
-          test/runtime/nova_contact_call_target_resolver_test.dart
-          test/runtime/nova_carrier_bridge_contract_test.dart
+      - name: Test runtime integrity contract
+        run: flutter test --reporter expanded test/runtime/nova_runtime_integrity_contract_test.dart
+
+      - name: Test verified device action contract
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart
+
+      - name: Test contact call target resolver
+        run: flutter test --reporter expanded test/runtime/nova_contact_call_target_resolver_test.dart
+
+      - name: Test carrier bridge contract
+        run: flutter test --reporter expanded test/runtime/nova_carrier_bridge_contract_test.dart
 
       - name: Analyze production entry points
         run: >-
