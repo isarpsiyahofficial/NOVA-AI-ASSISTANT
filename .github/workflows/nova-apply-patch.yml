@@ -5,7 +5,7 @@ on:
     branches:
       - agent/single-brain-low-latency-runtime
     paths:
-      - tooling/.nova_patch_apply/READY-v4
+      - tooling/.nova_patch_apply/READY-v5
   workflow_dispatch:
 
 permissions:
@@ -26,61 +26,51 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify and apply immutable patch envelope
+      - name: Verify and apply readable patch envelope
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import base64
-          import gzip
           import hashlib
           import json
           from pathlib import Path
+          import shutil
           import subprocess
 
           root = Path.cwd().resolve()
           staging = root / 'tooling' / '.nova_patch_apply'
-          manifest_path = staging / 'manifest-v4.json'
-          ready_path = staging / 'READY-v4'
+          manifest_path = staging / 'manifest-v5.json'
+          ready_path = staging / 'READY-v5'
           workflow_path = root / '.github' / 'workflows' / 'nova-apply-patch.yml'
+          obsolete_refactor = root / 'tooling' / '.nova_refactor_bundle'
 
           manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
           required_keys = {
-              'schema', 'partCount', 'partPrefix', 'base64Length',
-              'base64Sha256', 'compressedSha256', 'patchSha256', 'baseHead',
+              'schema', 'partCount', 'partPrefix', 'patchLength',
+              'patchSha256', 'baseHead',
           }
-          if set(manifest) != required_keys or manifest.get('schema') != 4:
+          if set(manifest) != required_keys or manifest.get('schema') != 5:
               raise SystemExit('Patch manifest shape or schema is invalid.')
-          if manifest.get('partPrefix') != 'v4-':
+          if manifest.get('partPrefix') != 'v5-':
               raise SystemExit('Unexpected patch part prefix.')
 
           manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
           if ready_path.read_text(encoding='utf-8').strip() != manifest_sha:
-              raise SystemExit('READY-v4 marker does not match manifest SHA-256.')
+              raise SystemExit('READY-v5 marker does not match manifest SHA-256.')
 
           part_count = int(manifest['partCount'])
-          expected_parts = [f'v4-{index:03}.part' for index in range(part_count)]
-          actual_parts = sorted(path.name for path in staging.glob('v4-*.part'))
+          expected_parts = [f'v5-{index:03}.patchpart' for index in range(part_count)]
+          actual_parts = sorted(path.name for path in staging.glob('v5-*.patchpart'))
           if actual_parts != expected_parts:
               raise SystemExit(
-                  f'V4 patch part mismatch: expected {expected_parts}, got {actual_parts}'
+                  f'V5 patch part mismatch: expected {expected_parts}, got {actual_parts}'
               )
 
-          encoded = ''.join(
-              (staging / part_name).read_text(encoding='ascii')
-              for part_name in expected_parts
-          )
-          if len(encoded) != int(manifest['base64Length']):
-              raise SystemExit('Concatenated base64 length mismatch.')
-          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != manifest['base64Sha256']:
-              raise SystemExit('Concatenated base64 SHA-256 mismatch.')
-
-          compressed = base64.b64decode(encoded, validate=True)
-          if hashlib.sha256(compressed).hexdigest() != manifest['compressedSha256']:
-              raise SystemExit('Compressed patch SHA-256 mismatch.')
-          patch = gzip.decompress(compressed)
+          patch = b''.join((staging / part_name).read_bytes() for part_name in expected_parts)
+          if len(patch) != int(manifest['patchLength']):
+              raise SystemExit('Concatenated patch length mismatch.')
           if hashlib.sha256(patch).hexdigest() != manifest['patchSha256']:
-              raise SystemExit('Decoded patch SHA-256 mismatch.')
+              raise SystemExit('Concatenated patch SHA-256 mismatch.')
 
           base_head = str(manifest['baseHead'])
           subprocess.run(['git', 'merge-base', '--is-ancestor', base_head, 'HEAD'], check=True)
@@ -92,13 +82,13 @@ jobs:
           )
           allowed_changed = {
               '.github/workflows/nova-apply-patch.yml',
-              'tooling/.nova_patch_apply/manifest-v4.json',
-              'tooling/.nova_patch_apply/READY-v4',
+              'tooling/.nova_patch_apply/manifest-v5.json',
+              'tooling/.nova_patch_apply/READY-v5',
               *{f'tooling/.nova_patch_apply/{name}' for name in expected_parts},
           }
           if changed != allowed_changed:
               raise SystemExit(
-                  'V4 staging commit shape mismatch; '
+                  'V5 staging commit shape mismatch; '
                   f'unexpected={sorted(changed - allowed_changed)}, '
                   f'missing={sorted(allowed_changed - changed)}'
               )
@@ -115,11 +105,11 @@ jobs:
           )
           patch_path.unlink()
 
-          # The staging mechanism is intentionally one-shot. Remove both the new
-          # envelope and every stale predecessor artifact after a verified apply.
-          for child in staging.iterdir():
-              child.unlink()
-          staging.rmdir()
+          # Both staging systems are one-shot implementation details and must not
+          # remain in the production source tree.
+          shutil.rmtree(staging)
+          if obsolete_refactor.exists():
+              shutil.rmtree(obsolete_refactor)
           workflow_path.unlink()
           PY
 
@@ -156,6 +146,7 @@ jobs:
           assert 'inspectFreshExternalSample(' in gate
           assert 'inspection.captureSucceeded' in gate
           assert 'loadActiveTrustedSession' not in gate
+          assert not Path('tooling/.nova_patch_apply').exists()
           assert not Path('tooling/.nova_refactor_bundle').exists()
           PY
           git diff --check
