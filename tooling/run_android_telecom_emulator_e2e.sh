@@ -122,9 +122,10 @@ wait_for_bridge_ended() {
 }
 
 control_speaker_off_capability_aware() {
-  local active_state="$OUT_DIR/control-state-active.log"
+  local active_state="$OUT_DIR/control-speaker_on.log"
   local target="$OUT_DIR/control-speaker_off.log"
 
+  # The successful speaker_on result contains the native endpoint inventory.
   # Android's API-35 emulator exposes a single speaker endpoint. In that exact
   # capability state there is no earpiece, wired headset or Bluetooth route to
   # select, so do not issue an impossible endpoint-change request. The active
