@@ -165,7 +165,7 @@ void main() {
         playbackEnd,
       );
       final resume = source.indexOf(
-        'await streamingAsrBridgeService.resume();',
+        'await NovaStreamingAsrRuntimeService.resumeAfterPlayback(',
         clearBuffer,
       );
       expect(playbackEnd, greaterThanOrEqualTo(0));

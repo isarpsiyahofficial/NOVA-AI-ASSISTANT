@@ -133,12 +133,22 @@ cleanup() {
 trap cleanup EXIT
 
 control_required register_test_account
-adb shell telecom help > "$OUT_DIR/telecom-help.txt" 2>&1 || true
-if ! adb shell telecom set-phone-account-enabled "$ACCOUNT_COMPONENT" "$ACCOUNT_ID" \
+if ! adb shell telecom help > "$OUT_DIR/telecom-help.txt" 2>&1; then
+  adb shell cmd telecom help > "$OUT_DIR/telecom-help.txt" 2>&1 || true
+fi
+phone_account_args=("$ACCOUNT_COMPONENT" "$ACCOUNT_ID")
+if grep -q '<USER_SN>' "$OUT_DIR/telecom-help.txt"; then
+  # API 34+ TelecomShellCommand requires the Android user serial number.
+  # The GitHub emulator uses the primary system user, whose serial is 0.
+  phone_account_args+=(0)
+fi
+if ! adb shell telecom set-phone-account-enabled "${phone_account_args[@]}" \
   > "$OUT_DIR/phone-account-enable.log" 2>&1; then
-  adb shell cmd telecom set-phone-account-enabled "$ACCOUNT_COMPONENT" "$ACCOUNT_ID" \
+  adb shell cmd telecom set-phone-account-enabled "${phone_account_args[@]}" \
     >> "$OUT_DIR/phone-account-enable.log" 2>&1
 fi
+adb shell telecom wait-on-handlers >> "$OUT_DIR/phone-account-enable.log" 2>&1 || \
+  adb shell cmd telecom wait-on-handlers >> "$OUT_DIR/phone-account-enable.log" 2>&1 || true
 adb shell dumpsys telecom > "$OUT_DIR/telecom-account-registered.txt"
 grep -q "$ACCOUNT_ID" "$OUT_DIR/telecom-account-registered.txt"
 grep -q "$ACCOUNT_COMPONENT" "$OUT_DIR/telecom-account-registered.txt"

@@ -133,9 +133,36 @@ def gate_telecom() -> GateResult:
             contains("android/app/src/main/AndroidManifest.xml", "NovaInCallService", "NovaCompanionConnectionService", "NovaCallScreeningService"),
             contains("lib/services/actions/nova_device_action_executor_service.dart", "answerRingingCall", "rejectRingingCall", "disconnectCurrentCall", "_pollCallState"),
             exists("tooling/run_android_telecom_emulator_e2e.sh", ".github/workflows/nova-android-telecom-emulator-e2e.yml"),
-            contains("android/app/src/debug/kotlin/com/example/nova/testing/NovaDebugControlReceiver.kt", "answerRingingCall", "setMuted", "routeToSpeaker", "disconnectCurrentCall"),
+            contains(
+                "android/app/src/debug/kotlin/com/example/nova/testing/NovaDebugControlReceiver.kt",
+                "registerTestAccount",
+                "telecom.isIncomingCallPermitted",
+                "telecom.addNewIncomingCall",
+                "answerRingingCall",
+                "setMuted",
+                "routeToSpeaker",
+                "disconnectCurrentCall",
+            ),
+            contains(
+                "tooling/run_android_telecom_emulator_e2e.sh",
+                "inject_incoming_call",
+                "set-phone-account-enabled",
+                "wait_for_bridge_state ringing",
+                "wait_for_bridge_state active",
+            ),
+            contains(
+                "android/app/src/main/kotlin/com/example/nova/NovaCallControlBridge.kt",
+                "Cevaplanacak gerçek Telecom çağrısı bulunamadı.",
+                "Mikrofon değiştirilecek gerçek Telecom çağrısı bulunamadı.",
+            ),
+            contains(
+                "android/app/src/main/kotlin/com/example/nova/NovaCompanionConnectionService.kt",
+                "override fun onAnswer(videoState: Int)",
+                "markAnswered()",
+                "CAPABILITY_SUPPORT_HOLD",
+            ),
         ],
-        "Android Telecom native controls plus emulator GSM E2E",
+        "Android Telecom native controls plus real managed-call emulator E2E",
     )
 
 
@@ -146,6 +173,8 @@ def gate_carrier_bridge() -> GateResult:
             exists("infra/call-bridge/docker-compose.yml", "infra/call-bridge/run_e2e.sh"),
             contains("infra/call-bridge/asterisk/config/extensions.conf", "AudioSocket", "from-nova-carrier", "nova-outbound"),
             contains("infra/call-bridge/media_gateway/service.py", "transcribe_8k_pcm", "AiDecisionEngine", "synthesize_8k_pcm", "SessionReport"),
+            contains("infra/call-bridge/media_gateway/launcher.py", "VerifiedSherpaSpeechEngine", "service.main"),
+            contains("infra/call-bridge/run_e2e.sh", "python /app/launcher.py synthesize", "assert-latest", "inspect-wav"),
             contains(".github/workflows/nova-call-bridge-e2e.yml", "Run real AudioSocket call", "Upload bidirectional call evidence"),
         ],
         "Real two-way PSTN/SIP PCM bridge with STT, AI and TTS",

@@ -83,7 +83,15 @@ private class NovaManagedConnection(
     }
 
     override fun onAnswer() {
-        super.onAnswer()
+        markAnswered()
+    }
+
+    override fun onAnswer(videoState: Int) {
+        markAnswered()
+    }
+
+    private fun markAnswered() {
+        if (state == STATE_ACTIVE) return
         setActive()
         NovaCallStateBridge.updateCall(
             number = address?.schemeSpecificPart,

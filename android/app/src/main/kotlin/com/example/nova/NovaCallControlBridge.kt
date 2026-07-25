@@ -3,10 +3,12 @@ package com.example.nova
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.OutcomeReceiver
 import android.os.Bundle
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.CallEndpoint
+import android.telecom.CallEndpointException
 import android.telecom.VideoProfile
 import android.provider.Settings
 import android.net.Uri
@@ -282,15 +284,25 @@ object NovaCallControlBridge {
                     var callbackError: String? = null
                     val completion = CountDownLatch(1)
                     val callbackExecutor: Executor = executor
-                    service.requestCallEndpointChange(endpoint, callbackExecutor) { error ->
-                        callbackError = error?.toString()
-                        if (error == null) {
-                            isSpeakerOn = endpoint.endpointType == CallEndpoint.TYPE_SPEAKER
-                            NovaCallStateBridge.updateSpeakerState(isSpeakerOn)
-                            NovaCallStateBridge.updateAudioRoute(endpointTypeLabel(endpoint.endpointType))
-                        }
-                        completion.countDown()
-                    }
+                    service.requestCallEndpointChange(
+                        endpoint,
+                        callbackExecutor,
+                        object : OutcomeReceiver<Void, CallEndpointException> {
+                            override fun onResult(result: Void?) {
+                                isSpeakerOn = endpoint.endpointType == CallEndpoint.TYPE_SPEAKER
+                                NovaCallStateBridge.updateSpeakerState(isSpeakerOn)
+                                NovaCallStateBridge.updateAudioRoute(
+                                    endpointTypeLabel(endpoint.endpointType),
+                                )
+                                completion.countDown()
+                            }
+
+                            override fun onError(error: CallEndpointException) {
+                                callbackError = error.toString()
+                                completion.countDown()
+                            }
+                        },
+                    )
                     if (!completion.await(2, TimeUnit.SECONDS)) {
                         return buildResult(false, "Ses çıkışı değişikliği Telecom tarafından doğrulanmadı.")
                     }
