@@ -58,10 +58,12 @@ class NovaCallControlBridgePlugin(
                     mapOf(
                         "success" to false,
                         "verified" to false,
-                        "failureCode" to "use_carrier_media_bridge",
+                        "failureCode" to "carrier_ai_audio_transport_unavailable",
                         "message" to "İki yönlü NOVA görüşmesi Android hoparlör hilesiyle değil, yapılandırılmış carrier/SIP medya köprüsüyle başlatılmalıdır.",
                         "carrierCallControlReady" to true,
                         "carrierAiConversationReady" to false,
+                        "carrierDownlinkCaptureReady" to false,
+                        "carrierUplinkInjectionReady" to false,
                         "aiConversationTransport" to "external_asterisk_audiosocket",
                     )
                 )
@@ -85,6 +87,8 @@ class NovaCallControlBridgePlugin(
                     val base = NovaCallControlBridge.getCapabilities().toMutableMap()
                     base["carrierCallControlReady"] = true
                     base["carrierAiConversationReady"] = false
+                    base["carrierDownlinkCaptureReady"] = false
+                    base["carrierUplinkInjectionReady"] = false
                     base["aiConversationTransport"] = "external_asterisk_audiosocket"
                     result.success(base)
                 }
