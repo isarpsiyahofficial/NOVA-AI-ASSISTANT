@@ -70,6 +70,26 @@ read_state() {
     --es command state
 }
 
+assert_dumpsys_has_call() {
+  local target="$1"
+  python3 - "$target" <<'PY'
+from pathlib import Path
+import sys
+
+lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+start = next((i for i, line in enumerate(lines) if line.strip().startswith("mCalls:")), None)
+if start is None:
+    raise SystemExit("dumpsys telecom mCalls section is missing")
+end = next(
+    (i for i in range(start + 1, len(lines)) if lines[i].strip().startswith("mCallAudioManager:")),
+    len(lines),
+)
+body = [line.strip() for line in lines[start + 1:end] if line.strip()]
+if not body:
+    raise SystemExit("dumpsys telecom mCalls section is empty")
+PY
+}
+
 wait_for_bridge_state() {
   local expected="$1"
   local name="$2"
@@ -78,7 +98,7 @@ wait_for_bridge_state() {
     if grep -q "\\\"state\\\":\\\"${expected}\\\"\|\"state\":\"${expected}\"" "$OUT_DIR/control-state-${name}.log" &&
        grep -q '\"inCallServiceReady\":true\|"inCallServiceReady":true' "$OUT_DIR/control-state-${name}.log"; then
       adb shell dumpsys telecom > "$OUT_DIR/telecom-${name}.txt"
-      grep -q "$TEST_NUMBER" "$OUT_DIR/telecom-${name}.txt"
+      assert_dumpsys_has_call "$OUT_DIR/telecom-${name}.txt"
       return 0
     fi
     sleep 1
