@@ -139,9 +139,8 @@ fi
 "${compose[@]}" exec -T media-gateway \
   python /app/service.py assert-latest \
     --report-dir /reports \
-    --expect-token nova \
-    --expect-token gercek \
-    --expect-token cift \
+    --expect-token "gerçek" \
+    --expect-token "çift" \
     --min-incoming-bytes 6000 \
     --min-outgoing-bytes 6000 \
     --min-rms 30 \
