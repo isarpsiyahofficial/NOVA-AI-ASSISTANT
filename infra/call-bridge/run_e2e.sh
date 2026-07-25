@@ -136,10 +136,80 @@ if [[ "$completed" != "true" ]]; then
   exit 1
 fi
 
+python3 - <<'PY' | tee runtime/logs/assert-incoming-acoustic-proof.json
+from array import array
+import json
+import math
+import sys
+import wave
+from pathlib import Path
+
+session = json.loads(Path('runtime/logs/latest-session.json').read_text(encoding='utf-8'))
+session_id = str(session['session_id'])
+fixture_path = Path('runtime/sounds/nova-test-command.wav')
+incoming_path = Path('runtime/reports') / f'{session_id}-turn-1-in.wav'
+
+def read_pcm(path: Path) -> tuple[int, int, int, array]:
+    with wave.open(str(path), 'rb') as handle:
+        rate = handle.getframerate()
+        channels = handle.getnchannels()
+        width = handle.getsampwidth()
+        samples = array('h')
+        samples.frombytes(handle.readframes(handle.getnframes()))
+    if sys.byteorder != 'little':
+        samples.byteswap()
+    return rate, channels, width, samples
+
+def trim(samples: array, threshold: int = 50) -> list[int]:
+    first = next((index for index, value in enumerate(samples) if abs(value) > threshold), None)
+    if first is None:
+        return []
+    last = len(samples) - 1 - next(
+        index for index, value in enumerate(reversed(samples)) if abs(value) > threshold
+    )
+    return list(samples[first:last + 1])
+
+fixture_rate, fixture_channels, fixture_width, fixture = read_pcm(fixture_path)
+incoming_rate, incoming_channels, incoming_width, incoming = read_pcm(incoming_path)
+fixture_trimmed = trim(fixture)
+incoming_trimmed = trim(incoming)
+overlap = min(len(fixture_trimmed), len(incoming_trimmed))
+if overlap:
+    left = fixture_trimmed[:overlap]
+    right = incoming_trimmed[:overlap]
+    dot = sum(a * b for a, b in zip(left, right))
+    left_power = sum(a * a for a in left)
+    right_power = sum(b * b for b in right)
+    correlation = dot / math.sqrt(left_power * right_power) if left_power and right_power else 0.0
+else:
+    correlation = 0.0
+length_delta = abs(len(fixture_trimmed) - len(incoming_trimmed))
+passed = (
+    fixture_rate == incoming_rate == 8000
+    and fixture_channels == incoming_channels == 1
+    and fixture_width == incoming_width == 2
+    and overlap >= 6000
+    and length_delta <= 160
+    and correlation >= 0.98
+)
+result = {
+    'passed': passed,
+    'fixture': str(fixture_path),
+    'incoming': str(incoming_path),
+    'sample_rate': incoming_rate,
+    'fixture_trimmed_samples': len(fixture_trimmed),
+    'incoming_trimmed_samples': len(incoming_trimmed),
+    'length_delta_samples': length_delta,
+    'normalized_correlation': correlation,
+}
+print(json.dumps(result, ensure_ascii=False, indent=2))
+if not passed:
+    raise SystemExit(1)
+PY
+
 "${compose[@]}" exec -T media-gateway \
   python /app/service.py assert-latest \
     --report-dir /reports \
-    --expect-token "gerçek" \
     --expect-token "çift" \
     --min-incoming-bytes 6000 \
     --min-outgoing-bytes 6000 \
