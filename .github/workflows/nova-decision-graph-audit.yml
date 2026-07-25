@@ -26,11 +26,37 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Build temporary branch snapshot
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git bundle create nova-history.bundle --all
+          tar --exclude=.git -czf nova-working-tree.tgz .
+          sha256sum nova-history.bundle nova-working-tree.tgz > NOVA_BRANCH_SNAPSHOT_SHA256SUMS
+          git log --all --oneline --decorate --graph > nova-git-history.txt
+          git log --all --name-status -- tooling/.nova_refactor_bundle > nova-bundle-history.txt
+
+      - name: Upload temporary branch snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-BRANCH-SNAPSHOT
+          path: |
+            nova-history.bundle
+            nova-working-tree.tgz
+            NOVA_BRANCH_SNAPSHOT_SHA256SUMS
+            nova-git-history.txt
+            nova-bundle-history.txt
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Compile full decision audit tooling
         run: |
