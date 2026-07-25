@@ -58,6 +58,7 @@ done
 "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
   | tee runtime/logs/asterisk-audiosocket-modules.log
 grep -q 'app_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
+grep -q 'chan_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
 grep -q 'res_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
 
 control_ready=false
@@ -105,7 +106,7 @@ grep -q 'AudioSocket' runtime/logs/asterisk-dialplan.log
 
 originate_output="$(
   "${compose[@]}" exec -T asterisk \
-    asterisk -rx "channel originate Local/9000@nova-test-caller extension 7000@nova-call-test"
+    asterisk -rx "channel originate Local/9000@nova-test-caller/n extension 7000@nova-call-test"
 )"
 printf '%s\n' "$originate_output" | tee runtime/logs/originate.log
 
