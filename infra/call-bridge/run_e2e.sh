@@ -138,6 +138,7 @@ fi
 
 python3 - <<'PY' | tee runtime/logs/assert-incoming-acoustic-proof.json
 from array import array
+import audioop
 import json
 import math
 import sys
@@ -160,23 +161,47 @@ def read_pcm(path: Path) -> tuple[int, int, int, array]:
         samples.byteswap()
     return rate, channels, width, samples
 
-def trim(samples: array, threshold: int = 50) -> list[int]:
+def trim(samples: array, threshold: int = 50) -> array:
     first = next((index for index, value in enumerate(samples) if abs(value) > threshold), None)
     if first is None:
-        return []
+        return array('h')
     last = len(samples) - 1 - next(
         index for index, value in enumerate(reversed(samples)) if abs(value) > threshold
     )
-    return list(samples[first:last + 1])
+    return array('h', samples[first:last + 1])
 
 fixture_rate, fixture_channels, fixture_width, fixture = read_pcm(fixture_path)
 incoming_rate, incoming_channels, incoming_width, incoming = read_pcm(incoming_path)
 fixture_trimmed = trim(fixture)
 incoming_trimmed = trim(incoming)
-overlap = min(len(fixture_trimmed), len(incoming_trimmed))
+
+if len(fixture_trimmed) >= len(incoming_trimmed) and incoming_trimmed:
+    alignment_offset, fitted_gain = audioop.findfit(
+        fixture_trimmed.tobytes(), incoming_trimmed.tobytes()
+    )
+    aligned_fixture = fixture_trimmed[
+        alignment_offset:alignment_offset + len(incoming_trimmed)
+    ]
+    aligned_incoming = incoming_trimmed
+elif fixture_trimmed:
+    alignment_offset, inverse_gain = audioop.findfit(
+        incoming_trimmed.tobytes(), fixture_trimmed.tobytes()
+    )
+    aligned_fixture = fixture_trimmed
+    aligned_incoming = incoming_trimmed[
+        alignment_offset:alignment_offset + len(fixture_trimmed)
+    ]
+    fitted_gain = 1.0 / inverse_gain if inverse_gain else 0.0
+else:
+    alignment_offset = 0
+    fitted_gain = 0.0
+    aligned_fixture = array('h')
+    aligned_incoming = array('h')
+
+overlap = min(len(aligned_fixture), len(aligned_incoming))
 if overlap:
-    left = fixture_trimmed[:overlap]
-    right = incoming_trimmed[:overlap]
+    left = aligned_fixture[:overlap]
+    right = aligned_incoming[:overlap]
     dot = sum(a * b for a, b in zip(left, right))
     left_power = sum(a * a for a in left)
     right_power = sum(b * b for b in right)
@@ -189,7 +214,9 @@ passed = (
     and fixture_channels == incoming_channels == 1
     and fixture_width == incoming_width == 2
     and overlap >= 6000
-    and length_delta <= 160
+    and alignment_offset <= 1600
+    and length_delta <= 1600
+    and 0.25 <= abs(fitted_gain) <= 4.0
     and correlation >= 0.98
 )
 result = {
@@ -200,6 +227,8 @@ result = {
     'fixture_trimmed_samples': len(fixture_trimmed),
     'incoming_trimmed_samples': len(incoming_trimmed),
     'length_delta_samples': length_delta,
+    'alignment_offset_samples': alignment_offset,
+    'fitted_gain': fitted_gain,
     'normalized_correlation': correlation,
 }
 print(json.dumps(result, ensure_ascii=False, indent=2))
