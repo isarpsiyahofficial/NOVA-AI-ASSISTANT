@@ -245,8 +245,15 @@ snapshot ended
 
 adb shell run-as "$PACKAGE" cat shared_prefs/nova_debug_control.xml \
   > "$OUT_DIR/nova-debug-control.xml"
-grep -q 'hangup' "$OUT_DIR/nova-debug-control.xml"
-grep -q '&quot;success&quot;:true\|"success":true' "$OUT_DIR/nova-debug-control.xml"
+# wait_for_bridge_ended intentionally polls the debug `state` command after
+# hangup, so SharedPreferences must end on the verified idle snapshot rather
+# than the earlier hangup command. The hangup result itself is already enforced
+# by control_required and retained in control-hangup.log.
+grep -q '\"success\":true\|"success":true' "$OUT_DIR/control-hangup.log"
+grep -q '<string name="last_command">state</string>' "$OUT_DIR/nova-debug-control.xml"
+grep -q '&quot;success&quot;:true' "$OUT_DIR/nova-debug-control.xml"
+grep -q '&quot;inCall&quot;:false' "$OUT_DIR/nova-debug-control.xml"
+grep -q '&quot;hasOngoingCall&quot;:false' "$OUT_DIR/nova-debug-control.xml"
 
 grep 'NOVA_DEBUG_CONTROL' "$OUT_DIR/logcat-ended.txt" \
   > "$OUT_DIR/nova-debug-control.log" || true
