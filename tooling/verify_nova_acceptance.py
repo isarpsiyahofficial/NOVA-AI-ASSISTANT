@@ -202,7 +202,10 @@ def gate_companion() -> GateResult:
                 "NovaNativeActionAuthorization.authorize",
                 "actionToken",
                 "companionAction",
-                "use_carrier_media_bridge",
+                "carrier_ai_audio_transport_unavailable",
+                "carrierDownlinkCaptureReady",
+                "carrierUplinkInjectionReady",
+                "external_asterisk_audiosocket",
             ),
             contains(
                 "lib/core/ai/ai_request.dart",

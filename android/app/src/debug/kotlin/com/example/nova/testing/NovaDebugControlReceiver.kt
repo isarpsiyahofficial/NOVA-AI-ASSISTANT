@@ -120,6 +120,10 @@ class NovaDebugControlReceiver : BroadcastReceiver() {
             if (telecom.getPhoneAccount(handle) == null) {
                 return failure("Test PhoneAccount kayıtlı değil.")
             }
+            val incomingPermitted = telecom.isIncomingCallPermitted(handle)
+            if (!incomingPermitted) {
+                return failure("Telecom bu PhoneAccount için gelen çağrıya izin vermedi.")
+            }
             val extras = Bundle().apply {
                 putParcelable(
                     TelecomManager.EXTRA_INCOMING_CALL_ADDRESS,
@@ -133,6 +137,7 @@ class NovaDebugControlReceiver : BroadcastReceiver() {
                 "number" to cleanNumber,
                 "component" to handle.componentName.flattenToString(),
                 "accountId" to handle.id,
+                "incomingCallPermitted" to incomingPermitted,
             )
         } catch (error: Throwable) {
             failure("Telecom gelen çağrısı oluşturulamadı: ${error.message ?: error.javaClass.simpleName}")
