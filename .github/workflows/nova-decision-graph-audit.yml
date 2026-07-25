@@ -40,15 +40,15 @@ jobs:
           from pathlib import Path
           source = Path('tooling/.nova_contract_fix.patch.gz.b64')
           encoded = source.read_text(encoding='ascii').strip()
-          if len(encoded) != 3748:
+          if len(encoded) != 1136:
               raise SystemExit(f'Contract patch base64 length mismatch: {len(encoded)}')
-          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != '10f6594e0c8843d10b72fdcffcecea0c41f5afe1d794baa571394faa425e966d':
+          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != 'a874cdc9098fdfc68ec26ae3599e7ba758933fbf982bc8ae990df0c0b851a9fc':
               raise SystemExit('Contract patch base64 SHA-256 mismatch.')
           compressed = base64.b64decode(encoded, validate=True)
-          if hashlib.sha256(compressed).hexdigest() != '6d9bbb003702c3336b54d0e41bdc38d259233b93e5ff2e82c2cf5e29d823606f':
+          if hashlib.sha256(compressed).hexdigest() != '4b2b53e6ee07bd10899735be9192189d37b9dd5f376857b312dcd968be0b8019':
               raise SystemExit('Contract patch compressed SHA-256 mismatch.')
           patch = gzip.decompress(compressed)
-          if hashlib.sha256(patch).hexdigest() != 'a7063b9f7d6c5cb624a7ba855bd78077e24042a8adb3b3453ba975c2f92dc2a3':
+          if hashlib.sha256(patch).hexdigest() != 'fbe576524c6e71a586edbc4baa35742e26665a00abccfef630aed81db9918726':
               raise SystemExit('Contract patch SHA-256 mismatch.')
           Path('/tmp/nova-contract-fix.patch').write_bytes(patch)
           print(f'Verified contract patch: {len(patch)} bytes')
@@ -96,7 +96,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Finalize Telecom, AudioSocket and ASR lease contracts'
+          git commit -m 'Fix Telecom admission and acceptance contracts'
           echo 'created=true' >> "$GITHUB_OUTPUT"
 
       - name: Push source-only contract corrections
