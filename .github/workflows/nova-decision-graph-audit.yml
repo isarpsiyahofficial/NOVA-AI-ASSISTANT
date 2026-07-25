@@ -35,12 +35,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git show d78e3e3e62f96f4d1dafc61706dc21c2b51dbe83:tooling/.nova_patch_apply/READY \
-            > tooling/.nova_patch_apply/READY
-          git show 3aab4ae752ea42d8c99929e9e6e8062bd4100da3:.github/workflows/nova-decision-graph-audit.yml \
-            > .github/workflows/nova-decision-graph-audit.yml
-          test "$(sha256sum tooling/.nova_patch_apply/manifest.json | cut -d' ' -f1)" = \
-            "$(tr -d '[:space:]' < tooling/.nova_patch_apply/READY)"
+          git show d78e3e3e62f96f4d1dafc61706dc21c2b51dbe83:tooling/.nova_patch_apply/READY > tooling/.nova_patch_apply/READY
+          git show 3aab4ae752ea42d8c99929e9e6e8062bd4100da3:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
+          test "$(sha256sum tooling/.nova_patch_apply/manifest.json | cut -d' ' -f1)" = "$(tr -d '[:space:]' < tooling/.nova_patch_apply/READY)"
           git merge-base --is-ancestor 3aab4ae752ea42d8c99929e9e6e8062bd4100da3 HEAD
 
       - name: Verify immutable patch envelope
@@ -49,19 +46,11 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import base64
-          import gzip
-          import hashlib
-          import json
+          import base64, gzip, hashlib, json
           from pathlib import Path
-
           staging = Path('tooling/.nova_patch_apply')
-          manifest_path = staging / 'manifest.json'
-          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          required = {
-              'schema', 'partCount', 'base64Length', 'base64Sha256',
-              'compressedSha256', 'patchSha256', 'baseHead',
-          }
+          manifest = json.loads((staging / 'manifest.json').read_text(encoding='utf-8'))
+          required = {'schema','partCount','base64Length','base64Sha256','compressedSha256','patchSha256','baseHead'}
           if set(manifest) != required or manifest.get('schema') != 3:
               raise SystemExit('Patch manifest shape or schema is invalid.')
           count = int(manifest['partCount'])
@@ -70,23 +59,14 @@ jobs:
           if actual != expected:
               raise SystemExit(f'Patch part set mismatch: expected={expected}, actual={actual}')
           encoded = ''.join((staging / name).read_text(encoding='ascii') for name in expected)
-          if len(encoded) != int(manifest['base64Length']):
-              raise SystemExit('Concatenated base64 length mismatch.')
-          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != manifest['base64Sha256']:
-              raise SystemExit('Concatenated base64 SHA-256 mismatch.')
+          if len(encoded) != int(manifest['base64Length']): raise SystemExit('Concatenated base64 length mismatch.')
+          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != manifest['base64Sha256']: raise SystemExit('Concatenated base64 SHA-256 mismatch.')
           compressed = base64.b64decode(encoded, validate=True)
-          if hashlib.sha256(compressed).hexdigest() != manifest['compressedSha256']:
-              raise SystemExit('Compressed patch SHA-256 mismatch.')
+          if hashlib.sha256(compressed).hexdigest() != manifest['compressedSha256']: raise SystemExit('Compressed patch SHA-256 mismatch.')
           patch = gzip.decompress(compressed)
-          if hashlib.sha256(patch).hexdigest() != manifest['patchSha256']:
-              raise SystemExit('Decoded patch SHA-256 mismatch.')
+          if hashlib.sha256(patch).hexdigest() != manifest['patchSha256']: raise SystemExit('Decoded patch SHA-256 mismatch.')
           Path('/tmp/nova-typed-authority.patch').write_bytes(patch)
-          print(json.dumps({
-              'parts': count,
-              'base64Length': len(encoded),
-              'patchBytes': len(patch),
-              'patchSha256': hashlib.sha256(patch).hexdigest(),
-          }, indent=2))
+          print(json.dumps({'parts': count, 'base64Length': len(encoded), 'patchBytes': len(patch), 'patchSha256': hashlib.sha256(patch).hexdigest()}, indent=2))
           PY
 
       - name: Check verified patch applicability
@@ -102,45 +82,40 @@ jobs:
           git diff --check
 
       - name: Validate applied source tree
-        if: ${{ hashFiles('tooling/.nova_patch_apply/manifest.json') == '' }}
         run: |
           set -euo pipefail
-          python -m py_compile \
-            tooling/audit_decision_graph.py \
-            tooling/audit_decision_graph_full.py \
-            tooling/classify_quarantined_decision_files.py
+          python -m py_compile tooling/audit_decision_graph.py tooling/audit_decision_graph_full.py tooling/classify_quarantined_decision_files.py
           python tooling/classify_quarantined_decision_files.py --strict
           python tooling/audit_decision_graph_full.py --strict
           git diff --check
 
-      - name: Commit applied source tree
+      - name: Create applied source commit
+        id: source_commit
         shell: bash
         run: |
           set -euo pipefail
           if git diff --quiet && git diff --cached --quiet; then
+            echo 'created=false' >> "$GITHUB_OUTPUT"
             echo 'No source application commit is required.'
             exit 0
           fi
-          python -m py_compile \
-            tooling/audit_decision_graph.py \
-            tooling/audit_decision_graph_full.py \
-            tooling/classify_quarantined_decision_files.py
-          python tooling/classify_quarantined_decision_files.py --strict
-          python tooling/audit_decision_graph_full.py --strict
-          git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Apply NOVA typed authority refactor'
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo 'created=true' >> "$GITHUB_OUTPUT"
+
+      - name: Push applied source commit
+        if: steps.source_commit.outputs.created == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
       - name: Compile full decision audit tooling
         run: |
-          python -m py_compile \
-            tooling/audit_decision_graph.py \
-            tooling/audit_decision_graph_full.py \
-            tooling/classify_quarantined_decision_files.py \
-            tooling/export_source_snapshot_full.py
+          python -m py_compile tooling/audit_decision_graph.py tooling/audit_decision_graph_full.py tooling/classify_quarantined_decision_files.py tooling/export_source_snapshot_full.py
 
       - name: Classify dormant decision implementations
         run: python tooling/classify_quarantined_decision_files.py --strict
@@ -174,6 +149,4 @@ jobs:
 
       - name: Enforce zero independent decision paths
         if: steps.audit.outcome != 'success'
-        run: |
-          echo 'NOVA decision graph still contains blocking conflicts.' >&2
-          exit 1
+        run: exit 1
