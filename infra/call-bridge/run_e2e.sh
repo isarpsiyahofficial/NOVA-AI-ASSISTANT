@@ -30,13 +30,21 @@ trap cleanup EXIT
 "${compose[@]}" up -d 2>&1 | tee runtime/logs/docker-compose-up.log
 "${compose[@]}" ps -a | tee runtime/logs/docker-compose-ps-start.log
 
+media_ready=false
 for _ in $(seq 1 90); do
-  if curl -fsS http://127.0.0.1:18080/health | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'; then
+  if curl -fsS http://127.0.0.1:18080/health > runtime/logs/media-health.json 2>/dev/null && \
+    grep -Eq '"ready"[[:space:]]*:[[:space:]]*true' runtime/logs/media-health.json; then
+    media_ready=true
     break
   fi
   sleep 2
 done
-curl -fsS http://127.0.0.1:18080/health | tee runtime/logs/media-health.json | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'
+if [[ "$media_ready" != "true" ]]; then
+  echo "NOVA media gateway did not become ready" >&2
+  cat runtime/logs/media-health.json >&2 2>/dev/null || true
+  exit 1
+fi
+cat runtime/logs/media-health.json
 
 for _ in $(seq 1 60); do
   if "${compose[@]}" exec -T asterisk asterisk -rx "core show uptime" >/dev/null 2>&1; then
@@ -48,20 +56,25 @@ done
   | tee runtime/logs/asterisk-uptime.log
 
 "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
-  | tee runtime/logs/asterisk-audiosocket-modules.log \
-  | grep -q 'app_audiosocket.so'
-"${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
-  | grep -q 'res_audiosocket.so'
+  | tee runtime/logs/asterisk-audiosocket-modules.log
+grep -q 'app_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
+grep -q 'res_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
 
+control_ready=false
 for _ in $(seq 1 60); do
-  if curl -fsS http://127.0.0.1:18090/health | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'; then
+  if curl -fsS http://127.0.0.1:18090/health > runtime/logs/control-health.json 2>/dev/null && \
+    grep -Eq '"ready"[[:space:]]*:[[:space:]]*true' runtime/logs/control-health.json; then
+    control_ready=true
     break
   fi
   sleep 1
 done
-curl -fsS http://127.0.0.1:18090/health \
-  | tee runtime/logs/control-health.json \
-  | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'
+if [[ "$control_ready" != "true" ]]; then
+  echo "NOVA call control did not become ready" >&2
+  cat runtime/logs/control-health.json >&2 2>/dev/null || true
+  exit 1
+fi
+cat runtime/logs/control-health.json
 
 "${compose[@]}" exec -T media-gateway \
   python /app/launcher.py synthesize \
@@ -73,8 +86,8 @@ test -s runtime/sounds/nova-test-command.wav
 "${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload" \
   | tee runtime/logs/dialplan-reload.log
 "${compose[@]}" exec -T asterisk asterisk -rx "dialplan show nova-call-test" \
-  | tee runtime/logs/asterisk-dialplan.log \
-  | grep -q 'AudioSocket'
+  | tee runtime/logs/asterisk-dialplan.log
+grep -q 'AudioSocket' runtime/logs/asterisk-dialplan.log
 
 originate_output="$(
   "${compose[@]}" exec -T asterisk \
