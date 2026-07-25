@@ -1,23 +1,23 @@
-name: NOVA Apply Verified Typed Authority Patch
+name: NOVA Apply Verified Voice Authority Hardening
 
 on:
   push:
     branches:
       - agent/single-brain-low-latency-runtime
     paths:
-      - tooling/.nova_patch_apply/READY
+      - tooling/.nova_patch_apply/READY-v4
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: nova-apply-patch-${{ github.ref }}
+  group: nova-apply-voice-authority-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   apply:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Apply NOVA typed authority refactor'
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Apply NOVA voice authority hardening'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify immutable patch envelope
+      - name: Verify and apply immutable patch envelope
         shell: bash
         run: |
           set -euo pipefail
@@ -35,40 +35,36 @@ jobs:
           import gzip
           import hashlib
           import json
-          import os
           from pathlib import Path
           import subprocess
 
           root = Path.cwd().resolve()
           staging = root / 'tooling' / '.nova_patch_apply'
-          manifest_path = staging / 'manifest.json'
-          ready_path = staging / 'READY'
+          manifest_path = staging / 'manifest-v4.json'
+          ready_path = staging / 'READY-v4'
           workflow_path = root / '.github' / 'workflows' / 'nova-apply-patch.yml'
 
           manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
           required_keys = {
-              'schema', 'partCount', 'base64Length', 'base64Sha256',
-              'compressedSha256', 'patchSha256', 'baseHead',
+              'schema', 'partCount', 'partPrefix', 'base64Length',
+              'base64Sha256', 'compressedSha256', 'patchSha256', 'baseHead',
           }
-          if set(manifest) != required_keys or manifest.get('schema') != 3:
+          if set(manifest) != required_keys or manifest.get('schema') != 4:
               raise SystemExit('Patch manifest shape or schema is invalid.')
+          if manifest.get('partPrefix') != 'v4-':
+              raise SystemExit('Unexpected patch part prefix.')
 
           manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
           if ready_path.read_text(encoding='utf-8').strip() != manifest_sha:
-              raise SystemExit('READY marker does not match manifest SHA-256.')
+              raise SystemExit('READY-v4 marker does not match manifest SHA-256.')
 
           part_count = int(manifest['partCount'])
-          expected_parts = [f'{index:03}.part' for index in range(part_count)]
-          actual_parts = sorted(path.name for path in staging.glob('*.part'))
+          expected_parts = [f'v4-{index:03}.part' for index in range(part_count)]
+          actual_parts = sorted(path.name for path in staging.glob('v4-*.part'))
           if actual_parts != expected_parts:
               raise SystemExit(
-                  f'Patch part set mismatch: expected {expected_parts}, got {actual_parts}'
+                  f'V4 patch part mismatch: expected {expected_parts}, got {actual_parts}'
               )
-
-          allowed_staging = set(expected_parts) | {'manifest.json', 'READY'}
-          actual_staging = {path.name for path in staging.iterdir()}
-          if actual_staging != allowed_staging:
-              raise SystemExit('Unexpected file exists in patch staging directory.')
 
           encoded = ''.join(
               (staging / part_name).read_text(encoding='ascii')
@@ -79,23 +75,15 @@ jobs:
           if hashlib.sha256(encoded.encode('ascii')).hexdigest() != manifest['base64Sha256']:
               raise SystemExit('Concatenated base64 SHA-256 mismatch.')
 
-          try:
-              compressed = base64.b64decode(encoded, validate=True)
-          except Exception as error:
-              raise SystemExit(f'Invalid base64 patch: {error}') from error
+          compressed = base64.b64decode(encoded, validate=True)
           if hashlib.sha256(compressed).hexdigest() != manifest['compressedSha256']:
               raise SystemExit('Compressed patch SHA-256 mismatch.')
-
-          try:
-              patch = gzip.decompress(compressed)
-          except Exception as error:
-              raise SystemExit(f'Invalid gzip patch: {error}') from error
+          patch = gzip.decompress(compressed)
           if hashlib.sha256(patch).hexdigest() != manifest['patchSha256']:
               raise SystemExit('Decoded patch SHA-256 mismatch.')
 
           base_head = str(manifest['baseHead'])
           subprocess.run(['git', 'merge-base', '--is-ancestor', base_head, 'HEAD'], check=True)
-
           changed = set(
               subprocess.check_output(
                   ['git', 'diff', '--name-only', f'{base_head}..HEAD'],
@@ -104,19 +92,18 @@ jobs:
           )
           allowed_changed = {
               '.github/workflows/nova-apply-patch.yml',
-              *{
-                  f'tooling/.nova_patch_apply/{name}'
-                  for name in allowed_staging
-              },
+              'tooling/.nova_patch_apply/manifest-v4.json',
+              'tooling/.nova_patch_apply/READY-v4',
+              *{f'tooling/.nova_patch_apply/{name}' for name in expected_parts},
           }
           if changed != allowed_changed:
               raise SystemExit(
-                  'Staging commit shape mismatch; '
+                  'V4 staging commit shape mismatch; '
                   f'unexpected={sorted(changed - allowed_changed)}, '
                   f'missing={sorted(allowed_changed - changed)}'
               )
 
-          patch_path = root / '.nova-verified-refactor.patch'
+          patch_path = root / '.nova-verified-voice-authority.patch'
           patch_path.write_bytes(patch)
           subprocess.run(
               ['git', 'apply', '--check', '--whitespace=error-all', str(patch_path)],
@@ -128,13 +115,15 @@ jobs:
           )
           patch_path.unlink()
 
+          # The staging mechanism is intentionally one-shot. Remove both the new
+          # envelope and every stale predecessor artifact after a verified apply.
           for child in staging.iterdir():
               child.unlink()
           staging.rmdir()
           workflow_path.unlink()
           PY
 
-      - name: Enforce reconstructed static decision graph
+      - name: Enforce fail-closed voice authority and decision graph
         shell: bash
         run: |
           set -euo pipefail
@@ -144,6 +133,31 @@ jobs:
             tooling/classify_quarantined_decision_files.py
           python tooling/classify_quarantined_decision_files.py --strict
           python tooling/audit_decision_graph_full.py --strict
+          python - <<'PY'
+          from pathlib import Path
+
+          continuous = Path('lib/services/system/nova_continuous_listening_runtime_service.dart').read_text()
+          authorization = Path('lib/services/identity/voice_authorization_runtime_service.dart').read_text()
+          hotpath = Path('lib/services/runtime/nova_hotpath_owner_service.dart').read_text()
+          dashboard = Path('lib/ui/dashboard/dashboard_page.dart').read_text()
+
+          assert 'wakeTrustedBySession' not in continuous
+          assert 'wakeTrustedByRecent' not in continuous
+          assert 'requiresFreshCommandAuthority' in continuous
+          assert 'wakeInspection.captureSucceeded' in continuous
+          assert 'allowContinuityReuse: !requiresFreshCommandAuthority' in continuous
+          assert 'bool allowContinuityReuse = true' not in authorization
+          assert 'if (!inspection.captureSucceeded)' in authorization
+          assert "}) : spokenText = '';" not in hotpath
+          assert hotpath.count('spokenText: spoken') >= 2
+          gate_start = dashboard.index('Future<bool> _authorizeCurrentSpeakerBeforeCommand()')
+          gate_end = dashboard.index('Future<void> _processPrompt(', gate_start)
+          gate = dashboard[gate_start:gate_end]
+          assert 'inspectFreshExternalSample(' in gate
+          assert 'inspection.captureSucceeded' in gate
+          assert 'loadActiveTrustedSession' not in gate
+          assert not Path('tooling/.nova_refactor_bundle').exists()
+          PY
           git diff --check
 
       - name: Commit atomically applied source tree
@@ -157,5 +171,5 @@ jobs:
             echo 'Verified patch produced no repository changes.' >&2
             exit 1
           fi
-          git commit -m 'Apply NOVA typed authority refactor'
+          git commit -m 'Apply NOVA voice authority hardening'
           git push origin "HEAD:${GITHUB_REF_NAME}"
