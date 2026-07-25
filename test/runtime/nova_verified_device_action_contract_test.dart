@@ -102,7 +102,19 @@ void main() {
       expect(executor, contains('return !after.inCall;'));
       expect(executor, contains('after.inCall && after.isMuted'));
       expect(executor, contains('after.inCall && after.isSpeakerOn'));
-      expect(executor, contains("failureCode: verification.verified ? '' : 'state_not_verified'"));
+
+      final verificationGate = executor.indexOf('if (!verification.verified)');
+      final failureCode = executor.indexOf(
+        "failureCode: 'state_not_verified'",
+        verificationGate,
+      );
+      final verifiedSuccess = executor.indexOf(
+        'success: true',
+        failureCode,
+      );
+      expect(verificationGate, greaterThanOrEqualTo(0));
+      expect(failureCode, greaterThan(verificationGate));
+      expect(verifiedSuccess, greaterThan(failureCode));
     });
 
     test('API route names used by the core controller remain authorized', () {
