@@ -1,4 +1,4 @@
-// NOVA_IMMUTABLE_TRANSCRIPT_ACTION_GUARD_V1
+// NOVA_IMMUTABLE_TRANSCRIPT_ACTION_GUARD_V2_SCOPED_AUTHORITY
 import '../../core/actions/nova_device_action.dart';
 import '../../core/ai/ai_request.dart';
 import '../../core/turn/nova_turn_authority.dart';
@@ -49,10 +49,11 @@ class NovaActionIntentGuardService {
         message: 'Telefon eylemi taze bir tur yetkisine bağlı değil.',
       );
     }
-    if (!request.authority.canRequestNativeAction) {
+    if (!request.authority.canRequestNativeActionFor(action)) {
       return const NovaActionIntentGuardDecision.denied(
-        failureCode: 'typed_authority_missing',
-        message: 'Telefon eylemi için tipli yerel yetki kanıtı bulunamadı.',
+        failureCode: 'typed_authority_scope_blocked',
+        message:
+            'Tipli yerel yetki kanıtı bu telefon eylemini kapsamıyor.',
       );
     }
     if (!request.userConfirmedThisAction) {
