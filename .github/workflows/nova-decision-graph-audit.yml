@@ -65,7 +65,6 @@ jobs:
           rm -f tooling/.nova_runtime_fixes.patch.gz.b64
           rm -rf tooling/.nova_runtime_fix_chunks
           rm -f .github/workflows/nova-apply-runtime-fixes.yml
-          git show 2de6abce06945073b20a4ecf35c131a78fc7346b:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
           git diff --check
 
       - name: Compile corrected Python infrastructure
@@ -109,6 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git checkout HEAD -- .github/workflows
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
