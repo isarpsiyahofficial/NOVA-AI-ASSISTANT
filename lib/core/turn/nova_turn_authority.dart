@@ -1,4 +1,4 @@
-// NOVA_TYPED_TURN_AUTHORITY_V1
+// NOVA_TYPED_TURN_AUTHORITY_V2_SCOPED_COMPANION
 // Authority is created only from a local UI gesture, a verified owner
 // voiceprint, an explicitly configured companion scope, or a reminder event.
 // Model output and free-form metadata can never promote this value.
@@ -12,6 +12,17 @@ enum NovaTurnAuthorityKind {
 }
 
 class NovaTurnAuthority {
+  static const Set<String> _companionCallControlActions = <String>{
+    'answer_call',
+    'reject_call',
+    'hang_up',
+    'mute_call',
+    'unmute_call',
+    'speaker_on',
+    'speaker_off',
+    'toggle_hold',
+  };
+
   final NovaTurnAuthorityKind kind;
   final bool localUserPresence;
   final bool ownerVoiceVerified;
@@ -145,7 +156,17 @@ class NovaTurnAuthority {
           ownerConfidence >= 0.64 &&
           nativeActionToken.isNotEmpty;
     }
-    return companionAuthorized;
+    return false;
+  }
+
+  bool canRequestNativeActionFor(String action) {
+    final normalizedAction = action.trim().toLowerCase();
+    if (normalizedAction.isEmpty || !isVerified) return false;
+    if (kind == NovaTurnAuthorityKind.companion) {
+      return companionAuthorized &&
+          _companionCallControlActions.contains(normalizedAction);
+    }
+    return canRequestNativeAction;
   }
 
   NovaTurnAuthority copyWithNativeActionToken(String token) {
@@ -168,6 +189,9 @@ class NovaTurnAuthority {
         'localUserPresence': localUserPresence,
         'ownerVoiceVerified': ownerVoiceVerified,
         'companionAuthorized': companionAuthorized,
+        'companionNativeScope': kind == NovaTurnAuthorityKind.companion
+            ? _companionCallControlActions.toList(growable: false)
+            : const <String>[],
         'ownerVoiceIdPresent': ownerVoiceId.isNotEmpty,
         'ownerConfidence': ownerConfidence,
         'nativeActionTokenPresent': nativeActionToken.isNotEmpty,
