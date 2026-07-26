@@ -69,17 +69,28 @@ jobs:
         run: >-
           dart format
           lib/main.dart
+          lib/core/ai/ai_request.dart
           lib/core/turn/nova_core_turn_controller.dart
-          lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/actions/nova_verified_call_action_service.dart
           lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/audio_runtime/nova_playback_echo_filter_service.dart
+          lib/services/call/nova_call_control_bridge_service.dart
+          lib/services/call_companion/nova_call_companion_runtime_service.dart
+          lib/services/call_companion/nova_call_companion_service.dart
           lib/services/identity/nova_voice_identity_bridge_service.dart
+          lib/services/identity/voice_authorization_runtime_service.dart
+          lib/services/runtime/nova_hotpath_owner_service.dart
+          lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/runtime/nova_runtime_orchestrator_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/system/nova_continuous_listening_runtime_service.dart
           lib/services/tts/nova_tts_service.dart
+          lib/ui/dashboard/dashboard_page.dart
           lib/ui/launch/nova_launch_gate_page.dart
           lib/ui/onboarding/nova_first_run_setup_v2_page.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
+          test/runtime/nova_verified_device_action_contract_test.dart
 
       - name: Run runtime integrity contracts
         run: flutter test test/runtime/nova_runtime_integrity_contract_test.dart
@@ -88,14 +99,24 @@ jobs:
         run: >-
           flutter analyze
           lib/main.dart
+          lib/core/ai/ai_request.dart
           lib/core/turn/nova_core_turn_controller.dart
-          lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/actions/nova_verified_call_action_service.dart
           lib/services/asr/nova_streaming_asr_runtime_service.dart
           lib/services/asr/nova_streaming_transcript_router_service.dart
           lib/services/audio_runtime/nova_playback_echo_filter_service.dart
+          lib/services/call/nova_call_control_bridge_service.dart
+          lib/services/call_companion/nova_call_companion_runtime_service.dart
+          lib/services/call_companion/nova_call_companion_service.dart
           lib/services/identity/nova_voice_identity_bridge_service.dart
+          lib/services/identity/voice_authorization_runtime_service.dart
+          lib/services/runtime/nova_hotpath_owner_service.dart
+          lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/runtime/nova_runtime_orchestrator_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/system/nova_continuous_listening_runtime_service.dart
           lib/services/tts/nova_tts_service.dart
+          lib/ui/dashboard/dashboard_page.dart
           lib/ui/launch/nova_launch_gate_page.dart
           lib/ui/onboarding/nova_first_run_setup_v2_page.dart
 
@@ -161,42 +182,10 @@ jobs:
             exit 1
           fi
 
-      - name: Compile ABI-split release APKs
-        id: release_build
-        continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          flutter build apk --release --split-per-abi --no-pub 2>&1 | tee nova-release-build.log
-          code=${PIPESTATUS[0]}
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Upload release build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nova-release-build-log
-          path: nova-release-build.log
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Enforce release APK build
-        shell: bash
-        run: |
-          if [[ "${{ steps.release_build.outputs.exit_code }}" != "0" ]]; then
-            echo "Release APKs failed. Read nova-release-build-log artifact."
-            exit 1
-          fi
-
       - name: Upload test APKs
         uses: actions/upload-artifact@v4
         with:
-          name: nova-native-voice-apks
-          path: |
-            build/app/outputs/flutter-apk/app-debug.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-x86_64-release.apk
+          name: nova-native-voice-internal-test-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 14

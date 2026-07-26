@@ -89,7 +89,7 @@ void main() {
       expect(launch, contains('isVerifiedVoiceprintId(settings.activeVoiceProfileId)'));
       expect(dashboard, isNot(contains('nova_manual_owner_')));
       expect(dashboard, isNot(contains('_completeManualSetup')));
-      expect(dashboard, contains('NOVA_APK_STANDALONE_DASHBOARD_V5_VERIFIED_RUNTIME_ONLY'));
+      expect(dashboard, contains('NovaTurnAuthority.ownerVoice('));
     });
 
     test('call actions are verified against fresh Telecom state', () {

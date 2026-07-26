@@ -51,7 +51,6 @@ RUN curl --fail --location --retry 5 --retry-all-errors \
 WORKDIR /usr/src/asterisk-${ASTERISK_VERSION}
 RUN ./configure \
         --with-pjproject-bundled \
-        --with-jansson-bundled \
         --without-dahdi \
         --without-pri \
         --without-ss7 \

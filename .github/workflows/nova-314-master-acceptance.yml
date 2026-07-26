@@ -105,13 +105,21 @@ jobs:
           lib/core/settings/nova_settings.dart
           lib/core/turn/nova_core_turn_controller.dart
           lib/services/actions/nova_device_action_executor_service.dart
+          lib/services/actions/nova_verified_call_action_service.dart
           lib/services/api/api_service.dart
+          lib/services/call/nova_call_control_bridge_service.dart
           lib/services/call/nova_carrier_media_bridge_service.dart
+          lib/services/call_companion/nova_call_companion_runtime_service.dart
+          lib/services/call_companion/nova_call_companion_service.dart
+          lib/services/identity/voice_authorization_runtime_service.dart
+          lib/services/runtime/nova_hotpath_owner_service.dart
+          lib/services/runtime/nova_runtime_orchestrator_service.dart
           lib/services/settings/nova_settings_service.dart
           lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/system/nova_continuous_listening_runtime_service.dart
           lib/services/tts/nova_tts_service.dart
+          lib/ui/dashboard/dashboard_page.dart
           lib/ui/launch/nova_launch_gate_page.dart
-          lib/ui/nova/nova_dashboard_page.dart
 
       - name: Compile native Kotlin
         working-directory: android

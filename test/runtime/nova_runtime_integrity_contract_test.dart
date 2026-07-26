@@ -292,7 +292,7 @@ void main() {
       final stt = _read('lib/services/stt/nova_speech_to_text_service.dart');
 
       expect(dashboard, contains('widget.sttService.transcribe('));
-      expect(dashboard, contains("'nativeActionToken': result.nativeActionToken"));
+      expect(dashboard, contains("'nativeActionToken': sttResult.nativeActionToken"));
       expect(stt, contains('identifyVoiceFromFile('));
       expect(stt, contains('nativeActionToken: matchedOwner'));
     });

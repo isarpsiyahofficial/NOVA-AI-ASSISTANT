@@ -1,4 +1,4 @@
-name: Nova Bidirectional Call Bridge E2E
+name: Nova AudioSocket Speech Transport E2E (Mock AI)
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
           docker version
           docker compose version
 
-      - name: Run real AudioSocket call
+      - name: Run real AudioSocket media transport with deterministic mock AI
         shell: bash
         run: |
           chmod +x infra/call-bridge/run_e2e.sh

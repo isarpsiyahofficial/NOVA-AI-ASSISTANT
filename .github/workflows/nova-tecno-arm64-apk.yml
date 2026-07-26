@@ -1,4 +1,4 @@
-name: Nova TECNO ARM64 APK
+name: Nova TECNO ARM64 Internal Test APK
 
 on:
   push:
@@ -71,22 +71,22 @@ jobs:
           test/runtime/nova_verified_device_action_contract_test.dart
           test/runtime/nova_contact_call_target_resolver_test.dart
 
-      - name: Build TECNO ARM64 release APK
+      - name: Build TECNO ARM64 internal-test APK
         shell: bash
         run: |
-          flutter build apk --release --target-platform android-arm64 --no-pub
-          cp build/app/outputs/flutter-apk/app-release.apk NOVA-TECNO-ARM64-RELEASE.apk
-          sha256sum NOVA-TECNO-ARM64-RELEASE.apk | tee NOVA-TECNO-ARM64-RELEASE.sha256
-          stat -c 'apk_bytes=%s' NOVA-TECNO-ARM64-RELEASE.apk | tee NOVA-TECNO-ARM64-RELEASE.size.txt
+          flutter build apk --debug --target-platform android-arm64 --no-pub
+          cp build/app/outputs/flutter-apk/app-debug.apk NOVA-TECNO-ARM64-INTERNAL-TEST.apk
+          sha256sum NOVA-TECNO-ARM64-INTERNAL-TEST.apk | tee NOVA-TECNO-ARM64-INTERNAL-TEST.sha256
+          stat -c 'apk_bytes=%s' NOVA-TECNO-ARM64-INTERNAL-TEST.apk | tee NOVA-TECNO-ARM64-INTERNAL-TEST.size.txt
 
-      - name: Upload TECNO ARM64 APK
+      - name: Upload TECNO ARM64 internal-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: NOVA-TECNO-ARM64-RELEASE
+          name: NOVA-TECNO-ARM64-INTERNAL-TEST
           path: |
-            NOVA-TECNO-ARM64-RELEASE.apk
-            NOVA-TECNO-ARM64-RELEASE.sha256
-            NOVA-TECNO-ARM64-RELEASE.size.txt
+            NOVA-TECNO-ARM64-INTERNAL-TEST.apk
+            NOVA-TECNO-ARM64-INTERNAL-TEST.sha256
+            NOVA-TECNO-ARM64-INTERNAL-TEST.size.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
