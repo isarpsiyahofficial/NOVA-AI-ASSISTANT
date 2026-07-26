@@ -26,7 +26,22 @@ cleanup() {
 trap cleanup EXIT
 
 "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
-"${compose[@]}" build --progress=plain 2>&1 | tee runtime/logs/docker-compose-build.log
+build_ok=false
+: > runtime/logs/docker-compose-build.log
+for attempt in 1 2 3; do
+  echo "Docker Compose build attempt ${attempt}/3" | tee -a runtime/logs/docker-compose-build.log
+  if "${compose[@]}" --progress=plain build 2>&1 | tee -a runtime/logs/docker-compose-build.log; then
+    build_ok=true
+    break
+  fi
+  if [[ "$attempt" -lt 3 ]]; then
+    sleep "$((attempt * 10))"
+  fi
+done
+if [[ "$build_ok" != "true" ]]; then
+  echo "Docker Compose build failed after 3 attempts" >&2
+  exit 1
+fi
 "${compose[@]}" up -d 2>&1 | tee runtime/logs/docker-compose-up.log
 "${compose[@]}" ps -a | tee runtime/logs/docker-compose-ps-start.log
 

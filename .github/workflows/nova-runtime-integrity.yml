@@ -96,30 +96,53 @@ jobs:
         run: flutter test test/runtime/nova_runtime_integrity_contract_test.dart
 
       - name: Analyze runtime entry points
-        run: >-
-          flutter analyze
-          lib/main.dart
-          lib/core/ai/ai_request.dart
-          lib/core/turn/nova_core_turn_controller.dart
-          lib/services/actions/nova_verified_call_action_service.dart
-          lib/services/asr/nova_streaming_asr_runtime_service.dart
-          lib/services/asr/nova_streaming_transcript_router_service.dart
-          lib/services/audio_runtime/nova_playback_echo_filter_service.dart
-          lib/services/call/nova_call_control_bridge_service.dart
-          lib/services/call_companion/nova_call_companion_runtime_service.dart
-          lib/services/call_companion/nova_call_companion_service.dart
-          lib/services/identity/nova_voice_identity_bridge_service.dart
-          lib/services/identity/voice_authorization_runtime_service.dart
-          lib/services/runtime/nova_hotpath_owner_service.dart
-          lib/services/runtime/nova_runtime_graph_service.dart
-          lib/services/runtime/nova_runtime_orchestrator_service.dart
-          lib/services/stt/nova_speech_to_text_service.dart
-          lib/services/system/nova_continuous_listening_runtime_service.dart
-          lib/services/tts/nova_tts_service.dart
-          lib/ui/dashboard/dashboard_page.dart
-          lib/ui/launch/nova_launch_gate_page.dart
-          lib/ui/onboarding/nova_first_run_setup_v2_page.dart
+        id: analyze
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          flutter analyze \
+          lib/main.dart \
+          lib/core/ai/ai_request.dart \
+          lib/core/turn/nova_core_turn_controller.dart \
+          lib/services/actions/nova_verified_call_action_service.dart \
+          lib/services/asr/nova_streaming_asr_runtime_service.dart \
+          lib/services/asr/nova_streaming_transcript_router_service.dart \
+          lib/services/audio_runtime/nova_playback_echo_filter_service.dart \
+          lib/services/call/nova_call_control_bridge_service.dart \
+          lib/services/call_companion/nova_call_companion_runtime_service.dart \
+          lib/services/call_companion/nova_call_companion_service.dart \
+          lib/services/identity/nova_voice_identity_bridge_service.dart \
+          lib/services/identity/voice_authorization_runtime_service.dart \
+          lib/services/runtime/nova_hotpath_owner_service.dart \
+          lib/services/runtime/nova_runtime_graph_service.dart \
+          lib/services/runtime/nova_runtime_orchestrator_service.dart \
+          lib/services/stt/nova_speech_to_text_service.dart \
+          lib/services/system/nova_continuous_listening_runtime_service.dart \
+          lib/services/tts/nova_tts_service.dart \
+          lib/ui/dashboard/dashboard_page.dart \
+          lib/ui/launch/nova_launch_gate_page.dart \
+          lib/ui/onboarding/nova_first_run_setup_v2_page.dart 2>&1 | tee nova-analyze.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
 
+      - name: Upload runtime analyze log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-runtime-analyze-log
+          path: nova-analyze.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce runtime analyze
+        shell: bash
+        run: |
+          if [[ "${{ steps.analyze.outputs.exit_code }}" != "0" ]]; then
+            echo "Runtime analyze failed. Read nova-runtime-analyze-log artifact."
+            exit 1
+          fi
       - name: Audit packaged native voice stack
         run: |
           chmod +x tooling/audit_native_voice_stack.sh

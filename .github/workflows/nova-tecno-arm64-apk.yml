@@ -65,11 +65,43 @@ jobs:
         run: flutter pub get
 
       - name: Verify action and runtime contracts
-        run: >-
-          flutter test
-          test/runtime/nova_runtime_integrity_contract_test.dart
-          test/runtime/nova_verified_device_action_contract_test.dart
-          test/runtime/nova_contact_call_target_resolver_test.dart
+        id: contract_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          : > nova-contract-tests.log
+          code=0
+          for test_file in \
+            test/runtime/nova_runtime_integrity_contract_test.dart \
+            test/runtime/nova_verified_device_action_contract_test.dart \
+            test/runtime/nova_contact_call_target_resolver_test.dart; do
+            echo "=== $test_file ===" | tee -a nova-contract-tests.log
+            flutter test "$test_file" 2>&1 | tee -a nova-contract-tests.log
+            test_code=${PIPESTATUS[0]}
+            if [[ "$test_code" != "0" ]]; then
+              code="$test_code"
+            fi
+          done
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload contract test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-contract-test-log
+          path: nova-contract-tests.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce action and runtime contracts
+        shell: bash
+        run: |
+          if [[ "${{ steps.contract_tests.outputs.exit_code }}" != "0" ]]; then
+            echo "Contract tests failed. Read nova-contract-test-log artifact."
+            exit 1
+          fi
 
       - name: Build TECNO ARM64 internal-test APK
         shell: bash
