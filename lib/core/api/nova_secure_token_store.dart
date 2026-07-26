@@ -1,4 +1,5 @@
-// NOVA_API_PROVIDER_SELECTION_V3_NAMED_RUNTIME_SECRETS
+// NOVA_KEYSTORE_BACKED_RUNTIME_SECRETS_V1
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'nova_ai_provider_type.dart';
@@ -6,6 +7,9 @@ import 'nova_ai_provider_type.dart';
 class NovaSecureTokenStore {
   static const String _legacyApiKeyPrefsKey = 'nova_legacy_api_key_mirror';
   static const String carrierBridgeTokenName = 'carrier_bridge_control_token';
+  static final FlutterSecureStorage _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(),
+  );
 
   const NovaSecureTokenStore();
 
@@ -14,37 +18,54 @@ class NovaSecureTokenStore {
       'nova_runtime_secret_${name.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]+'), '_')}';
 
   Future<String> read(NovaAiProviderType provider) async {
-    final prefs = await SharedPreferences.getInstance();
-    final providerKey = prefs.getString(_keyFor(provider))?.trim() ?? '';
-    if (providerKey.isNotEmpty) return providerKey;
-    if (provider == NovaAiProviderType.gemini) {
-      return prefs.getString(_legacyApiKeyPrefsKey)?.trim() ?? '';
-    }
-    return '';
-  }
+    final key = _keyFor(provider);
+    final secure = (await _storage.read(key: key))?.trim() ?? '';
+    if (secure.isNotEmpty) return secure;
 
-  Future<void> write(NovaAiProviderType provider, String token) async {
     final prefs = await SharedPreferences.getInstance();
-    final normalized = token.trim();
-    final providerKey = _keyFor(provider);
-    if (normalized.isEmpty) {
-      await prefs.remove(providerKey);
+    var legacy = prefs.getString(key)?.trim() ?? '';
+    if (legacy.isEmpty && provider == NovaAiProviderType.gemini) {
+      legacy = prefs.getString(_legacyApiKeyPrefsKey)?.trim() ?? '';
+    }
+    if (legacy.isNotEmpty) {
+      await _storage.write(key: key, value: legacy);
+      await prefs.remove(key);
       if (provider == NovaAiProviderType.gemini) {
         await prefs.remove(_legacyApiKeyPrefsKey);
       }
-      return;
     }
-    await prefs.setString(providerKey, normalized);
+    return legacy;
+  }
+
+  Future<void> write(NovaAiProviderType provider, String token) async {
+    final key = _keyFor(provider);
+    final normalized = token.trim();
+    final prefs = await SharedPreferences.getInstance();
+    if (normalized.isEmpty) {
+      await _storage.delete(key: key);
+    } else {
+      await _storage.write(key: key, value: normalized);
+    }
+    await prefs.remove(key);
     if (provider == NovaAiProviderType.gemini) {
-      await prefs.setString(_legacyApiKeyPrefsKey, normalized);
+      await prefs.remove(_legacyApiKeyPrefsKey);
     }
   }
 
   Future<String> readNamed(String name) async {
     final normalizedName = name.trim();
     if (normalizedName.isEmpty) return '';
+    final key = _namedKey(normalizedName);
+    final secure = (await _storage.read(key: key))?.trim() ?? '';
+    if (secure.isNotEmpty) return secure;
+
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_namedKey(normalizedName))?.trim() ?? '';
+    final legacy = prefs.getString(key)?.trim() ?? '';
+    if (legacy.isNotEmpty) {
+      await _storage.write(key: key, value: legacy);
+      await prefs.remove(key);
+    }
+    return legacy;
   }
 
   Future<void> writeNamed(String name, String secret) async {
@@ -52,13 +73,14 @@ class NovaSecureTokenStore {
     if (normalizedName.isEmpty) {
       throw ArgumentError.value(name, 'name', 'Secret name cannot be empty');
     }
-    final prefs = await SharedPreferences.getInstance();
     final key = _namedKey(normalizedName);
     final normalizedSecret = secret.trim();
     if (normalizedSecret.isEmpty) {
-      await prefs.remove(key);
+      await _storage.delete(key: key);
     } else {
-      await prefs.setString(key, normalizedSecret);
+      await _storage.write(key: key, value: normalizedSecret);
     }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
   }
 }

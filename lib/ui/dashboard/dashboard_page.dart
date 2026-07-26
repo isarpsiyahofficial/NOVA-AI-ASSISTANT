@@ -62,7 +62,8 @@ import '../../services/self_repair/nova_capability_runtime_registry_service.dart
 import '../../services/self_repair/nova_repair_resolution_memory_service.dart';
 import '../../services/self_repair/nova_repair_validation_service.dart';
 import '../../services/self_repair/nova_repair_voice_narration_service.dart';
-import '../../services/self_repair/nova_runtime_signal_service.dart' as self_repair_signal;
+import '../../services/self_repair/nova_runtime_signal_service.dart'
+    as self_repair_signal;
 import '../../services/self_repair/nova_self_diagnostic_service.dart';
 import '../../services/self_repair/nova_self_recognition_service.dart';
 import '../../services/self_repair/nova_self_repair_command_service.dart';
@@ -223,8 +224,8 @@ class _DashboardPageState extends State<DashboardPage> {
       const NovaTranslatorModeState.disabled();
   late final NovaPersonalityCommandService _personalityCommandService =
       NovaPersonalityCommandService(
-        settingsService: const PersonalitySettingsService(),
-      );
+    settingsService: const PersonalitySettingsService(),
+  );
   final NovaPhoneControlNativeBridgeService _phoneControlNativeBridgeService =
       const NovaPhoneControlNativeBridgeService();
   late final NovaMediaControlService _mediaControlService =
@@ -263,7 +264,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   late final NovaSecurityIncidentService _securityIncidentService;
   late final NovaRestrictedCapabilityGuardService
-  _restrictedCapabilityGuardService;
+      _restrictedCapabilityGuardService;
   late final NovaStorageCleanupService _storageCleanupService;
   late final NovaVoiceIdentityRuntimeService _voiceIdentityRuntimeService;
   late final VoiceAuthorizationRuntimeService _voiceAuthorizationRuntimeService;
@@ -273,7 +274,7 @@ class _DashboardPageState extends State<DashboardPage> {
   late final NovaCallStateService _callStateService;
   late final NovaCallControlBridgeService _callControlService;
   late final NovaContinuousListeningRuntimeService
-  _continuousListeningRuntimeService;
+      _continuousListeningRuntimeService;
   late final NovaRuntimeOrchestratorService _runtimeOrchestratorService;
   late final NovaHotpathOwnerService _hotpathOwnerService;
   final NovaRuntimeIntentRouterService _runtimeIntentRouterService =
@@ -761,8 +762,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _securityStatusText = state.statusText;
     });
 
-    final escalated =
-        (_hasCriticalSecurityIncident && !oldCritical) ||
+    final escalated = (_hasCriticalSecurityIncident && !oldCritical) ||
         (_hasHighSecurityIncident && !oldHigh) ||
         (_securityIncidentCount > oldCount);
 
@@ -796,20 +796,18 @@ class _DashboardPageState extends State<DashboardPage> {
     var snapshot = await _permissionBridgeService.getPermissionSnapshot();
     if (!snapshot.recordAudioGranted) {
       await Future<void>.delayed(const Duration(milliseconds: 250));
-      final secondSnapshot = await _permissionBridgeService
-          .getPermissionSnapshot();
+      final secondSnapshot =
+          await _permissionBridgeService.getPermissionSnapshot();
       if (secondSnapshot.recordAudioGranted) snapshot = secondSnapshot;
     }
 
     if (!mounted) return;
 
-    final essentialCallReady =
-        snapshot.readPhoneStateGranted &&
+    final essentialCallReady = snapshot.readPhoneStateGranted &&
         snapshot.readPhoneNumbersGranted &&
         snapshot.answerPhoneCallsGranted &&
         snapshot.callPhoneGranted;
-    final fullManagedCallReady =
-        essentialCallReady &&
+    final fullManagedCallReady = essentialCallReady &&
         snapshot.readCallLogGranted &&
         snapshot.defaultDialerGranted;
 
@@ -827,8 +825,8 @@ class _DashboardPageState extends State<DashboardPage> {
       _callRoleStatus = fullManagedCallReady
           ? 'Kayıtlı kişiler için çağrı zinciri hazır. Normal telefon deneyimi korunur.'
           : snapshot.managedCallSupportReady
-          ? 'Temel çağrı desteği hazır. Tam otomasyon için varsayılan telefon rolü veya ek çağrı izinleri eksik.'
-          : 'Çağrı desteği kısmen hazır. İzinler ve rol durumu henüz tamamlanmadı.';
+              ? 'Temel çağrı desteği hazır. Tam otomasyon için varsayılan telefon rolü veya ek çağrı izinleri eksik.'
+              : 'Çağrı desteği kısmen hazır. İzinler ve rol durumu henüz tamamlanmadı.';
       _permissionsRefreshing = false;
     });
   }
@@ -886,10 +884,10 @@ class _DashboardPageState extends State<DashboardPage> {
       final status = state.running
           ? 'Streaming ASR çalışıyor • embedded yerel model aktif'
           : state.modelReady
-          ? (state.initialized
-                ? 'Streaming ASR hazır • dinleme zinciri beklemede'
-                : 'Streaming ASR hazır • başlatma bekliyor')
-          : (message.isNotEmpty ? message : 'Streaming ASR hazır değil');
+              ? (state.initialized
+                  ? 'Streaming ASR hazır • dinleme zinciri beklemede'
+                  : 'Streaming ASR hazır • başlatma bekliyor')
+              : (message.isNotEmpty ? message : 'Streaming ASR hazır değil');
       _safeSetState(() {
         _streamingAsrReady = state.embeddedSherpaReady;
         _streamingAsrSingleAuthorityConfirmed = state.singleAuthorityConfirmed;
@@ -933,15 +931,13 @@ class _DashboardPageState extends State<DashboardPage> {
     final callInstructions = results[6] as List<NovaCallInstruction>;
     final preferredMediaPackage = results[7] as String;
 
-    final sortedNotes = <dynamic>[...callNotes]
-      ..sort((a, b) {
+    final sortedNotes = <dynamic>[...callNotes]..sort((a, b) {
         final left = _toDateTime(a.createdAt);
         final right = _toDateTime(b.createdAt);
         return right.compareTo(left);
       });
 
-    final sortedReminders = <dynamic>[...reminders]
-      ..sort((a, b) {
+    final sortedReminders = <dynamic>[...reminders]..sort((a, b) {
         final left = '${a.dueAtIso ?? ''}';
         final right = '${b.dueAtIso ?? ''}';
         return left.compareTo(right);
@@ -952,32 +948,25 @@ class _DashboardPageState extends State<DashboardPage> {
     _safeSetState(() {
       _managedContacts = contacts;
       _knownVoiceCount = knownVoices.length;
-      _authorizedVoiceCount = knownVoices
-          .where((e) => e.isAuthorizedToUseNova)
-          .length;
-      _familiarVoiceCount = knownVoices
-          .where((e) => !e.isAuthorizedToUseNova)
-          .length;
+      _authorizedVoiceCount =
+          knownVoices.where((e) => e.isAuthorizedToUseNova).length;
+      _familiarVoiceCount =
+          knownVoices.where((e) => !e.isAuthorizedToUseNova).length;
       _reminders = sortedReminders;
       _callNotes = sortedNotes;
-      _reminderPendingCount = reminders
-          .where((e) => e.status.name == 'pending')
-          .length;
-      _reminderCompletedCount = reminders
-          .where((e) => e.status.name == 'completed')
-          .length;
+      _reminderPendingCount =
+          reminders.where((e) => e.status.name == 'pending').length;
+      _reminderCompletedCount =
+          reminders.where((e) => e.status.name == 'completed').length;
       _voiceCloneCount = clones.length;
       _favoriteVoiceCloneCount = clones.where((e) => e.isFavorite).length;
       _activeVoiceCloneCount = clones.where((e) => e.isActiveInUse).length;
-      _memoryPermanentCount = memories
-          .where((e) => e.type == MemoryType.permanent)
-          .length;
-      _memoryTemporaryCount = memories
-          .where((e) => e.type == MemoryType.temporary)
-          .length;
-      _memoryContextualCount = memories
-          .where((e) => e.type == MemoryType.contextual)
-          .length;
+      _memoryPermanentCount =
+          memories.where((e) => e.type == MemoryType.permanent).length;
+      _memoryTemporaryCount =
+          memories.where((e) => e.type == MemoryType.temporary).length;
+      _memoryContextualCount =
+          memories.where((e) => e.type == MemoryType.contextual).length;
       _callNotesCount = callNotes.length;
       _callInstructions = callInstructions;
       _callInstructionPendingCount = callInstructions
@@ -1277,7 +1266,8 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
         probeService: NovaCapabilityProbeService(
-          runtimeSignalService: self_repair_signal.NovaRuntimeSignalService.instance,
+          runtimeSignalService:
+              self_repair_signal.NovaRuntimeSignalService.instance,
         ),
       ),
     );
@@ -1520,9 +1510,8 @@ class _DashboardPageState extends State<DashboardPage> {
       success = await _nativeSecurityBridgeService.applyFinalContainment(
         reason: 'Gösterge paneli kritik risk containment aksiyonu',
       );
-      message = success
-          ? 'Kritik risk için containment uygulandı efendim.'
-          : message;
+      message =
+          success ? 'Kritik risk için containment uygulandı efendim.' : message;
     } else if (_hasHighSecurityIncident) {
       success = await _nativeSecurityBridgeService.applyQuarantineShell(
         reason: 'Gösterge paneli yüksek risk çalışma zamanı karantina aksiyonu',
@@ -1534,9 +1523,8 @@ class _DashboardPageState extends State<DashboardPage> {
       success = await _nativeSecurityBridgeService.applyRestrictMode(
         reason: 'Gösterge paneli orta risk daraltma aksiyonu',
       );
-      message = success
-          ? 'Orta risk için restrict mode uygulandı efendim.'
-          : message;
+      message =
+          success ? 'Orta risk için restrict mode uygulandı efendim.' : message;
     }
 
     await _refreshSecurityState();
@@ -1663,13 +1651,13 @@ class _DashboardPageState extends State<DashboardPage> {
       return;
     }
 
-    final enroll = await _voiceIdentityRuntimeService
-        .enrollFromFreshExternalSample(
-          voiceId: owner.ownerVoiceId,
-          displayName: owner.ownerName,
-          maxDurationSeconds: 6,
-          outputName: 'nova_owner_enroll',
-        );
+    final enroll =
+        await _voiceIdentityRuntimeService.enrollFromFreshExternalSample(
+      voiceId: owner.ownerVoiceId,
+      displayName: owner.ownerName,
+      maxDurationSeconds: 6,
+      outputName: 'nova_owner_enroll',
+    );
 
     if (!mounted) return;
 
@@ -1688,30 +1676,28 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<bool> _authorizeCurrentSpeakerBeforeCommand() async {
-    final trustedDaily = await _dailyVoiceSessionService
-        .loadActiveTrustedSession();
+    final trustedDaily =
+        await _dailyVoiceSessionService.loadActiveTrustedSession();
     if (trustedDaily != null && trustedDaily.isTrusted) {
       return true;
     }
 
     final inspection = await _voiceAuthorizationRuntimeService
         .inspectPreferContinuityThenFresh(
-          maxDurationSeconds: 4,
-          outputName: 'nova_runtime_auth',
-          minSimilarity: 0.62,
-          allowContinuityReuse: true,
-          preferredVoiceId:
-              _continuousListeningRuntimeService
-                  .currentPromptMetadata['speakerVoiceId']
-                  ?.toString() ??
-              '',
-        );
+      maxDurationSeconds: 4,
+      outputName: 'nova_runtime_auth',
+      minSimilarity: 0.62,
+      allowContinuityReuse: true,
+      preferredVoiceId: _continuousListeningRuntimeService
+              .currentPromptMetadata['speakerVoiceId']
+              ?.toString() ??
+          '',
+    );
 
     if (!mounted) return false;
 
     final decision = inspection.decision;
-    final allowed =
-        decision.level == VoiceAccessLevel.owner ||
+    final allowed = decision.level == VoiceAccessLevel.owner ||
         decision.level == VoiceAccessLevel.authorizedGuest;
 
     if (!allowed) {
@@ -1892,33 +1878,28 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     await const NovaIdentityRuntimeService().ensureLoaded();
-    final adaptiveMetadata = await const NovaSystemAdaptationContractService()
-        .buildMetadata(
-          prompt: raw,
-          sourceSystem: fromVoice
-              ? 'dashboard_stt'
-              : 'dashboard_manual_voice_entry',
-          requestOrigin: requestOrigin,
-          baseMetadata: <String, dynamic>{
-            'source': fromVoice
-                ? 'dashboard_stt'
-                : 'dashboard_manual_voice_entry',
-            'systemExecutionAllowed': allowSystemExecution,
-            'teachingModeEnabled': _novaSettings.teachingModeEnabled,
-            'apiLearningEnabled': _novaSettings.apiLearningEnabled,
-            'apiProvider': _novaSettings.activeAiProvider.key,
-            'apiModel': _novaSettings.activeApiModel,
-            'conversationEntryAlreadyAdded': true,
-            ...promptMetadata,
-          },
-          speakerName: promptMetadata['speakerName']?.toString() ?? '',
-          relationshipLabel:
-              promptMetadata['relationshipLabel']?.toString() ?? '',
-          speakerVoiceId: promptMetadata['speakerVoiceId']?.toString() ?? '',
-          ownerConfidence: (promptMetadata['ownerConfidence'] as num?)
-              ?.toDouble(),
-          mediaMode: _isLikelyMediaRequest(raw),
-        );
+    final adaptiveMetadata =
+        await const NovaSystemAdaptationContractService().buildMetadata(
+      prompt: raw,
+      sourceSystem:
+          fromVoice ? 'dashboard_stt' : 'dashboard_manual_voice_entry',
+      requestOrigin: requestOrigin,
+      baseMetadata: <String, dynamic>{
+        'source': fromVoice ? 'dashboard_stt' : 'dashboard_manual_voice_entry',
+        'systemExecutionAllowed': allowSystemExecution,
+        'teachingModeEnabled': _novaSettings.teachingModeEnabled,
+        'apiLearningEnabled': _novaSettings.apiLearningEnabled,
+        'apiProvider': _novaSettings.activeAiProvider.key,
+        'apiModel': _novaSettings.activeApiModel,
+        'conversationEntryAlreadyAdded': true,
+        ...promptMetadata,
+      },
+      speakerName: promptMetadata['speakerName']?.toString() ?? '',
+      relationshipLabel: promptMetadata['relationshipLabel']?.toString() ?? '',
+      speakerVoiceId: promptMetadata['speakerVoiceId']?.toString() ?? '',
+      ownerConfidence: (promptMetadata['ownerConfidence'] as num?)?.toDouble(),
+      mediaMode: _isLikelyMediaRequest(raw),
+    );
 
     final AiRequest request = AiRequest(
       prompt: allowSystemExecution
@@ -1928,9 +1909,8 @@ class _DashboardPageState extends State<DashboardPage> {
       internetAllowed:
           _novaSettings.apiBrainEnabled && _internetAllowedForThisRequest,
       isResearchRequest: allowSystemExecution ? _isResearchRequest : false,
-      isSelfLearningRequest: allowSystemExecution
-          ? _isSelfLearningRequest
-          : false,
+      isSelfLearningRequest:
+          allowSystemExecution ? _isSelfLearningRequest : false,
       isFastResponsePriority: true,
       isUserApprovedApiUsage:
           _novaSettings.apiBrainEnabled && _userApprovedApiUsageForThisRequest,
@@ -2005,8 +1985,8 @@ class _DashboardPageState extends State<DashboardPage> {
       await _conversationFocusService.rememberExchange(
         userText: raw,
         novaReply: finalText,
-        learningRelevant: _adaptiveInstructionService
-            .looksLikePersistentTeaching(raw),
+        learningRelevant:
+            _adaptiveInstructionService.looksLikePersistentTeaching(raw),
         explicitlyPersistent: _looksLikeMemorySaveRequest(raw),
       );
     } catch (_) {}
@@ -2026,16 +2006,15 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       _presenceService.setStateSafe(NovaPresenceState.speaking);
       await _backgroundBridgeService.showOverlaySpeaking();
-      final responseTtsSource =
-          response.metadata['tts_source']?.toString() ??
+      final responseTtsSource = response.metadata['tts_source']?.toString() ??
           'brain_decision_ai_output';
       final responseRoute = response.metadata['route']?.toString() ?? '';
-      final speechAllowed = NovaSingleBrainAuthorityService.instance
-          .authorizeSpeech(
-            source: 'dashboard_final',
-            text: finalText,
-            response: response,
-          );
+      final speechAllowed =
+          NovaSingleBrainAuthorityService.instance.authorizeSpeech(
+        source: 'dashboard_final',
+        text: finalText,
+        response: response,
+      );
       debugPrint(
         'NOVA_DASHBOARD_TTS_SPEAK_START '
         'tts_source=$responseTtsSource '
@@ -2164,42 +2143,42 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final delegatedHandlers =
         <({String key, Future<bool> Function() run, bool refreshSummaries})>[
-          (
-            key: 'memory',
-            run: () => _runDelegatedMemoryCapability(raw),
-            refreshSummaries: true,
-          ),
-          (
-            key: 'translator',
-            run: () => _runDelegatedTranslatorCapability(raw),
-            refreshSummaries: false,
-          ),
-          (
-            key: 'language_pack',
-            run: () => _runDelegatedLanguagePackCapability(raw),
-            refreshSummaries: false,
-          ),
-          (
-            key: 'call_instruction',
-            run: () => _runDelegatedCallInstructionCapability(raw),
-            refreshSummaries: true,
-          ),
-          (
-            key: 'personality',
-            run: () => _runDelegatedPersonalityCapability(raw),
-            refreshSummaries: false,
-          ),
-          (
-            key: 'media',
-            run: () => _runDelegatedMediaCapability(raw),
-            refreshSummaries: false,
-          ),
-          (
-            key: 'adaptive_teaching',
-            run: () => _runDelegatedAdaptiveTeachingCapability(raw),
-            refreshSummaries: true,
-          ),
-        ];
+      (
+        key: 'memory',
+        run: () => _runDelegatedMemoryCapability(raw),
+        refreshSummaries: true,
+      ),
+      (
+        key: 'translator',
+        run: () => _runDelegatedTranslatorCapability(raw),
+        refreshSummaries: false,
+      ),
+      (
+        key: 'language_pack',
+        run: () => _runDelegatedLanguagePackCapability(raw),
+        refreshSummaries: false,
+      ),
+      (
+        key: 'call_instruction',
+        run: () => _runDelegatedCallInstructionCapability(raw),
+        refreshSummaries: true,
+      ),
+      (
+        key: 'personality',
+        run: () => _runDelegatedPersonalityCapability(raw),
+        refreshSummaries: false,
+      ),
+      (
+        key: 'media',
+        run: () => _runDelegatedMediaCapability(raw),
+        refreshSummaries: false,
+      ),
+      (
+        key: 'adaptive_teaching',
+        run: () => _runDelegatedAdaptiveTeachingCapability(raw),
+        refreshSummaries: true,
+      ),
+    ];
 
     for (final handler in delegatedHandlers.where(
       (handler) => handler.key == aiSelectedCapability,
@@ -2287,21 +2266,21 @@ class _DashboardPageState extends State<DashboardPage> {
           'decisionOnlyClassifier': true,
         },
       );
-      final capabilityDecision = await NovaSingleBrainAuthorityService.instance
-          .handleInput(
-            input: NovaBrainInput(
-              text: normalized,
-              source: 'dashboard_delegated_capability_gate',
-              mode: 'decisionOnlyClassifier',
-              primaryTurn: false,
-              allowFallbackSpeech: false,
-              requiresLocalModel: false,
-              metadata: capabilityRequest.metadata,
-            ),
-            baseRequest: capabilityRequest,
-            mode: AiMode.apiOnly,
-            runAi: _novaAiService.process,
-          );
+      final capabilityDecision =
+          await NovaSingleBrainAuthorityService.instance.handleInput(
+        input: NovaBrainInput(
+          text: normalized,
+          source: 'dashboard_delegated_capability_gate',
+          mode: 'decisionOnlyClassifier',
+          primaryTurn: false,
+          allowFallbackSpeech: false,
+          requiresLocalModel: false,
+          metadata: capabilityRequest.metadata,
+        ),
+        baseRequest: capabilityRequest,
+        mode: AiMode.apiOnly,
+        runAi: _novaAiService.process,
+      );
       final response = capabilityDecision.response;
       final token = response.displayText
           .toLowerCase()
@@ -2402,8 +2381,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final normalized = raw.trim().toLowerCase();
     if (normalized.isEmpty) return false;
 
-    final wantsTranslator =
-        normalized.contains('cevirmen modu') ||
+    final wantsTranslator = normalized.contains('cevirmen modu') ||
         normalized.contains('çevirmen modu') ||
         normalized.contains('ceviri modu') ||
         normalized.contains('çeviri modu') ||
@@ -2422,8 +2400,7 @@ class _DashboardPageState extends State<DashboardPage> {
       return true;
     }
 
-    final source =
-        _extractLanguageCode(normalized) ??
+    final source = _extractLanguageCode(normalized) ??
         _translatorModeState.sourceLanguageCode;
     var target = _translatorModeState.targetLanguageCode;
     if (source == target) {
@@ -2611,26 +2588,21 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   String? _extractLanguageCode(String input) {
-    final normalized = input
-        .replaceAll('â', 'a')
-        .replaceAll('î', 'i')
-        .replaceAll('û', 'u');
+    final normalized =
+        input.replaceAll('â', 'a').replaceAll('î', 'i').replaceAll('û', 'u');
     if (normalized.contains('ingilizce') || normalized.contains('english'))
       return 'en';
     if (normalized.contains('türkçe') || normalized.contains('turkce'))
       return 'tr';
     if (normalized.contains('arapça') ||
         normalized.contains('arapca') ||
-        normalized.contains('arabic'))
-      return 'ar';
+        normalized.contains('arabic')) return 'ar';
     if (normalized.contains('fransızca') ||
         normalized.contains('fransizca') ||
-        normalized.contains('french'))
-      return 'fr';
+        normalized.contains('french')) return 'fr';
     if (normalized.contains('rusça') ||
         normalized.contains('rusca') ||
-        normalized.contains('russian'))
-      return 'ru';
+        normalized.contains('russian')) return 'ru';
     if (normalized.contains('italyanca') || normalized.contains('italian'))
       return 'it';
     return null;
@@ -2675,9 +2647,8 @@ class _DashboardPageState extends State<DashboardPage> {
         }
         final result = await _mediaControlService.openSearchInForeground(
           query: _pendingMediaQuery,
-          packageName: _pendingMediaPackage.isEmpty
-              ? null
-              : _pendingMediaPackage,
+          packageName:
+              _pendingMediaPackage.isEmpty ? null : _pendingMediaPackage,
         );
         if (_pendingMediaPackage.isNotEmpty) {
           await _phoneControlService.setPreferredMediaPackage(
@@ -2934,17 +2905,16 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!mounted) return;
     final normalized = statusMessage.trim();
     final isOverlayStatus = normalized.toLowerCase().contains(
-      'overlay izni kapalı',
-    );
+          'overlay izni kapalı',
+        );
     if (isOverlayStatus &&
         _overlayWarningSnoozeUntil != null &&
         DateTime.now().isBefore(_overlayWarningSnoozeUntil!)) {
       return;
     }
     _safeSetState(() {
-      _lastResponse = normalized.isEmpty
-          ? 'Yetkiniz bulunmamaktadır.'
-          : normalized;
+      _lastResponse =
+          normalized.isEmpty ? 'Yetkiniz bulunmamaktadır.' : normalized;
     });
     if (_shouldSuppressStartupSpeech(_lastResponse)) {
       return;
@@ -3319,8 +3289,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
     while (DateTime.now().difference(startedAt) <= maxWait) {
       final snapshot = _continuousListeningRuntimeService.runtimeSnapshot();
-      final finalText = (snapshot['recentStreamingFinalText'] as String? ?? '')
-          .trim();
+      final finalText =
+          (snapshot['recentStreamingFinalText'] as String? ?? '').trim();
       final partialText =
           (snapshot['recentStreamingPartialText'] as String? ?? '').trim();
       final finalAtRaw = snapshot['recentStreamingFinalAt'] as String? ?? '';
@@ -3362,7 +3332,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _speakDashboardMessage(
     String text, {
-    bool throughOwner = true,
     String source = 'dashboard_system',
   }) async {
     debugPrint(
@@ -3700,7 +3669,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _runSelfRecognitionSummary() async {
-    final runtimeSignalService = self_repair_signal.NovaRuntimeSignalService.instance;
+    final runtimeSignalService =
+        self_repair_signal.NovaRuntimeSignalService.instance;
     final recognitionService = NovaSelfRecognitionService(
       signalService: runtimeSignalService,
       manifestService: NovaCapabilityManifestService(
@@ -3720,7 +3690,8 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _runQuickSelfRepair([
     String commandText = 'kendini onar',
   ]) async {
-    final runtimeSignalService = self_repair_signal.NovaRuntimeSignalService.instance;
+    final runtimeSignalService =
+        self_repair_signal.NovaRuntimeSignalService.instance;
     final recognitionService = NovaSelfRecognitionService(
       signalService: runtimeSignalService,
       manifestService: NovaCapabilityManifestService(
@@ -3744,7 +3715,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ttsService: widget.ttsService,
         ),
         narrationService: const NovaRepairVoiceNarrationService(),
-          endListeningSessionAction: _stopContinuousListening,
+        endListeningSessionAction: _stopContinuousListening,
         ensureListeningAction: () =>
             _ensureOperationalListening(userRequested: true),
       ),
@@ -3772,7 +3743,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _openSelfRepairPage() async {
-    final runtimeSignalService = self_repair_signal.NovaRuntimeSignalService.instance;
+    final runtimeSignalService =
+        self_repair_signal.NovaRuntimeSignalService.instance;
     final runtimeRegistryService = const NovaCapabilityRuntimeRegistryService();
     final manifestService = NovaCapabilityManifestService(
       runtimeRegistryService: runtimeRegistryService,
@@ -3897,9 +3869,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       IconButton(
                         tooltip: 'Sil',
-                        onPressed: id.isEmpty
-                            ? null
-                            : () => _deleteCallNote(id),
+                        onPressed:
+                            id.isEmpty ? null : () => _deleteCallNote(id),
                         icon: const Icon(
                           Icons.delete_outline_rounded,
                           color: Color(0xFFB7302F),
@@ -4161,8 +4132,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       animation: _presenceService,
                       builder: (context, _) {
                         final state = _presenceService.state;
-                        final active =
-                            state == NovaPresenceState.listening ||
+                        final active = state == NovaPresenceState.listening ||
                             state == NovaPresenceState.speaking;
 
                         return AnimatedContainer(
@@ -4205,10 +4175,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       _voiceFlowRunning
                           ? 'Nova sizi dinliyor efendim…'
                           : _lifecycleService.isSleeping
-                          ? 'Nova pasif beklemede.'
-                          : _continuousListeningRuntimeService.isRunning
-                          ? 'Sürekli arka plan dinleme aktif.'
-                          : 'Nova sesli komut için hazır.',
+                              ? 'Nova pasif beklemede.'
+                              : _continuousListeningRuntimeService.isRunning
+                                  ? 'Sürekli arka plan dinleme aktif.'
+                                  : 'Nova sesli komut için hazır.',
                       style: const TextStyle(color: Color(0xFF6A3E3A)),
                     ),
                     const SizedBox(height: 12),
@@ -4227,8 +4197,8 @@ class _DashboardPageState extends State<DashboardPage> {
                         FilledButton.tonal(
                           onPressed:
                               _continuousListeningRuntimeService.isRunning
-                              ? _stopContinuousListening
-                              : _startContinuousListening,
+                                  ? _stopContinuousListening
+                                  : _startContinuousListening,
                           child: Text(
                             _continuousListeningRuntimeService.isRunning
                                 ? 'Sürekli Dinlemeyi Durdur'
@@ -4236,9 +4206,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
                         FilledButton.tonal(
-                          onPressed: _voiceFlowRunning
-                              ? null
-                              : _enrollOwnerVoiceprint,
+                          onPressed:
+                              _voiceFlowRunning ? null : _enrollOwnerVoiceprint,
                           child: const Text('Sahip Ses İzini Kaydet'),
                         ),
                         FilledButton.tonal(
@@ -4300,13 +4269,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         onChanged: _settingsSaving
                             ? null
                             : (value) => _saveSettings(
-                                _novaSettings.copyWith(
-                                  chatGptInternetEnabled: value,
+                                  _novaSettings.copyWith(
+                                    chatGptInternetEnabled: value,
+                                  ),
+                                  successMessage: value
+                                      ? 'Kalıcı internet kullanımı izni açıldı efendim.'
+                                      : 'Kalıcı internet kullanımı izni kapatıldı efendim.',
                                 ),
-                                successMessage: value
-                                    ? 'Kalıcı internet kullanımı izni açıldı efendim.'
-                                    : 'Kalıcı internet kullanımı izni kapatıldı efendim.',
-                              ),
                         title: const Text(
                           'API beyin kullanımı açık',
                           style: TextStyle(color: Color(0xFF2A0709)),
@@ -4318,9 +4287,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     SwitchListTile(
                       value: _novaSettings.callHandlingEnabled,
-                      onChanged: _settingsSaving
-                          ? null
-                          : (_) => _toggleCallHandling(),
+                      onChanged:
+                          _settingsSaving ? null : (_) => _toggleCallHandling(),
                       title: const Text(
                         'Çağrı kontrolü açık',
                         style: TextStyle(color: Color(0xFF2A0709)),
@@ -4341,13 +4309,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       onChanged: _settingsSaving
                           ? null
                           : (value) => _saveSettings(
-                              _novaSettings.copyWith(
-                                teachingModeEnabled: value,
+                                _novaSettings.copyWith(
+                                  teachingModeEnabled: value,
+                                ),
+                                successMessage: value
+                                    ? 'Öğretim modu açıldı efendim.'
+                                    : 'Öğretim modu kapatıldı efendim.',
                               ),
-                              successMessage: value
-                                  ? 'Öğretim modu açıldı efendim.'
-                                  : 'Öğretim modu kapatıldı efendim.',
-                            ),
                       title: const Text(
                         'Öğretim modu açık',
                         style: TextStyle(color: Color(0xFF2A0709)),
@@ -4358,13 +4326,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       onChanged: _settingsSaving
                           ? null
                           : (value) => _saveSettings(
-                              _novaSettings.copyWith(
-                                speakerCallModeEnabled: value,
+                                _novaSettings.copyWith(
+                                  speakerCallModeEnabled: value,
+                                ),
+                                successMessage: value
+                                    ? 'Hoparlörlü çağrı modu açıldı efendim.'
+                                    : 'Hoparlörlü çağrı modu kapatıldı efendim.',
                               ),
-                              successMessage: value
-                                  ? 'Hoparlörlü çağrı modu açıldı efendim.'
-                                  : 'Hoparlörlü çağrı modu kapatıldı efendim.',
-                            ),
                       title: const Text(
                         'Hoparlörlü çağrı modu açık',
                         style: TextStyle(color: Color(0xFF2A0709)),
@@ -4372,9 +4340,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     SwitchListTile(
                       value: _novaSettings.wakeWordEnabled,
-                      onChanged: _settingsSaving
-                          ? null
-                          : (_) => _toggleWakeWord(),
+                      onChanged:
+                          _settingsSaving ? null : (_) => _toggleWakeWord(),
                       title: const Text(
                         'Uyandırma komutu açık',
                         style: TextStyle(color: Color(0xFF2A0709)),
@@ -4422,27 +4389,26 @@ class _DashboardPageState extends State<DashboardPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children:
-                          NovaApiModelCatalog.presetsFor(
-                                _novaSettings.activeAiProvider,
-                              )
-                              .map(
-                                (model) => OutlinedButton(
-                                  onPressed: _settingsSaving
-                                      ? null
-                                      : () {
-                                          _apiModelController.text = model;
-                                          _safeSetState(() {
-                                            _lastResponse =
-                                                '${NovaApiModelCatalog.labelFor(model)} modeli seçildi. API anahtarını kaydettiğinizde aktifleşir.';
-                                          });
-                                        },
-                                  child: Text(
-                                    NovaApiModelCatalog.labelFor(model),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                      children: NovaApiModelCatalog.presetsFor(
+                        _novaSettings.activeAiProvider,
+                      )
+                          .map(
+                            (model) => OutlinedButton(
+                              onPressed: _settingsSaving
+                                  ? null
+                                  : () {
+                                      _apiModelController.text = model;
+                                      _safeSetState(() {
+                                        _lastResponse =
+                                            '${NovaApiModelCatalog.labelFor(model)} modeli seçildi. API anahtarını kaydettiğinizde aktifleşir.';
+                                      });
+                                    },
+                              child: Text(
+                                NovaApiModelCatalog.labelFor(model),
+                              ),
+                            ),
+                          )
+                          .toList(),
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -4467,8 +4433,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         _buildPowerModeButton(
                           label: 'Tam Güç',
-                          active:
-                              !_powerService.isBatterySaver &&
+                          active: !_powerService.isBatterySaver &&
                               !_powerService.isPassiveSleep &&
                               !_powerService.isLimbo &&
                               !_powerService.isFullyShutdown,
@@ -4499,7 +4464,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-
               _buildCard(
                 title: 'Güç Modları',
                 icon: Icons.battery_charging_full_rounded,
@@ -4523,8 +4487,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         _buildPowerModeButton(
                           label: 'Tam Güç',
-                          active:
-                              !_powerService.isBatterySaver &&
+                          active: !_powerService.isBatterySaver &&
                               !_powerService.isPassiveSleep &&
                               !_powerService.isLimbo &&
                               !_powerService.isFullyShutdown,
@@ -4694,15 +4657,13 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: const Text('Hatırlatıcıları Aç'),
                         ),
                         OutlinedButton(
-                          onPressed: _cleanupRunning
-                              ? null
-                              : _runReminderCleanup,
+                          onPressed:
+                              _cleanupRunning ? null : _runReminderCleanup,
                           child: const Text('Tamamlananları Temizle'),
                         ),
                         FilledButton.tonal(
-                          onPressed: _cleanupRunning
-                              ? null
-                              : _runManualStorageCleanup,
+                          onPressed:
+                              _cleanupRunning ? null : _runManualStorageCleanup,
                           child: Text(
                             _cleanupRunning
                                 ? 'Temizleniyor...'
@@ -4718,7 +4679,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-
               _buildCard(
                 title: 'Bilgi Çekirdeği ve Rehberler',
                 icon: Icons.menu_book_rounded,
@@ -4770,8 +4730,8 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         OutlinedButton(
                           onPressed: () async {
-                            _translatorModeState = await _translatorModeService
-                                .disable();
+                            _translatorModeState =
+                                await _translatorModeService.disable();
                             if (!mounted) return;
                             _safeSetState(
                               () => _lastResponse =
@@ -4805,9 +4765,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         style: TextStyle(color: Color(0xFF6A3E3A)),
                       )
                     else
-                      ..._callInstructions
-                          .take(4)
-                          .map(
+                      ..._callInstructions.take(4).map(
                             (e) => Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Container(
@@ -4868,7 +4826,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-
               _buildCard(
                 title: 'Ses Yetki Ayrımı',
                 icon: Icons.manage_accounts_rounded,
@@ -4889,7 +4846,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-
               _buildCard(
                 title: 'Modüller',
                 icon: Icons.dashboard_customize_rounded,
@@ -4950,7 +4906,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-
               _buildCard(
                 title: 'Medya Kontrolü',
                 icon: Icons.library_music_rounded,
@@ -4966,20 +4921,19 @@ class _DashboardPageState extends State<DashboardPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: NovaMediaControlService.supportedApps
-                          .map((app) {
-                            final active =
-                                _preferredMediaPackage == app.packageName;
-                            return _buildPowerModeButton(
-                              label: app.label,
-                              active: active,
-                              onPressed: () => _setPreferredMediaApp(
-                                app.packageName,
-                                app.label,
-                              ),
-                            );
-                          })
-                          .toList(growable: false),
+                      children:
+                          NovaMediaControlService.supportedApps.map((app) {
+                        final active =
+                            _preferredMediaPackage == app.packageName;
+                        return _buildPowerModeButton(
+                          label: app.label,
+                          active: active,
+                          onPressed: () => _setPreferredMediaApp(
+                            app.packageName,
+                            app.label,
+                          ),
+                        );
+                      }).toList(growable: false),
                     ),
                     const SizedBox(height: 10),
                     const Text(
@@ -4989,7 +4943,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
               ),
-
               _buildCard(
                 title: 'İzin ve Ulaşım Durumu',
                 icon: Icons.verified_user_rounded,
@@ -5083,10 +5036,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                 Icons.report_gmailerrorred_rounded,
                                 color:
                                     item.riskLevel.toLowerCase() == 'critical'
-                                    ? Colors.redAccent
-                                    : item.riskLevel.toLowerCase() == 'high'
-                                    ? Colors.orangeAccent
-                                    : const Color(0xFFED2C2E),
+                                        ? Colors.redAccent
+                                        : item.riskLevel.toLowerCase() == 'high'
+                                            ? Colors.orangeAccent
+                                            : const Color(0xFFED2C2E),
                               ),
                               title: Text(
                                 item.title.isEmpty
@@ -5119,8 +5072,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           onPressed: _securityActionRunning
                               ? null
                               : () => _refreshSecurityState(
-                                  vibrateIfHighRisk: true,
-                                ),
+                                    vibrateIfHighRisk: true,
+                                  ),
                           child: const Text('Güvenliği Yenile'),
                         ),
                         OutlinedButton(
@@ -5137,8 +5090,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           onPressed: _securityActionRunning
                               ? null
                               : _securityVibrationStopped
-                              ? _resumeSecurityVibration
-                              : _stopSecurityVibration,
+                                  ? _resumeSecurityVibration
+                                  : _stopSecurityVibration,
                           child: Text(
                             _securityVibrationStopped
                                 ? 'Titreşimi Yeniden Aç'
@@ -5163,8 +5116,8 @@ class _DashboardPageState extends State<DashboardPage> {
                               _hasCriticalSecurityIncident
                                   ? 'Final Containment'
                                   : _hasHighSecurityIncident
-                                  ? 'Revival Block'
-                                  : 'Hard Kill',
+                                      ? 'Revival Block'
+                                      : 'Hard Kill',
                             ),
                           ),
                       ],

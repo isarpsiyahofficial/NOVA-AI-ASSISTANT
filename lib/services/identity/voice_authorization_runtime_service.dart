@@ -40,24 +40,23 @@ class VoiceAuthorizationRuntimeService {
   VoiceAuthorizationRuntimeService({
     required this.voiceIdentityRuntimeService,
     required this.authorizationService,
-    this.playbackGuardService =
-        const NovaPlaybackEchoFilterService(),
+    this.playbackGuardService = const NovaPlaybackEchoFilterService(),
     NovaDailyVoiceSessionService? dailyVoiceSessionService,
     NovaRecentSpeakerService? recentSpeakerService,
     DeviceOwnerIdentityService? ownerService,
-  }) : dailyVoiceSessionService =
-           dailyVoiceSessionService ?? const NovaDailyVoiceSessionService(),
-       recentSpeakerService =
-           recentSpeakerService ?? const NovaRecentSpeakerService(),
-       ownerService = ownerService ?? const DeviceOwnerIdentityService();
+  })  : dailyVoiceSessionService =
+            dailyVoiceSessionService ?? const NovaDailyVoiceSessionService(),
+        recentSpeakerService =
+            recentSpeakerService ?? const NovaRecentSpeakerService(),
+        ownerService = ownerService ?? const DeviceOwnerIdentityService();
 
   Future<VoiceAuthorizationRuntimeInspectionResult> inspectFreshExternalSample({
     int maxDurationSeconds = 4,
     String outputName = 'nova_runtime_auth',
     double minSimilarity = 0.64,
   }) async {
-    final blockedBySyntheticPlayback = await playbackGuardService
-        .isPlaybackActiveNow();
+    final blockedBySyntheticPlayback =
+        await playbackGuardService.isPlaybackActiveNow();
 
     if (blockedBySyntheticPlayback) {
       final released = await playbackGuardService.waitUntilPlaybackInactive(
@@ -86,12 +85,12 @@ class VoiceAuthorizationRuntimeService {
       }
     }
 
-    final identify = await voiceIdentityRuntimeService
-        .identifyFromFreshExternalSample(
-          maxDurationSeconds: maxDurationSeconds,
-          outputName: outputName,
-          minSimilarity: minSimilarity,
-        );
+    final identify =
+        await voiceIdentityRuntimeService.identifyFromFreshExternalSample(
+      maxDurationSeconds: maxDurationSeconds,
+      outputName: outputName,
+      minSimilarity: minSimilarity,
+    );
 
     if (!identify.success) {
       await NovaRuntimeSignalService.instance.record(
@@ -195,8 +194,8 @@ class VoiceAuthorizationRuntimeService {
       // owner sesi biliniyorsa ama başka bir tercih varsa yine de owner önceliğini koru.
     }
 
-    final dailyTrustedSessions = await dailyVoiceSessionService
-        .loadActiveTrustedSessions();
+    final dailyTrustedSessions =
+        await dailyVoiceSessionService.loadActiveTrustedSessions();
     for (final session in dailyTrustedSessions) {
       if (session.voiceId != ownerVoiceId) continue;
       if (!session.isTrusted) continue;
@@ -241,11 +240,11 @@ class VoiceAuthorizationRuntimeService {
       );
     }
 
-    final recentConversationSpeaker = await recentSpeakerService
-        .bestConversationCandidate(
-          trustedWindow: trustedRecentWindow,
-          familiarWindow: conversationWindow,
-        );
+    final recentConversationSpeaker =
+        await recentSpeakerService.bestConversationCandidate(
+      trustedWindow: trustedRecentWindow,
+      familiarWindow: conversationWindow,
+    );
     if (recentConversationSpeaker != null &&
         recentConversationSpeaker.voiceId == ownerVoiceId &&
         now.difference(recentConversationSpeaker.observedAt) <=
@@ -278,8 +277,8 @@ class VoiceAuthorizationRuntimeService {
     String preferredVoiceId = '',
   }) async {
     final now = DateTime.now();
-    final dailyTrustedSessions = await dailyVoiceSessionService
-        .loadActiveTrustedSessions();
+    final dailyTrustedSessions =
+        await dailyVoiceSessionService.loadActiveTrustedSessions();
     final preferredVoice = preferredVoiceId.trim();
 
     final ownerContinuity = await _inspectOwnerContinuity(
@@ -325,7 +324,7 @@ class VoiceAuthorizationRuntimeService {
 
     final recentTrusted = preferredVoice.isNotEmpty
         ? await recentSpeakerService.findByVoiceId(preferredVoice) ??
-              await recentSpeakerService.bestTrustedSpeaker()
+            await recentSpeakerService.bestTrustedSpeaker()
         : await recentSpeakerService.bestTrustedSpeaker();
     if (recentTrusted != null &&
         now.difference(recentTrusted.observedAt) <= trustedRecentWindow &&
@@ -349,7 +348,7 @@ class VoiceAuthorizationRuntimeService {
 
     final recentConversationSpeaker = preferredVoice.isNotEmpty
         ? await recentSpeakerService.findByVoiceId(preferredVoice) ??
-              await recentSpeakerService.bestConversationCandidate()
+            await recentSpeakerService.bestConversationCandidate()
         : await recentSpeakerService.bestConversationCandidate();
     if (recentConversationSpeaker != null &&
         now.difference(recentConversationSpeaker.observedAt) <=
@@ -380,14 +379,14 @@ class VoiceAuthorizationRuntimeService {
   }
 
   Future<VoiceAuthorizationRuntimeInspectionResult>
-  inspectPreferContinuityThenFresh({
+      inspectPreferContinuityThenFresh({
     int maxDurationSeconds = 4,
     String outputName = 'nova_runtime_auth',
     double minSimilarity = 0.64,
     Duration trustedDailyWindow = const Duration(hours: 24),
     Duration trustedRecentWindow = const Duration(hours: 20),
     Duration conversationWindow = const Duration(hours: 8),
-    bool allowContinuityReuse = true,
+    bool allowContinuityReuse = false,
     String preferredVoiceId = '',
   }) async {
     if (allowContinuityReuse) {
@@ -413,7 +412,7 @@ class VoiceAuthorizationRuntimeService {
     int maxDurationSeconds = 4,
     String outputName = 'nova_runtime_auth',
     double minSimilarity = 0.64,
-    bool allowContinuityReuse = true,
+    bool allowContinuityReuse = false,
     String preferredVoiceId = '',
   }) async {
     final inspection = await inspectPreferContinuityThenFresh(
@@ -431,14 +430,15 @@ class VoiceAuthorizationRuntimeService {
     String outputName = 'nova_runtime_wake_auth',
     double minSimilarity = 0.64,
   }) async {
-    final decision = await decideFromFreshExternalSample(
+    final inspection = await inspectFreshExternalSample(
       maxDurationSeconds: maxDurationSeconds,
       outputName: outputName,
       minSimilarity: minSimilarity,
     );
 
-    return decision.level == VoiceAccessLevel.owner ||
-        decision.level == VoiceAccessLevel.authorizedGuest;
+    return inspection.captureSucceeded &&
+        (inspection.decision.level == VoiceAccessLevel.owner ||
+            inspection.decision.level == VoiceAccessLevel.authorizedGuest);
   }
 
   Future<bool> canControlFromFreshExternalSample({
@@ -446,14 +446,15 @@ class VoiceAuthorizationRuntimeService {
     String outputName = 'nova_runtime_control_auth',
     double minSimilarity = 0.64,
   }) async {
-    final decision = await decideFromFreshExternalSample(
+    final inspection = await inspectFreshExternalSample(
       maxDurationSeconds: maxDurationSeconds,
       outputName: outputName,
       minSimilarity: minSimilarity,
     );
 
-    return decision.level == VoiceAccessLevel.owner ||
-        decision.level == VoiceAccessLevel.authorizedGuest;
+    return inspection.captureSucceeded &&
+        (inspection.decision.level == VoiceAccessLevel.owner ||
+            inspection.decision.level == VoiceAccessLevel.authorizedGuest);
   }
 
   Map<String, dynamic> buildAuthorizationSnapshot(
@@ -465,8 +466,7 @@ class VoiceAuthorizationRuntimeService {
       'relationshipLabel': decision.relationshipLabel,
       'suppressStatusBroadcast': decision.suppressStatusBroadcast,
       'message': decision.message,
-      'allowsCommand':
-          decision.level == VoiceAccessLevel.owner ||
+      'allowsCommand': decision.level == VoiceAccessLevel.owner ||
           decision.level == VoiceAccessLevel.authorizedGuest,
       'allowsConversation': decision.level != VoiceAccessLevel.denied,
     };
@@ -491,8 +491,7 @@ class VoiceAuthorizationRuntimeService {
     if (lastSeenAt == null) return false;
     final age = DateTime.now().difference(lastSeenAt);
     if (level == VoiceAccessLevel.owner ||
-        level == VoiceAccessLevel.authorizedGuest)
-      return age <= trustedWindow;
+        level == VoiceAccessLevel.authorizedGuest) return age <= trustedWindow;
     if (level == VoiceAccessLevel.familiar) return age <= familiarWindow;
     return false;
   }

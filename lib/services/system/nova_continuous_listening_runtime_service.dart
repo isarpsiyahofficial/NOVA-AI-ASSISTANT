@@ -118,49 +118,48 @@ class NovaContinuousListeningRuntimeService {
     NovaPlaybackEchoFilterService? playbackGuardService,
     NovaUnifiedSocialRuntimeService? unifiedSocialRuntimeService,
     NovaBenchmarkHarnessService? benchmarkHarnessService,
-  }) : dailyVoiceSessionService =
-           dailyVoiceSessionService ?? const NovaDailyVoiceSessionService(),
-       recentSpeakerService =
-           recentSpeakerService ?? const NovaRecentSpeakerService(),
-       powerScheduleService =
-           powerScheduleService ?? const NovaPowerScheduleService(),
-       streamingAsrRuntimeService =
-           streamingAsrRuntimeService ?? NovaStreamingAsrRuntimeService(),
-       playbackGuardService =
-           playbackGuardService ??
-           const NovaPlaybackEchoFilterService(),
-       unifiedSocialRuntimeService =
-           unifiedSocialRuntimeService ?? NovaUnifiedSocialRuntimeService(),
-       benchmarkHarnessService =
-           benchmarkHarnessService ?? NovaBenchmarkHarnessService();
+  })  : dailyVoiceSessionService =
+            dailyVoiceSessionService ?? const NovaDailyVoiceSessionService(),
+        recentSpeakerService =
+            recentSpeakerService ?? const NovaRecentSpeakerService(),
+        powerScheduleService =
+            powerScheduleService ?? const NovaPowerScheduleService(),
+        streamingAsrRuntimeService =
+            streamingAsrRuntimeService ?? NovaStreamingAsrRuntimeService(),
+        playbackGuardService =
+            playbackGuardService ?? const NovaPlaybackEchoFilterService(),
+        unifiedSocialRuntimeService =
+            unifiedSocialRuntimeService ?? NovaUnifiedSocialRuntimeService(),
+        benchmarkHarnessService =
+            benchmarkHarnessService ?? NovaBenchmarkHarnessService();
 
   bool get isRunning => _running;
 
   Map<String, dynamic> get currentPromptMetadata => <String, dynamic>{
-    'speakerVoiceId': _lastAuthorizedVoiceId.trim(),
-    'speakerName': _lastRecognizedSpeakerName.trim(),
-    'relationshipLabel': _lastRelationshipLabel.trim(),
-    'voiceAccessLevel': _lastAuthorizedLevel?.name ?? '',
-    'ownerConfidence': _ownerConfidenceForLevel(_lastAuthorizedLevel),
-    'heardAt': _lastHeardAt?.toIso8601String() ?? '',
-    'streamingAsrRoute': _recentStreamingFinalRoute.trim().isNotEmpty
-        ? _recentStreamingFinalRoute
-        : _recentStreamingPartialRoute,
-    'streamingAsrFinalRoute': _recentStreamingFinalRoute,
-    'streamingAsrPartialRoute': _recentStreamingPartialRoute,
-    'adaptiveContractVersion': '2026-04-19',
-    'socialCommandMode': 'conversation_first',
-    'dynamicEntityMode': 'enabled',
-    'futureSystemAutoAdaptReady': true,
-    'identityContinuityEnabled': true,
-    'relationshipMemoryEnabled': true,
-    'safeAutoAdaptEligible': true,
-    'wakeWordLocalOnly': true,
-    'apiTranscriptIsNotAuthority': true,
-    'speakerVerificationLocalDeterministic': true,
-    'callModeRequiresFreshVoiceAuth': true,
-    'sourceSystem': 'continuous_listening_runtime',
-  };
+        'speakerVoiceId': _lastAuthorizedVoiceId.trim(),
+        'speakerName': _lastRecognizedSpeakerName.trim(),
+        'relationshipLabel': _lastRelationshipLabel.trim(),
+        'voiceAccessLevel': _lastAuthorizedLevel?.name ?? '',
+        'ownerConfidence': _ownerConfidenceForLevel(_lastAuthorizedLevel),
+        'heardAt': _lastHeardAt?.toIso8601String() ?? '',
+        'streamingAsrRoute': _recentStreamingFinalRoute.trim().isNotEmpty
+            ? _recentStreamingFinalRoute
+            : _recentStreamingPartialRoute,
+        'streamingAsrFinalRoute': _recentStreamingFinalRoute,
+        'streamingAsrPartialRoute': _recentStreamingPartialRoute,
+        'adaptiveContractVersion': '2026-04-19',
+        'socialCommandMode': 'conversation_first',
+        'dynamicEntityMode': 'enabled',
+        'futureSystemAutoAdaptReady': true,
+        'identityContinuityEnabled': true,
+        'relationshipMemoryEnabled': true,
+        'safeAutoAdaptEligible': true,
+        'wakeWordLocalOnly': true,
+        'apiTranscriptIsNotAuthority': true,
+        'speakerVerificationLocalDeterministic': true,
+        'callModeRequiresFreshVoiceAuth': true,
+        'sourceSystem': 'continuous_listening_runtime',
+      };
 
   static const Duration _activeCaptureCooldown = Duration(seconds: 75);
 
@@ -169,14 +168,11 @@ class NovaContinuousListeningRuntimeService {
     final asr = streamingAsrRuntimeService.latestState;
     return <String, dynamic>{
       'running': _running,
-      'conversationHoldActive':
-          _conversationHoldUntil != null &&
+      'conversationHoldActive': _conversationHoldUntil != null &&
           now.isBefore(_conversationHoldUntil!),
-      'authorizedConversationActive':
-          _authorizedConversationUntil != null &&
+      'authorizedConversationActive': _authorizedConversationUntil != null &&
           now.isBefore(_authorizedConversationUntil!),
-      'softSpeakerIdentityActive':
-          _softSpeakerIdentityUntil != null &&
+      'softSpeakerIdentityActive': _softSpeakerIdentityUntil != null &&
           now.isBefore(_softSpeakerIdentityUntil!),
       'lastAuthorizedLevel': _lastAuthorizedLevel?.name ?? '',
       'lastAuthorizedVoiceId': _lastAuthorizedVoiceId,
@@ -190,8 +186,7 @@ class NovaContinuousListeningRuntimeService {
       'asrDecoderAssetPath': asr.decoderAssetPath,
       'asrFinalCount': asr.finalCount,
       'asrDroppedFrames': asr.droppedFrames,
-      'speakerContinuityActive':
-          _softSpeakerIdentityUntil != null &&
+      'speakerContinuityActive': _softSpeakerIdentityUntil != null &&
           now.isBefore(_softSpeakerIdentityUntil!),
       'wakeWordLocalOnly': true,
       'apiTranscriptIsNotAuthority': true,
@@ -350,8 +345,7 @@ class NovaContinuousListeningRuntimeService {
           nowForSchedule,
         );
         final shouldSleepBySchedule = scheduleWindow.active;
-        final shouldHonorManualNightHold =
-            shouldSleepBySchedule &&
+        final shouldHonorManualNightHold = shouldSleepBySchedule &&
             powerService.shouldKeepScheduledNightHold(nowForSchedule);
 
         if (!shouldSleepBySchedule &&
@@ -394,8 +388,8 @@ class NovaContinuousListeningRuntimeService {
               final callerName = contact == null
                   ? 'Kayıtlı kişi'
                   : (contact.displayName.isEmpty
-                        ? 'Kayıtlı kişi'
-                        : contact.displayName);
+                      ? 'Kayıtlı kişi'
+                      : contact.displayName);
               if (onUnauthorizedOrStatus != null) {
                 await _emitStatusIfChanged(
                   '$callerName arıyor efendim. Nova tam kapalı moddan yalnız kayıtlı kişi çağrı tetiklemesi için geçici çağrı zinciri açıyor.',
@@ -433,8 +427,8 @@ class NovaContinuousListeningRuntimeService {
                       code: 'shutdown_call_companion_start_failed',
                       message:
                           companionRuntime!.lastStatusMessage.trim().isEmpty
-                          ? 'Tam kapalı modda companion başlatılamadı.'
-                          : companionRuntime!.lastStatusMessage.trim(),
+                              ? 'Tam kapalı modda companion başlatılamadı.'
+                              : companionRuntime!.lastStatusMessage.trim(),
                       technicalDetails: 'shutdown authorized call start failed',
                       diagnosticCandidate: true,
                     );
@@ -455,6 +449,34 @@ class NovaContinuousListeningRuntimeService {
           final wakeText = _takeWakePhraseFromStreaming();
           if (wakeText.isEmpty || !_isWakePhrase(wakeText.toLowerCase())) {
             await Future<void>.delayed(const Duration(milliseconds: 1600));
+            continue;
+          }
+
+          final shutdownWakeInspection =
+              await authorizationRuntimeService.inspectFreshExternalSample(
+            maxDurationSeconds: 3,
+            outputName: 'nova_shutdown_wake_auth',
+            minSimilarity: 0.58,
+          );
+          final shutdownWakeAuthorized =
+              shutdownWakeInspection.captureSucceeded &&
+                  (shutdownWakeInspection.decision.level ==
+                          VoiceAccessLevel.owner ||
+                      shutdownWakeInspection.decision.level ==
+                          VoiceAccessLevel.authorizedGuest);
+          if (!shutdownWakeAuthorized) {
+            if (onUnauthorizedOrStatus != null &&
+                !shutdownWakeInspection.decision.suppressStatusBroadcast) {
+              await _emitStatusIfChanged(
+                shutdownWakeInspection.decision.message.trim().isEmpty
+                    ? 'Yetkiniz bulunmamaktadır.'
+                    : shutdownWakeInspection.decision.message.trim(),
+                onUnauthorizedOrStatus,
+              );
+            }
+            await Future<void>.delayed(
+              const Duration(milliseconds: 1200),
+            );
             continue;
           }
 
@@ -481,15 +503,14 @@ class NovaContinuousListeningRuntimeService {
           continue;
         }
 
-        final trustedDailySessions = await dailyVoiceSessionService
-            .loadActiveTrustedSessions();
-        final trustedDailySession = trustedDailySessions.isNotEmpty
-            ? trustedDailySessions.first
-            : null;
-        final recentTrustedSpeaker = await recentSpeakerService
-            .bestTrustedSpeaker();
-        final recentConversationSpeaker = await recentSpeakerService
-            .bestConversationCandidate();
+        final trustedDailySessions =
+            await dailyVoiceSessionService.loadActiveTrustedSessions();
+        final trustedDailySession =
+            trustedDailySessions.isNotEmpty ? trustedDailySessions.first : null;
+        final recentTrustedSpeaker =
+            await recentSpeakerService.bestTrustedSpeaker();
+        final recentConversationSpeaker =
+            await recentSpeakerService.bestConversationCandidate();
         await _refreshSpeakerContinuityIfNeeded(
           trustedDailySession: trustedDailySession,
           recentTrustedSpeaker: recentTrustedSpeaker,
@@ -506,8 +527,7 @@ class NovaContinuousListeningRuntimeService {
           continue;
         }
 
-        final bool sleeping =
-            powerService.isPassiveSleep ||
+        final bool sleeping = powerService.isPassiveSleep ||
             powerService.isLimbo ||
             lifecycleService.isSleeping;
 
@@ -535,14 +555,13 @@ class NovaContinuousListeningRuntimeService {
               : await contactService!.findByPhoneNumber(activeNumber);
           final canHandleThisCaller =
               callHandlingEnabled && (contact?.allowsCallHandling ?? false);
-          final canNightAutoHandleThisCaller =
-              callHandlingEnabled &&
+          final canNightAutoHandleThisCaller = callHandlingEnabled &&
               (contact?.allowsNightAutoHandling ?? false);
           final callerName = contact == null
               ? 'Kayıtlı olmayan arayan'
               : (contact.displayName.isEmpty
-                    ? 'Kayıtlı kişi'
-                    : contact.displayName);
+                  ? 'Kayıtlı kişi'
+                  : contact.displayName);
 
           if (powerService.isPassiveSleep &&
               canNightAutoHandleThisCaller &&
@@ -662,37 +681,23 @@ class NovaContinuousListeningRuntimeService {
             continue;
           }
 
-          VoiceAccessDecision? wakeDecision;
-          final bool wakeTrustedBySession =
-              trustedDailySession != null && trustedDailySession.isTrusted;
-          final bool wakeTrustedByRecent =
-              recentTrustedSpeaker != null &&
-              recentTrustedSpeaker.observedAt.isAfter(
-                DateTime.now().subtract(const Duration(hours: 20)),
-              ) &&
-              (recentTrustedSpeaker.level == VoiceAccessLevel.owner ||
-                  recentTrustedSpeaker.level ==
-                      VoiceAccessLevel.authorizedGuest);
-
-          bool wakeAuthorized = wakeTrustedBySession || wakeTrustedByRecent;
-          if (!wakeAuthorized) {
-            wakeDecision = await authorizationRuntimeService
-                .decideFromFreshExternalSample(
-                  maxDurationSeconds: 3,
-                  outputName: 'nova_wake_auth',
-                  minSimilarity: 0.58,
-                );
-            wakeAuthorized =
-                wakeDecision.level == VoiceAccessLevel.owner ||
-                wakeDecision.level == VoiceAccessLevel.authorizedGuest;
-          }
+          final wakeInspection =
+              await authorizationRuntimeService.inspectFreshExternalSample(
+            maxDurationSeconds: 3,
+            outputName: 'nova_wake_auth',
+            minSimilarity: 0.58,
+          );
+          final wakeDecision = wakeInspection.decision;
+          final wakeAuthorized = wakeInspection.captureSucceeded &&
+              (wakeDecision.level == VoiceAccessLevel.owner ||
+                  wakeDecision.level == VoiceAccessLevel.authorizedGuest);
           if (!wakeAuthorized) {
             if (onUnauthorizedOrStatus != null &&
-                !(wakeDecision?.suppressStatusBroadcast ?? false)) {
+                !wakeDecision.suppressStatusBroadcast) {
               await _emitStatusIfChanged(
-                wakeDecision?.message.trim().isEmpty != false
+                wakeDecision.message.trim().isEmpty
                     ? 'Yetkiniz bulunmamaktadır.'
-                    : wakeDecision!.message.trim(),
+                    : wakeDecision.message.trim(),
                 onUnauthorizedOrStatus,
               );
             }
@@ -711,11 +716,7 @@ class NovaContinuousListeningRuntimeService {
           _conversationHoldUntil = DateTime.now().add(
             const Duration(minutes: 20),
           );
-          _lastAuthorizedLevel =
-              wakeDecision?.level ??
-              trustedDailySession?.level ??
-              recentTrustedSpeaker?.level ??
-              VoiceAccessLevel.owner;
+          _lastAuthorizedLevel = wakeDecision.level;
           presenceService.setStateSafe(NovaPresenceState.idle);
           await backgroundBridgeService.setBackgroundRunning();
           await backgroundBridgeService.showOverlayIdle();
@@ -733,8 +734,8 @@ class NovaContinuousListeningRuntimeService {
         final now = DateTime.now();
         final shouldCheckNativeSession =
             _lastNativeSessionHealthCheckAt == null ||
-            now.difference(_lastNativeSessionHealthCheckAt!) >
-                const Duration(minutes: 3);
+                now.difference(_lastNativeSessionHealthCheckAt!) >
+                    const Duration(minutes: 3);
         if (shouldCheckNativeSession &&
             powerService.mode.keepsContinuousListeningAvailable) {
           _lastNativeSessionHealthCheckAt = now;
@@ -758,17 +759,14 @@ class NovaContinuousListeningRuntimeService {
             );
           }
         }
-        final inConversationWindow =
-            _conversationHoldUntil != null &&
+        final inConversationWindow = _conversationHoldUntil != null &&
             now.isBefore(_conversationHoldUntil!);
-        final hasRecentVoiceFlow =
-            _lastHeardAt != null &&
+        final hasRecentVoiceFlow = _lastHeardAt != null &&
             now.difference(_lastHeardAt!) < const Duration(minutes: 3);
-        final hasSoftIdentityWindow =
-            _softSpeakerIdentityUntil != null &&
+        final hasSoftIdentityWindow = _softSpeakerIdentityUntil != null &&
             now.isBefore(_softSpeakerIdentityUntil!);
-        final gateState = await sttService.nativeBridge
-            .getStreamingVoiceGateState();
+        final gateState =
+            await sttService.nativeBridge.getStreamingVoiceGateState();
         final gateRunning = gateState['running'] as bool? ?? false;
         final gateSpeechActive = gateState['speechActive'] as bool? ?? false;
         final gateSpeechRecent =
@@ -784,10 +782,9 @@ class NovaContinuousListeningRuntimeService {
         if (!gateRunning && !powerService.isFullyShutdown) {
           await _ensureStreamingGateRunning();
         }
-        final playbackBlocked = await playbackGuardService
-            .isPlaybackActiveNow();
-        final shouldAttemptTranscription =
-            !playbackBlocked &&
+        final playbackBlocked =
+            await playbackGuardService.isPlaybackActiveNow();
+        final shouldAttemptTranscription = !playbackBlocked &&
             (inConversationWindow ||
                 hasRecentVoiceFlow ||
                 gateSpeechActive ||
@@ -832,27 +829,26 @@ class NovaContinuousListeningRuntimeService {
           relationLabel: _lastRelationshipLabel,
           addressedNova: _isLikelyAddressedToNova(prompt),
           containsCommand: _spokenIntentInterpreter.isDirectCommand(prompt),
-          activeCall:
-              callStateService != null &&
+          activeCall: callStateService != null &&
               (await callStateService!.getSnapshot()).isActiveCall,
           companionActive: companionRuntime?.isActive ?? false,
-          syntheticPlaybackGuarded: await playbackGuardService
-              .isPlaybackActiveNow(),
+          syntheticPlaybackGuarded:
+              await playbackGuardService.isPlaybackActiveNow(),
         );
         final isNaturalConversation =
             _spokenIntentInterpreter.isNaturalConversationForNova(prompt) ||
-            _spokenIntentInterpreter.shouldAnswerWithoutExplicitCommand(
-              prompt,
-            ) ||
-            spokenAct.expectsResponse ||
-            spokenAct.isEmotionCue ||
-            spokenAct.isRepairCue ||
-            spokenAct.isSocialCue;
+                _spokenIntentInterpreter.shouldAnswerWithoutExplicitCommand(
+                  prompt,
+                ) ||
+                spokenAct.expectsResponse ||
+                spokenAct.isEmotionCue ||
+                spokenAct.isRepairCue ||
+                spokenAct.isSocialCue;
 
         final bool hasDailyTrustedAuthorization =
             trustedDailySession?.isTrusted == true;
-        final bool hasRecentTrustedAuthorization =
-            recentTrustedSpeaker != null &&
+        final bool hasRecentTrustedAuthorization = recentTrustedSpeaker !=
+                null &&
             recentTrustedSpeaker.observedAt.isAfter(
               DateTime.now().subtract(const Duration(hours: 20)),
             ) &&
@@ -861,45 +857,40 @@ class NovaContinuousListeningRuntimeService {
 
         final bool hasRecentConversationSpeaker =
             recentConversationSpeaker != null &&
-            recentConversationSpeaker.observedAt.isAfter(
-              DateTime.now().subtract(const Duration(hours: 8)),
-            );
+                recentConversationSpeaker.observedAt.isAfter(
+                  DateTime.now().subtract(const Duration(hours: 8)),
+                );
 
         final bool hasFreshConversationAuthorization =
             _authorizedConversationUntil != null &&
-            now.isBefore(_authorizedConversationUntil!) &&
-            (_lastAuthorizedLevel == VoiceAccessLevel.owner ||
-                _lastAuthorizedLevel == VoiceAccessLevel.authorizedGuest);
+                now.isBefore(_authorizedConversationUntil!) &&
+                (_lastAuthorizedLevel == VoiceAccessLevel.owner ||
+                    _lastAuthorizedLevel == VoiceAccessLevel.authorizedGuest);
 
         final bool ownerPriorityActive =
             _lastAuthorizedLevel == VoiceAccessLevel.owner ||
-            trustedDailySession?.level == VoiceAccessLevel.owner ||
-            recentTrustedSpeaker?.level == VoiceAccessLevel.owner;
+                trustedDailySession?.level == VoiceAccessLevel.owner ||
+                recentTrustedSpeaker?.level == VoiceAccessLevel.owner;
 
-        final trustedConversationContinuation =
-            hasDailyTrustedAuthorization ||
+        final trustedConversationContinuation = hasDailyTrustedAuthorization ||
             hasRecentTrustedAuthorization ||
             hasFreshConversationAuthorization ||
             (hasSoftIdentityWindow && ownerPriorityActive);
-        final explicitlyAddressed =
-            _isLikelyAddressedToNova(prompt) ||
+        final explicitlyAddressed = _isLikelyAddressedToNova(prompt) ||
             _spokenIntentInterpreter.isDirectCommand(prompt) ||
             _spokenIntentInterpreter.isContinueSpeakingOverride(prompt) ||
             _looksLikeRoomConversationForNova(prompt);
-        final conversationalCarry =
-            inConversationWindow ||
+        final conversationalCarry = inConversationWindow ||
             hasRecentVoiceFlow ||
             trustedConversationContinuation ||
             interruptionIntent.wantsToTakeTurn ||
             semanticTurn.shouldYield;
-        var likelyForNova =
-            explicitlyAddressed ||
+        var likelyForNova = explicitlyAddressed ||
             (conversationalCarry &&
                 (isNaturalConversation ||
                     spokenAct.expectsResponse ||
                     spokenAct.isRepairCue));
-        final routeForcesBrainDelivery =
-            promptRoute == 'conversation' ||
+        final routeForcesBrainDelivery = promptRoute == 'conversation' ||
             promptRoute == 'command' ||
             promptRoute == 'teaching' ||
             promptRoute == 'reminder' ||
@@ -918,13 +909,15 @@ class NovaContinuousListeningRuntimeService {
           continue;
         }
 
-        final bool canReuseSpeakerIdentity =
-            hasFreshConversationAuthorization ||
-            hasDailyTrustedAuthorization ||
-            hasRecentTrustedAuthorization ||
-            (ownerPriorityActive && likelyForNova) ||
-            (hasSoftIdentityWindow && likelyForNova) ||
-            (hasRecentConversationSpeaker && likelyForNova);
+        final requiresFreshCommandAuthority =
+            _spokenIntentInterpreter.isDirectCommand(prompt);
+        final bool canReuseSpeakerIdentity = !requiresFreshCommandAuthority &&
+            (hasFreshConversationAuthorization ||
+                hasDailyTrustedAuthorization ||
+                hasRecentTrustedAuthorization ||
+                (ownerPriorityActive && likelyForNova) ||
+                (hasSoftIdentityWindow && likelyForNova) ||
+                (hasRecentConversationSpeaker && likelyForNova));
 
         VoiceAccessDecision? decision;
         VoiceAuthorizationRuntimeInspectionResult? inspection;
@@ -933,12 +926,12 @@ class NovaContinuousListeningRuntimeService {
 
         final bool canReuseFamiliarConversation =
             hasRecentConversationSpeaker &&
-            recentConversationSpeaker != null &&
-            (recentConversationSpeaker.level == VoiceAccessLevel.familiar ||
-                recentConversationSpeaker.level ==
-                    VoiceAccessLevel.knownButUnauthorized) &&
-            isNaturalConversation &&
-            !_spokenIntentInterpreter.isDirectCommand(prompt);
+                recentConversationSpeaker != null &&
+                (recentConversationSpeaker.level == VoiceAccessLevel.familiar ||
+                    recentConversationSpeaker.level ==
+                        VoiceAccessLevel.knownButUnauthorized) &&
+                isNaturalConversation &&
+                !_spokenIntentInterpreter.isDirectCommand(prompt);
         if (!authorized && canReuseFamiliarConversation) {
           allowFamiliarConversation = true;
           decision = VoiceAccessDecision(
@@ -952,19 +945,20 @@ class NovaContinuousListeningRuntimeService {
 
         if (!authorized &&
             !allowFamiliarConversation &&
-            !hasDailyTrustedAuthorization) {
+            (!hasDailyTrustedAuthorization || requiresFreshCommandAuthority)) {
           inspection = await authorizationRuntimeService
               .inspectPreferContinuityThenFresh(
-                maxDurationSeconds: 4,
-                outputName: 'nova_bg_auth',
-                minSimilarity: 0.58,
-                allowContinuityReuse: true,
-                preferredVoiceId: _lastAuthorizedVoiceId,
-              );
+            maxDurationSeconds: 4,
+            outputName: 'nova_bg_auth',
+            minSimilarity: 0.58,
+            allowContinuityReuse: !requiresFreshCommandAuthority,
+            preferredVoiceId: _lastAuthorizedVoiceId,
+          );
           decision = inspection.decision;
           authorized =
-              decision.level == VoiceAccessLevel.owner ||
-              decision.level == VoiceAccessLevel.authorizedGuest;
+              (!requiresFreshCommandAuthority || inspection.captureSucceeded) &&
+                  (decision.level == VoiceAccessLevel.owner ||
+                      decision.level == VoiceAccessLevel.authorizedGuest);
           if (inspection.recognizedVoiceId.trim().isNotEmpty) {
             await recentSpeakerService.remember(
               voiceId: inspection.recognizedVoiceId.trim(),
@@ -980,18 +974,19 @@ class NovaContinuousListeningRuntimeService {
               relationshipLabel: recentConversationSpeaker.relationshipLabel,
             );
           }
-          allowFamiliarConversation =
-              (decision.level == VoiceAccessLevel.familiar ||
+          allowFamiliarConversation = (decision.level ==
+                      VoiceAccessLevel.familiar ||
                   decision.level == VoiceAccessLevel.knownButUnauthorized) &&
               isNaturalConversation &&
               !_spokenIntentInterpreter.isDirectCommand(prompt);
 
           final bool canTolerateTransientIdentityMiss =
-              hasRecentVoiceFlow &&
-              (hasFreshConversationAuthorization ||
-                  hasRecentConversationSpeaker ||
-                  ownerPriorityActive) &&
-              !inspection.captureSucceeded;
+              !requiresFreshCommandAuthority &&
+                  hasRecentVoiceFlow &&
+                  (hasFreshConversationAuthorization ||
+                      hasRecentConversationSpeaker ||
+                      ownerPriorityActive) &&
+                  !inspection.captureSucceeded;
 
           if (!authorized && canTolerateTransientIdentityMiss) {
             authorized = true;
@@ -999,7 +994,10 @@ class NovaContinuousListeningRuntimeService {
           }
         }
 
-        if (!authorized && hasDailyTrustedAuthorization && likelyForNova) {
+        if (!authorized &&
+            !requiresFreshCommandAuthority &&
+            hasDailyTrustedAuthorization &&
+            likelyForNova) {
           authorized = true;
           decision = VoiceAccessDecision(
             level: trustedDailySession!.level,
@@ -1049,8 +1047,7 @@ class NovaContinuousListeningRuntimeService {
         }
 
         _clearStatusBroadcast();
-        final conversationWindow =
-            isNaturalConversation ||
+        final conversationWindow = isNaturalConversation ||
                 spokenAct.expectsResponse ||
                 spokenAct.isRepairCue ||
                 _spokenIntentInterpreter.isContinueSpeakingOverride(prompt) ||
@@ -1063,8 +1060,7 @@ class NovaContinuousListeningRuntimeService {
             : const Duration(hours: 4);
         _authorizedConversationUntil = DateTime.now().add(conversationWindow);
         _softSpeakerIdentityUntil = DateTime.now().add(softIdentityWindow);
-        _lastAuthorizedLevel =
-            decision?.level ??
+        _lastAuthorizedLevel = decision?.level ??
             trustedDailySession?.level ??
             recentTrustedSpeaker?.level ??
             _lastAuthorizedLevel ??
@@ -1118,7 +1114,7 @@ class NovaContinuousListeningRuntimeService {
           benchmarkHarnessService.evaluateConversationEpisode(
             ownerPriorityPreserved:
                 _lastAuthorizedLevel == VoiceAccessLevel.owner ||
-                _lastAuthorizedLevel == VoiceAccessLevel.authorizedGuest,
+                    _lastAuthorizedLevel == VoiceAccessLevel.authorizedGuest,
             backchannelQuality: semanticTurn.shouldBackchannel ? 0.92 : 0.74,
             interruptionQuality: interruptionIntent.wantsClarification
                 ? 0.86
@@ -1127,24 +1123,17 @@ class NovaContinuousListeningRuntimeService {
               0.40,
               0.98,
             ),
-            memoryCommitQuality:
-                unifiedSocialRuntimeService
-                    .snapshot
-                    .lastDecision
-                    .shouldPersistMemory
+            memoryCommitQuality: unifiedSocialRuntimeService
+                    .snapshot.lastDecision.shouldPersistMemory
                 ? 0.90
                 : 0.76,
-            relationshipToneQuality: _lastRelationshipLabel.isEmpty
-                ? 0.72
-                : 0.90,
+            relationshipToneQuality:
+                _lastRelationshipLabel.isEmpty ? 0.72 : 0.90,
             ttsSelfBlindProtected: true,
             multiSpeakerStable: _softSpeakerIdentityUntil != null,
-            noteDelivered:
-                !prompt.toLowerCase().contains('not') ||
+            noteDelivered: !prompt.toLowerCase().contains('not') ||
                 unifiedSocialRuntimeService
-                    .snapshot
-                    .lastDecision
-                    .shouldPersistMemory,
+                    .snapshot.lastDecision.shouldPersistMemory,
             latencyScore: inConversationWindow ? 0.94 : 0.86,
           ),
         );
@@ -1154,9 +1143,8 @@ class NovaContinuousListeningRuntimeService {
         presenceService.setStateSafe(NovaPresenceState.idle);
         await Future<void>.delayed(
           Duration(
-            milliseconds: isNaturalConversation || inConversationWindow
-                ? 260
-                : 520,
+            milliseconds:
+                isNaturalConversation || inConversationWindow ? 260 : 520,
           ),
         );
       } catch (_) {
@@ -1172,8 +1160,7 @@ class NovaContinuousListeningRuntimeService {
     final normalized = event.transcript.text.trim();
     if (normalized.isEmpty) return;
 
-    final playbackBlocked = await playbackGuardService
-        .isPlaybackActiveNow();
+    final playbackBlocked = await playbackGuardService.isPlaybackActiveNow();
     final likelyOwnSpeech = await playbackGuardService.isLikelyOwnSpeech(
       normalized,
     );
@@ -1186,8 +1173,8 @@ class NovaContinuousListeningRuntimeService {
       return;
     }
 
-    final routeDecision = streamingAsrRuntimeService.transcriptRouterService
-        .decide(event);
+    final routeDecision =
+        streamingAsrRuntimeService.transcriptRouterService.decide(event);
     _recentStreamingLocale = event.transcript.locale.trim().isEmpty
         ? 'tr-TR'
         : event.transcript.locale.trim();
@@ -1341,11 +1328,9 @@ class NovaContinuousListeningRuntimeService {
     final partialFreshWindow = inConversationWindow
         ? const Duration(seconds: 20)
         : const Duration(seconds: 12);
-    final streamingStillFresh =
-        freshStreamingAt != null &&
+    final streamingStillFresh = freshStreamingAt != null &&
         DateTime.now().difference(freshStreamingAt) <= finalFreshWindow;
-    final partialStillFresh =
-        freshPartialAt != null &&
+    final partialStillFresh = freshPartialAt != null &&
         DateTime.now().difference(freshPartialAt) <= partialFreshWindow;
     if (streamingReady &&
         streamingStillFresh &&
@@ -1365,8 +1350,7 @@ class NovaContinuousListeningRuntimeService {
     }
 
     final now = DateTime.now();
-    final streamingGraceActive =
-        _streamingSpeechGraceUntil != null &&
+    final streamingGraceActive = _streamingSpeechGraceUntil != null &&
         now.isBefore(_streamingSpeechGraceUntil!);
     if (streamingReady &&
         (gateSpeechActive || gateSpeechRecent || streamingGraceActive)) {
@@ -1386,8 +1370,7 @@ class NovaContinuousListeningRuntimeService {
       return '';
     }
 
-    final playbackBlocked = await playbackGuardService
-        .isPlaybackActiveNow();
+    final playbackBlocked = await playbackGuardService.isPlaybackActiveNow();
     if (playbackBlocked) {
       return '';
     }
@@ -1410,8 +1393,7 @@ class NovaContinuousListeningRuntimeService {
     required NovaRecentSpeakerObservation? recentConversationSpeaker,
   }) async {
     final now = DateTime.now();
-    final shouldRefresh =
-        _lastSpeakerContinuityRefreshAt == null ||
+    final shouldRefresh = _lastSpeakerContinuityRefreshAt == null ||
         now.difference(_lastSpeakerContinuityRefreshAt!) >
             const Duration(minutes: 3);
     if (!shouldRefresh) return;
@@ -1612,14 +1594,11 @@ class NovaContinuousListeningRuntimeService {
     return <String, dynamic>{
       'running': _running,
       'loopBusy': _loopBusy,
-      'authorizedConversationActive':
-          _authorizedConversationUntil != null &&
+      'authorizedConversationActive': _authorizedConversationUntil != null &&
           now.isBefore(_authorizedConversationUntil!),
-      'conversationHoldActive':
-          _conversationHoldUntil != null &&
+      'conversationHoldActive': _conversationHoldUntil != null &&
           now.isBefore(_conversationHoldUntil!),
-      'softSpeakerIdentityActive':
-          _softSpeakerIdentityUntil != null &&
+      'softSpeakerIdentityActive': _softSpeakerIdentityUntil != null &&
           now.isBefore(_softSpeakerIdentityUntil!),
       'recentStreamingFinalText': _recentStreamingFinalText,
       'recentStreamingPartialText': _recentStreamingPartialText,
@@ -1643,8 +1622,7 @@ class NovaContinuousListeningRuntimeService {
     return <String, dynamic>{
       'shouldAvoidMicFlapping': true,
       'activeCaptureCooldownMs': _activeCaptureCooldown.inMilliseconds,
-      'streamingSpeechGraceActive':
-          _streamingSpeechGraceUntil != null &&
+      'streamingSpeechGraceActive': _streamingSpeechGraceUntil != null &&
           DateTime.now().isBefore(_streamingSpeechGraceUntil!),
       'lastActiveCaptureAt': _lastActiveCaptureAt?.toIso8601String() ?? '',
     };

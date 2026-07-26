@@ -1,5 +1,6 @@
-// ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
-// NOVA_ABSOLUTE_FINAL_CLEANUP_V1
+// NOVA_VERIFIED_ANDROID_PERMISSION_RESULTS_V1
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 
 class NovaAndroidPermissionSnapshot {
@@ -36,40 +37,36 @@ class NovaAndroidPermissionSnapshot {
   });
 
   bool get overlayGranted => canDrawOverlays;
-
   bool get essentialCallPermissionsGranted =>
       readPhoneStateGranted &&
       readPhoneNumbersGranted &&
       answerPhoneCallsGranted &&
       callPhoneGranted;
-
   bool get fullCallPermissionsGranted =>
       essentialCallPermissionsGranted && readCallLogGranted;
-
   bool get canAttemptAuthorizedCallHandling =>
       hybridCallControlReady || essentialCallPermissionsGranted;
-
   bool get shouldRecommendDefaultDialerOnlyForFullAutomation =>
       !defaultDialerGranted &&
       !callScreeningRoleGranted &&
       canAttemptAuthorizedCallHandling;
 
   Map<String, dynamic> toMap() => <String, dynamic>{
-    'canDrawOverlays': canDrawOverlays,
-    'accessibilityEnabled': accessibilityEnabled,
-    'notificationsGranted': notificationsGranted,
-    'recordAudioGranted': recordAudioGranted,
-    'defaultDialerGranted': defaultDialerGranted,
-    'callScreeningRoleGranted': callScreeningRoleGranted,
-    'readPhoneStateGranted': readPhoneStateGranted,
-    'readPhoneNumbersGranted': readPhoneNumbersGranted,
-    'readCallLogGranted': readCallLogGranted,
-    'answerPhoneCallsGranted': answerPhoneCallsGranted,
-    'callPhoneGranted': callPhoneGranted,
-    'hybridCallControlReady': hybridCallControlReady,
-    'fullTelecomAutomationReady': fullTelecomAutomationReady,
-    'managedCallSupportReady': managedCallSupportReady,
-  };
+        'canDrawOverlays': canDrawOverlays,
+        'accessibilityEnabled': accessibilityEnabled,
+        'notificationsGranted': notificationsGranted,
+        'recordAudioGranted': recordAudioGranted,
+        'defaultDialerGranted': defaultDialerGranted,
+        'callScreeningRoleGranted': callScreeningRoleGranted,
+        'readPhoneStateGranted': readPhoneStateGranted,
+        'readPhoneNumbersGranted': readPhoneNumbersGranted,
+        'readCallLogGranted': readCallLogGranted,
+        'answerPhoneCallsGranted': answerPhoneCallsGranted,
+        'callPhoneGranted': callPhoneGranted,
+        'hybridCallControlReady': hybridCallControlReady,
+        'fullTelecomAutomationReady': fullTelecomAutomationReady,
+        'managedCallSupportReady': managedCallSupportReady,
+      };
 
   factory NovaAndroidPermissionSnapshot.fromMap(Map<Object?, Object?> map) {
     bool b(String key) => map[key] == true;
@@ -105,23 +102,48 @@ class NovaAndroidPermissionBridgeService {
   Future<bool> canPostNotifications() => _invokeBool('canPostNotifications');
   Future<bool> hasRecordAudioPermission() =>
       _invokeBool('hasRecordAudioPermission');
-  Future<bool> requestRecordAudioPermission() =>
-      _invokeBool('requestRecordAudioPermission');
-  Future<bool> requestPostNotificationsPermission() =>
-      _invokeBool('requestPostNotificationsPermission');
-  Future<bool> openOverlaySettings() => _invokeBool('openOverlaySettings');
-  Future<bool> openAccessibilitySettings() =>
-      _invokeBool('openAccessibilitySettings');
-  Future<bool> openAppNotificationSettings() =>
-      _invokeBool('openAppNotificationSettings');
+
+  Future<bool> requestRecordAudioPermission() async {
+    await _invokeBool('requestRecordAudioPermission');
+    return _waitFor(hasRecordAudioPermission);
+  }
+
+  Future<bool> requestPostNotificationsPermission() async {
+    await _invokeBool('requestPostNotificationsPermission');
+    return _waitFor(canPostNotifications);
+  }
+
+  Future<bool> openOverlaySettings() async {
+    await _invokeBool('openOverlaySettings');
+    return _waitFor(canDrawOverlays);
+  }
+
+  Future<bool> openAccessibilitySettings() async {
+    await _invokeBool('openAccessibilitySettings');
+    return _waitFor(isAccessibilityEnabled);
+  }
+
+  Future<bool> openAppNotificationSettings() async {
+    await _invokeBool('openAppNotificationSettings');
+    return _waitFor(canPostNotifications);
+  }
+
   Future<bool> openAppSettings() => _invokeBool('openAppSettings');
   Future<bool> isDefaultDialer() => _invokeBool('isDefaultDialer');
-  Future<bool> requestDefaultDialerRole() =>
-      _invokeBool('requestDefaultDialerRole');
+
+  Future<bool> requestDefaultDialerRole() async {
+    await _invokeBool('requestDefaultDialerRole');
+    return _waitFor(isDefaultDialer);
+  }
+
   Future<bool> isCallScreeningRoleHeld() =>
       _invokeBool('isCallScreeningRoleHeld');
-  Future<bool> requestCallScreeningRole() =>
-      _invokeBool('requestCallScreeningRole');
+
+  Future<bool> requestCallScreeningRole() async {
+    await _invokeBool('requestCallScreeningRole');
+    return _waitFor(isCallScreeningRoleHeld);
+  }
+
   Future<bool> hasReadPhoneStatePermission() =>
       _invokeBool('hasReadPhoneStatePermission');
   Future<bool> hasReadPhoneNumbersPermission() =>
@@ -132,8 +154,12 @@ class NovaAndroidPermissionBridgeService {
       _invokeBool('hasAnswerPhoneCallsPermission');
   Future<bool> hasCallPhonePermission() =>
       _invokeBool('hasCallPhonePermission');
-  Future<bool> requestEssentialCallPermissions() =>
-      _invokeBool('requestEssentialCallPermissions');
+
+  Future<bool> requestEssentialCallPermissions() async {
+    await _invokeBool('requestEssentialCallPermissions');
+    return _waitFor(() async =>
+        (await getPermissionSnapshot()).essentialCallPermissionsGranted);
+  }
 
   Future<NovaAndroidPermissionSnapshot> getPermissionSnapshot() async {
     try {
@@ -149,6 +175,18 @@ class NovaAndroidPermissionBridgeService {
     } catch (_) {
       return const NovaAndroidPermissionSnapshot();
     }
+  }
+
+  Future<bool> _waitFor(
+    Future<bool> Function() probe, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    do {
+      if (await probe()) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+    } while (DateTime.now().isBefore(deadline));
+    return probe();
   }
 
   Future<bool> _invokeBool(String method) async {

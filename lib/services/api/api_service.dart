@@ -41,9 +41,8 @@ class ApiService {
       request.activeProviderKey,
     );
     final hasRequestProvider = request.activeProviderKey.trim().isNotEmpty;
-    final effectiveProvider = hasRequestProvider
-        ? requestProvider
-        : settings.activeAiProvider;
+    final effectiveProvider =
+        hasRequestProvider ? requestProvider : settings.activeAiProvider;
     final requestModel = request.activeModelId.trim();
     final settingsModel = settings.activeApiModel.trim();
     final constructorModel = model.trim();
@@ -137,7 +136,6 @@ class ApiService {
     final uri = Uri.https(
       'generativelanguage.googleapis.com',
       '/v1beta/models/$activeModel:generateContent',
-      <String, String>{'key': execution.apiKey.trim()},
     );
     final body = <String, dynamic>{
       'contents': <Map<String, dynamic>>[
@@ -155,20 +153,16 @@ class ApiService {
         },
       ],
       'generationConfig': <String, dynamic>{
-        'temperature': expectedActionSummary.isNotEmpty
-            ? 0.0
-            : request.isFastResponsePriority
-                ? 0.25
-                : 0.45,
         'maxOutputTokens': expectedActionSummary.isNotEmpty
             ? 96
             : request.isFastResponsePriority
                 ? 192
                 : 512,
       },
-      if (toolsEnabled) 'tools': <Map<String, dynamic>>[
-        NovaDeviceActionCatalog.geminiTool(),
-      ],
+      if (toolsEnabled)
+        'tools': <Map<String, dynamic>>[
+          NovaDeviceActionCatalog.geminiTool(),
+        ],
       if (toolsEnabled)
         'toolConfig': <String, dynamic>{
           'functionCallingConfig': <String, dynamic>{'mode': 'AUTO'},
@@ -259,12 +253,12 @@ class ApiService {
         toolsEnabled: toolsEnabled,
       ),
       'input': prompt,
-      if (toolsEnabled) 'tools': <Map<String, dynamic>>[
-        NovaDeviceActionCatalog.openAiTool(),
-      ],
+      if (toolsEnabled)
+        'tools': <Map<String, dynamic>>[
+          NovaDeviceActionCatalog.openAiTool(),
+        ],
       if (toolsEnabled) 'tool_choice': 'auto',
       if (toolsEnabled) 'parallel_tool_calls': false,
-      if (expectedActionSummary.isNotEmpty) 'temperature': 0,
       'max_output_tokens': expectedActionSummary.isNotEmpty
           ? 96
           : request.isFastResponsePriority
@@ -374,9 +368,10 @@ class ApiService {
           : request.isFastResponsePriority
               ? 192
               : 512,
-      if (toolsEnabled) 'tools': <Map<String, dynamic>>[
-        NovaDeviceActionCatalog.qwenTool(),
-      ],
+      if (toolsEnabled)
+        'tools': <Map<String, dynamic>>[
+          NovaDeviceActionCatalog.qwenTool(),
+        ],
       if (toolsEnabled) 'tool_choice': 'auto',
     };
 
@@ -495,7 +490,8 @@ class ApiService {
 
   bool _mayOfferDeviceTools(AiRequest request) {
     if (request.metadata['disableDeviceTools'] == true) return false;
-    if (request.isResearchRequest || request.isSelfLearningRequest) return false;
+    if (request.isResearchRequest || request.isSelfLearningRequest)
+      return false;
     if (!request.hasCurrentLease || !request.isSafeUserOrigin) return false;
     if (!request.userConfirmedThisAction) return false;
     return request.authority.canRequestNativeAction;
@@ -504,7 +500,8 @@ class ApiService {
   Map<String, dynamic> _actionMetadata(
     NovaDeviceActionCall call,
     NovaDeviceActionResult result,
-  ) => <String, dynamic>{
+  ) =>
+      <String, dynamic>{
         'deviceActionRequested': true,
         'deviceActionCall': call.toMap(),
         'deviceActionResult': result.toMap(),
@@ -675,20 +672,37 @@ class ApiService {
     required Map<String, String> headers,
     required Map<String, dynamic> body,
   }) async {
-    final httpClient = HttpClient()..connectionTimeout = timeout;
-    try {
-      final request = await httpClient.postUrl(uri).timeout(timeout);
-      headers.forEach(request.headers.set);
-      request.write(jsonEncode(body));
-      final response = await request.close().timeout(timeout);
-      final responseBody = await utf8.decodeStream(response).timeout(timeout);
-      return _ApiHttpResponse(
-        statusCode: response.statusCode,
-        body: responseBody,
+    _ApiHttpResponse? lastResponse;
+    Object? lastError;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final httpClient = HttpClient()..connectionTimeout = timeout;
+      try {
+        final request = await httpClient.postUrl(uri).timeout(timeout);
+        headers.forEach(request.headers.set);
+        request.write(jsonEncode(body));
+        final response = await request.close().timeout(timeout);
+        final responseBody = await utf8.decodeStream(response).timeout(timeout);
+        final current = _ApiHttpResponse(
+          statusCode: response.statusCode,
+          body: responseBody,
+        );
+        lastResponse = current;
+        final transient = current.statusCode == 429 ||
+            current.statusCode == 408 ||
+            current.statusCode >= 500;
+        if (!transient || attempt == 2) return current;
+      } catch (error) {
+        lastError = error;
+        if (attempt == 2) rethrow;
+      } finally {
+        httpClient.close(force: true);
+      }
+      await Future<void>.delayed(
+        Duration(milliseconds: attempt == 0 ? 350 : 900),
       );
-    } finally {
-      httpClient.close(force: true);
     }
+    if (lastResponse != null) return lastResponse;
+    throw StateError('API isteği tamamlanamadı: $lastError');
   }
 
   String _buildNovaPrompt(
@@ -730,8 +744,7 @@ class ApiService {
         'Bu turda yeni telefon eylemi başlatma. Verilen gerçek Android sonucunu değiştirmeden bildir.',
       if (speakerName.isNotEmpty) 'Konuşan kişi: $speakerName.',
       if (relationship.isNotEmpty) 'İlişki/rol: $relationship.',
-      if (ownerConfidence.isNotEmpty)
-        'Sahip güven sinyali: $ownerConfidence.',
+      if (ownerConfidence.isNotEmpty) 'Sahip güven sinyali: $ownerConfidence.',
       if (callMode.isNotEmpty) 'Çağrı modu: $callMode.',
       'İstek kökeni: ${request.requestOrigin}.',
       'Tipli yetki sınıfı: $authorityKind.',

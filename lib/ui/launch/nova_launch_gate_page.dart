@@ -16,11 +16,12 @@ import '../../services/permissions/nova_android_permission_bridge_service.dart';
 import '../../services/reminder/nova_reminder_command_service.dart';
 import '../../services/reminder/nova_reminder_service.dart';
 import '../../services/settings/nova_settings_service.dart';
+import '../../services/system/nova_background_bridge_service.dart';
 import '../../services/stt/nova_speech_to_text_service.dart';
 import '../../services/tts/nova_tts_service.dart';
 import '../../services/voice_clone/voice_clone_runtime_control_service.dart';
 import '../../services/voice_clone/voice_clone_service.dart';
-import '../nova/nova_dashboard_page.dart';
+import '../dashboard/dashboard_page.dart';
 import '../onboarding/nova_first_run_setup_v2_page.dart';
 
 class NovaLaunchGatePage extends StatefulWidget {
@@ -63,6 +64,8 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
   final NovaSettingsService _settingsService = const NovaSettingsService();
   final NovaAndroidPermissionBridgeService _permissionBridgeService =
       const NovaAndroidPermissionBridgeService();
+  final NovaBackgroundBridgeService _backgroundBridgeService =
+      const NovaBackgroundBridgeService();
 
   bool _loading = true;
   bool _showSetup = false;
@@ -142,13 +145,21 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
         await _permissionBridgeService.requestPostNotificationsPermission();
       }
       if (includeCallPermissions) {
-        // Call permissions remain explicit and are not forced during setup.
+        if (!await _permissionBridgeService.canDrawOverlays()) {
+          await _permissionBridgeService.openOverlaySettings();
+        }
+        final battery =
+            await _backgroundBridgeService.isIgnoringBatteryOptimizations();
+        if (!battery.success) {
+          await _backgroundBridgeService.openBatteryOptimizationSettings();
+        }
+        // Call and accessibility permissions remain explicit in the dashboard.
       }
     } catch (_) {}
   }
 
   Widget _buildDashboard() {
-    return NovaDashboardPage(
+    return DashboardPage(
       persona: widget.persona,
       responseStyle: widget.responseStyle,
       localModelService: widget.localModelService,
@@ -162,7 +173,6 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
       conversationSessionService: widget.conversationSessionService,
       voiceIdentityBridgeService: widget.voiceIdentityBridgeService,
       deferHeavyBootstrap: _justCompletedSetup,
-      setupRequired: false,
     );
   }
 
