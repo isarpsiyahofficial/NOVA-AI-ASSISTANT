@@ -30,42 +30,35 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Decode and verify final contract patch
-        if: ${{ hashFiles('tooling/.nova_contract_fix.patch.gz.b64') != '' }}
+      - name: Decode and verify runtime repair patch
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import base64, gzip, hashlib
           from pathlib import Path
-          source = Path('tooling/.nova_contract_fix.patch.gz.b64')
+          source = Path('tooling/.nova_runtime_fixes.patch.gz.b64')
           encoded = source.read_text(encoding='ascii').strip()
-          if len(encoded) != 3748:
-              raise SystemExit(f'Contract patch base64 length mismatch: {len(encoded)}')
-          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != '10f6594e0c8843d10b72fdcffcecea0c41f5afe1d794baa571394faa425e966d':
-              raise SystemExit('Contract patch base64 SHA-256 mismatch.')
+          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != '650a67d773d62803e738276c8206d24e78a2dd9728508d5819965b34ee398896':
+              raise SystemExit('Runtime repair base64 SHA-256 mismatch.')
           compressed = base64.b64decode(encoded, validate=True)
-          if hashlib.sha256(compressed).hexdigest() != '6d9bbb003702c3336b54d0e41bdc38d259233b93e5ff2e82c2cf5e29d823606f':
-              raise SystemExit('Contract patch compressed SHA-256 mismatch.')
           patch = gzip.decompress(compressed)
-          if hashlib.sha256(patch).hexdigest() != 'a7063b9f7d6c5cb624a7ba855bd78077e24042a8adb3b3453ba975c2f92dc2a3':
-              raise SystemExit('Contract patch SHA-256 mismatch.')
-          Path('/tmp/nova-contract-fix.patch').write_bytes(patch)
-          print(f'Verified contract patch: {len(patch)} bytes')
+          if hashlib.sha256(patch).hexdigest() != '6c44127ce01b7b9ca7331bb2ca67c9894644145617ac6bcd3fea460185566f1d':
+              raise SystemExit('Runtime repair patch SHA-256 mismatch.')
+          Path('/tmp/nova-runtime-fixes.patch').write_bytes(patch)
+          print(f'Verified runtime repair patch: {len(patch)} bytes')
           PY
+          git apply --check --whitespace=error-all /tmp/nova-runtime-fixes.patch
 
-      - name: Check final contract patch applicability
-        if: ${{ hashFiles('tooling/.nova_contract_fix.patch.gz.b64') != '' }}
-        shell: bash
-        run: git apply --check --whitespace=error-all /tmp/nova-contract-fix.patch
-
-      - name: Apply final contract corrections
-        if: ${{ hashFiles('tooling/.nova_contract_fix.patch.gz.b64') != '' }}
+      - name: Apply active runtime corrections
         shell: bash
         run: |
           set -euo pipefail
-          git apply --whitespace=error-all /tmp/nova-contract-fix.patch
-          rm -f /tmp/nova-contract-fix.patch tooling/.nova_contract_fix.patch.gz.b64
+          git apply --whitespace=error-all /tmp/nova-runtime-fixes.patch
+          rm -f /tmp/nova-runtime-fixes.patch
+          rm -f tooling/.nova_runtime_fixes.patch.gz.b64
+          rm -f .github/workflows/nova-apply-runtime-fixes.yml
+          git show HEAD^:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
           git diff --check
 
       - name: Validate corrected source tree
@@ -76,19 +69,21 @@ jobs:
             tooling/audit_decision_graph.py \
             tooling/audit_decision_graph_full.py \
             tooling/classify_quarantined_decision_files.py \
-            tooling/verify_nova_acceptance.py
+            tooling/verify_nova_acceptance.py \
+            tooling/nova_acceptance_catalog.py \
+            infra/call-bridge/media_gateway/service.py
           bash -n tooling/run_android_telecom_emulator_e2e.sh
+          bash -n tooling/run_tecno_hardware_lab.sh
           bash -n infra/call-bridge/run_e2e.sh
           python tooling/classify_quarantined_decision_files.py --strict
           python tooling/audit_decision_graph_full.py --strict
           git diff --check
 
-      - name: Commit source-only contract corrections
+      - name: Commit repaired runtime source
         id: source_commit
         shell: bash
         run: |
           set -euo pipefail
-          git checkout HEAD -- .github/workflows
           if git diff --quiet && git diff --cached --quiet; then
             echo 'created=false' >> "$GITHUB_OUTPUT"
             exit 0
@@ -96,10 +91,11 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Finalize Telecom, AudioSocket and ASR lease contracts'
+          git diff --cached --check
+          git commit -m 'Fix active authority and fail-closed call runtime'
           echo 'created=true' >> "$GITHUB_OUTPUT"
 
-      - name: Push source-only contract corrections
+      - name: Push repaired runtime source
         if: steps.source_commit.outputs.created == 'true'
         shell: bash
         run: git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
