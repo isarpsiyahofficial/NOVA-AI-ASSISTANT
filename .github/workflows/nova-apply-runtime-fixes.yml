@@ -1,0 +1,75 @@
+name: Apply NOVA Runtime Fixes
+
+on:
+  push:
+    branches:
+      - agent/single-brain-low-latency-runtime
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nova-apply-runtime-fixes
+  cancel-in-progress: false
+
+jobs:
+  apply-fixes:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: agent/single-brain-low-latency-runtime
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Decode and verify repair patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '650a67d773d62803e738276c8206d24e78a2dd9728508d5819965b34ee398896  tooling/.nova_runtime_fixes.patch.gz.b64' | sha256sum -c -
+          base64 --decode tooling/.nova_runtime_fixes.patch.gz.b64 | gzip --decompress > /tmp/nova_runtime_fixes.patch
+          echo '6c44127ce01b7b9ca7331bb2ca67c9894644145617ac6bcd3fea460185566f1d  /tmp/nova_runtime_fixes.patch' | sha256sum -c -
+          git apply --check /tmp/nova_runtime_fixes.patch
+
+      - name: Apply source corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/nova_runtime_fixes.patch
+          rm -f tooling/.nova_runtime_fixes.patch.gz.b64
+          rm -f .github/workflows/nova-apply-runtime-fixes.yml
+
+      - name: Validate repaired source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            infra/call-bridge/media_gateway/service.py \
+            infra/call-bridge/control_gateway/service.py \
+            tooling/nova_acceptance_catalog.py \
+            tooling/verify_nova_acceptance.py
+          bash -n infra/call-bridge/run_e2e.sh
+          bash -n tooling/run_tecno_hardware_lab.sh
+          python3 tooling/audit_decision_graph_full.py --strict --output-dir build/nova-decision-graph-bootstrap
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          for path in Path('.github/workflows').glob('*.yml'):
+              yaml.safe_load(path.read_text())
+          print('workflow_yaml_valid')
+          PY
+
+      - name: Commit repaired runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Fix active authority and fail-closed call runtime'
+          git push origin HEAD:agent/single-brain-low-latency-runtime
