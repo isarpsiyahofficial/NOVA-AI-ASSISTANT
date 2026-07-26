@@ -31,13 +31,24 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      - name: Detect staged integration
+        id: staged
+        shell: bash
+        run: |
+          if [[ -f tooling/.nova_runtime_integration/run_transformer.py ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Apply verified source transformations
         id: transform
+        if: steps.staged.outputs.apply == 'true'
         continue-on-error: true
         run: python tooling/.nova_runtime_integration/run_transformer.py > nova-runtime-transform.log 2>&1
 
       - name: Upload transformation evidence
-        if: always()
+        if: steps.staged.outputs.apply == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: NOVA-RUNTIME-TRANSFORM-V3-LOG
@@ -46,24 +57,24 @@ jobs:
           retention-days: 7
 
       - name: Enforce source transformation
-        if: steps.transform.outcome != 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome != 'success'
         run: |
           cat nova-runtime-transform.log
           exit 1
 
       - name: Set up Flutter
-        if: steps.transform.outcome == 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Install dependencies
-        if: steps.transform.outcome == 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: flutter pub get
 
       - name: Format hardened runtime files
-        if: steps.transform.outcome == 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: >-
           dart format
           lib/core/api/nova_secure_token_store.dart
@@ -76,7 +87,7 @@ jobs:
           test/runtime/nova_background_authority_contract_test.dart
 
       - name: Run background authority contracts
-        if: steps.transform.outcome == 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: >-
           flutter test
           test/runtime/nova_background_authority_contract_test.dart
@@ -84,7 +95,7 @@ jobs:
 
       - name: Analyze activated runtime entry points
         id: analyze
-        if: steps.transform.outcome == 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: >-
@@ -100,7 +111,7 @@ jobs:
           > nova-runtime-analyze.log 2>&1
 
       - name: Upload analyze evidence
-        if: steps.transform.outcome == 'success' && always()
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success' && always()
         uses: actions/upload-artifact@v4
         with:
           name: NOVA-RUNTIME-ANALYZE-LOG
@@ -109,38 +120,21 @@ jobs:
           retention-days: 7
 
       - name: Enforce activated runtime analysis
-        if: steps.transform.outcome == 'success' && steps.analyze.outcome != 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success' && steps.analyze.outcome != 'success'
         run: |
           cat nova-runtime-analyze.log
           exit 1
 
       - name: Build hardened debug APK
-        if: steps.transform.outcome == 'success' && steps.analyze.outcome == 'success'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success' && steps.analyze.outcome == 'success'
         run: flutter build apk --debug --no-pub
 
-      - name: Publish hardened runtime and remove staging
-        if: steps.transform.outcome == 'success' && steps.analyze.outcome == 'success'
+      - name: Publish hardened runtime source
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success' && steps.analyze.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
           rm -rf tooling/.nova_runtime_integration
-          rm -f .github/workflows/nova-runtime-integration-fix.yml
-          rm -f .github/workflows/nova-runtime-integration-fix-v2.yml
-          rm -f .github/workflows/nova-runtime-integration-fix-v3.yml
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('.github/workflows/nova-runtime-integrity.yml')
-          text = path.read_text(encoding='utf-8')
-          marker = '  # BEGIN ONE_SHOT_RUNTIME_INTEGRATION'
-          if marker in text:
-              text = text[:text.index(marker)].rstrip() + '\n'
-          text = text.replace(
-              'permissions:\n  contents: write',
-              'permissions:\n  contents: read',
-              1,
-          )
-          path.write_text(text, encoding='utf-8')
-          PY
           git add -A
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
