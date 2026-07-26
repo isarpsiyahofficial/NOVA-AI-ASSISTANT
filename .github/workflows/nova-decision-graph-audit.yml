@@ -89,9 +89,12 @@ jobs:
           bash -n tooling/run_tecno_hardware_lab.sh
           bash -n infra/call-bridge/run_e2e.sh
 
-      - name: Classify corrected decision files
+      - name: Refresh and validate decision quarantine
         shell: bash
-        run: python tooling/classify_quarantined_decision_files.py --strict
+        run: |
+          set -euo pipefail
+          python tooling/classify_quarantined_decision_files.py --write-manifest
+          python tooling/classify_quarantined_decision_files.py --strict
 
       - name: Audit corrected decision graph
         shell: bash
