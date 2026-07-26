@@ -5,7 +5,7 @@ on:
     branches:
       - agent/single-brain-low-latency-runtime
     paths:
-      - tooling/.nova_runtime_integration/READY
+      - tooling/.nova_runtime_integration/apply.py
       - .github/workflows/nova-runtime-integration-fix.yml
   pull_request:
     branches:
@@ -35,20 +35,15 @@ jobs:
         id: staged
         shell: bash
         run: |
-          if [[ -f tooling/.nova_runtime_integration/READY && -f tooling/.nova_runtime_integration/runtime.patch.gz.b64 ]]; then
+          if [[ -f tooling/.nova_runtime_integration/apply.py ]]; then
             echo "apply=true" >> "$GITHUB_OUTPUT"
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Decode and apply exact patch
+      - name: Apply verified source transformations
         if: steps.staged.outputs.apply == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          base64 -d tooling/.nova_runtime_integration/runtime.patch.gz.b64 | gzip -d > /tmp/nova-runtime.patch
-          git apply --check --whitespace=error-all /tmp/nova-runtime.patch
-          git apply --index --whitespace=error-all /tmp/nova-runtime.patch
+        run: python tooling/.nova_runtime_integration/apply.py
 
       - name: Set up Flutter
         if: steps.staged.outputs.apply == 'true'
