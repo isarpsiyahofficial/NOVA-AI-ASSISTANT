@@ -6,27 +6,43 @@ on:
       - agent/single-brain-low-latency-runtime
     paths:
       - tooling/.nova_runtime_integration/READY
+      - .github/workflows/nova-runtime-integration-fix.yml
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: nova-runtime-integration-fix-${{ github.ref }}
+  group: nova-runtime-integration-fix
   cancel-in-progress: false
 
 jobs:
   apply-and-verify:
-    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Apply NOVA runtime integration hardening'
+    if: github.repository == 'isarpsiyahofficial/NOVA-AI-ASSISTANT'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Checkout branch
+      - name: Checkout real feature branch
         uses: actions/checkout@v4
         with:
+          ref: agent/single-brain-low-latency-runtime
           fetch-depth: 0
 
+      - name: Detect staged integration
+        id: staged
+        shell: bash
+        run: |
+          if [[ -f tooling/.nova_runtime_integration/READY && -f tooling/.nova_runtime_integration/runtime.patch.gz.b64 ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decode and apply exact patch
+        if: steps.staged.outputs.apply == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -35,15 +51,18 @@ jobs:
           git apply --index --whitespace=error-all /tmp/nova-runtime.patch
 
       - name: Set up Flutter
+        if: steps.staged.outputs.apply == 'true'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Install dependencies
+        if: steps.staged.outputs.apply == 'true'
         run: flutter pub get
 
       - name: Format hardened runtime files
+        if: steps.staged.outputs.apply == 'true'
         run: >-
           dart format
           lib/core/api/nova_secure_token_store.dart
@@ -56,12 +75,14 @@ jobs:
           test/runtime/nova_background_authority_contract_test.dart
 
       - name: Run background authority contracts
-        run: flutter test test/runtime/nova_background_authority_contract_test.dart
-
-      - name: Run existing runtime contracts
-        run: flutter test test/runtime/nova_runtime_integrity_contract_test.dart
+        if: steps.staged.outputs.apply == 'true'
+        run: >-
+          flutter test
+          test/runtime/nova_background_authority_contract_test.dart
+          test/runtime/nova_runtime_integrity_contract_test.dart
 
       - name: Analyze activated runtime entry points
+        if: steps.staged.outputs.apply == 'true'
         run: >-
           flutter analyze
           lib/main.dart
@@ -73,15 +94,31 @@ jobs:
           lib/ui/dashboard/dashboard_page.dart
           lib/ui/launch/nova_launch_gate_page.dart
 
-      - name: Build debug APK
+      - name: Build hardened debug APK
+        if: steps.staged.outputs.apply == 'true'
         run: flutter build apk --debug --no-pub
 
-      - name: Remove one-shot staging and publish fix
+      - name: Remove one-shot staging and workflow code
+        if: steps.staged.outputs.apply == 'true'
         shell: bash
         run: |
           set -euo pipefail
           rm -rf tooling/.nova_runtime_integration
           rm -f .github/workflows/nova-runtime-integration-fix.yml
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/nova-runtime-integrity.yml')
+          text = path.read_text(encoding='utf-8')
+          marker = '  # BEGIN ONE_SHOT_RUNTIME_INTEGRATION'
+          if marker in text:
+              text = text[:text.index(marker)].rstrip() + '\n'
+          text = text.replace(
+              'permissions:\n  contents: write',
+              'permissions:\n  contents: read',
+              1,
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
           git add -A
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
