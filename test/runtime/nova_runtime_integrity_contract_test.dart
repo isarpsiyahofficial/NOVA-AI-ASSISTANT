@@ -264,5 +264,56 @@ void main() {
       expect(source, isNot(contains('createReferenceFallback')));
       expect(source, isNot(contains('Referans ses profili oluşturuldu')));
     });
+
+
+    test('active launch dashboard creates typed authority and a current turn lease', () {
+      final launch = _read('lib/ui/launch/nova_launch_gate_page.dart');
+      final dashboard = _read('lib/ui/dashboard/dashboard_page.dart');
+      final hotpath = _read(
+        'lib/services/runtime/nova_hotpath_owner_service.dart',
+      );
+
+      expect(launch, contains("import '../dashboard/dashboard_page.dart';"));
+      expect(launch, contains('return DashboardPage('));
+      expect(dashboard, contains('NovaTurnLeaseController.instance.begin('));
+      expect(dashboard, contains('_typedAuthorityForPrompt('));
+      expect(dashboard, contains('authority: turnAuthority'));
+      expect(dashboard, contains('lease: turnLease'));
+      expect(hotpath, contains('authority: aiRequest.authority'));
+      expect(hotpath, contains('lease: aiRequest.lease'));
+      expect(
+        hotpath,
+        contains("aiRequest.metadata['allowLegacyRuntimeBroker'] == true"),
+      );
+    });
+
+    test('voice transcript and owner proof come from the same captured PCM segment', () {
+      final dashboard = _read('lib/ui/dashboard/dashboard_page.dart');
+      final stt = _read('lib/services/stt/nova_speech_to_text_service.dart');
+
+      expect(dashboard, contains('widget.sttService.transcribe('));
+      expect(dashboard, contains("'nativeActionToken': result.nativeActionToken"));
+      expect(stt, contains('identifyVoiceFromFile('));
+      expect(stt, contains('nativeActionToken: matchedOwner'));
+    });
+
+    test('CI never labels a debug-signed APK as a production release', () {
+      final gradle = _read('android/app/build.gradle.kts');
+      final tecnoWorkflow = _read(
+        '.github/workflows/nova-tecno-arm64-apk.yml',
+      );
+      final runtimeWorkflow = _read(
+        '.github/workflows/nova-runtime-integrity.yml',
+      );
+
+      expect(
+        gradle,
+        isNot(contains('signingConfig = signingConfigs.getByName("debug")')),
+      );
+      expect(tecnoWorkflow, contains('NOVA-TECNO-ARM64-INTERNAL-TEST'));
+      expect(tecnoWorkflow, contains('flutter build apk --debug'));
+      expect(tecnoWorkflow, isNot(contains('NOVA-TECNO-ARM64-RELEASE')));
+      expect(runtimeWorkflow, isNot(contains('flutter build apk --release')));
+    });
   });
 }

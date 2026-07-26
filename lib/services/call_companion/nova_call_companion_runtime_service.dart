@@ -10,6 +10,7 @@ import '../../core/stt/nova_stt_mode.dart' show NovaSttMode;
 import '../../core/runtime/nova_runtime_signal.dart';
 import '../../core/tts/nova_tts_mode.dart' show NovaTtsMode;
 import '../call/nova_call_control_bridge_service.dart';
+import '../actions/nova_verified_call_action_service.dart';
 import '../call/nova_call_state_service.dart';
 import '../call_learning/nova_call_style_learning_service.dart';
 import '../contacts/nova_contact_service.dart';
@@ -31,6 +32,7 @@ class NovaCallCompanionRuntimeService {
   final NovaCallCompanionService companionService;
   final NovaCallStateService callStateService;
   final NovaCallControlBridgeService callControlService;
+  final NovaVerifiedCallActionService verifiedCallActionService;
   final NovaContactService contactService;
   final NovaSpeechToTextService sttService;
   final NovaTtsService ttsService;
@@ -66,6 +68,7 @@ class NovaCallCompanionRuntimeService {
     required this.companionService,
     required this.callStateService,
     required this.callControlService,
+    this.verifiedCallActionService = const NovaVerifiedCallActionService(),
     required this.contactService,
     required this.sttService,
     required this.ttsService,
@@ -147,6 +150,31 @@ class NovaCallCompanionRuntimeService {
     };
   }
 
+  Future<bool> _ensureCarrierConversationTransportReady() async {
+    final capabilities = await callControlService.getCapabilities();
+    final ready = capabilities['carrierAiConversationReady'] == true &&
+        capabilities['carrierDownlinkCaptureReady'] == true &&
+        capabilities['carrierUplinkInjectionReady'] == true;
+    if (ready) return true;
+
+    _setStatus(
+      'Çağrı companion, çift yönlü carrier/SIP medya köprüsü bu cihaza bağlanmadan çağrıyı cevaplamaz.',
+      mode: NovaCallCompanionMode.error,
+    );
+    await NovaRuntimeSignalService.instance.record(
+      kind: NovaRuntimeSignalKind.call,
+      level: NovaRuntimeSignalLevel.warning,
+      code: 'call_companion_carrier_transport_unavailable',
+      message: 'Yerel hoparlör/mikrofon hilesi engellendi; çağrı cevaplanmadı.',
+      technicalDetails:
+          'carrierAiConversationReady=${capabilities['carrierAiConversationReady']} '
+          'downlink=${capabilities['carrierDownlinkCaptureReady']} '
+          'uplink=${capabilities['carrierUplinkInjectionReady']}',
+      diagnosticCandidate: true,
+    );
+    return false;
+  }
+
   Future<bool> startForCurrentCall({bool allowShutdownBypass = false}) async {
     final snapshot = await callStateService.getSnapshot();
 
@@ -155,6 +183,10 @@ class NovaCallCompanionRuntimeService {
         'Aktif veya çalan çağrı bulunamadı.',
         mode: NovaCallCompanionMode.idle,
       );
+      return false;
+    }
+
+    if (!await _ensureCarrierConversationTransportReady()) {
       return false;
     }
 
@@ -168,7 +200,11 @@ class NovaCallCompanionRuntimeService {
     }
 
     if (snapshot.isRinging) {
-      final answer = await callControlService.answerRingingCall();
+      final answer = await verifiedCallActionService.executeCompanion(
+        action: 'answer_call',
+        immutableEventText: 'gelen çağrıyı cevapla',
+        evidenceId: 'companion_auto_answer_$phoneNumber',
+      );
       if (!answer.success) {
         _setStatus(
           answer.message.trim().isEmpty
@@ -224,6 +260,10 @@ class NovaCallCompanionRuntimeService {
         microphoneExpectedMuted: true,
       );
       return true;
+    }
+
+    if (!await _ensureCarrierConversationTransportReady()) {
+      return false;
     }
 
     await stop(silent: true);
@@ -519,8 +559,16 @@ class NovaCallCompanionRuntimeService {
             wantsSpeakerUserTakeover) {
           if (wantsSpeakerUserTakeover) {
             _userOverride = true;
-            final speaker = await callControlService.routeToSpeaker(true);
-            final mic = await callControlService.setMuted(false);
+            final speaker = await verifiedCallActionService.executeCompanion(
+              action: 'speaker_on',
+              immutableEventText: 'hoparlörü aç',
+              evidenceId: 'companion_owner_takeover_speaker_${_activePhoneNumber ?? ''}',
+            );
+            final mic = await verifiedCallActionService.executeCompanion(
+              action: 'unmute_call',
+              immutableEventText: 'mikrofonu aç',
+              evidenceId: 'companion_owner_takeover_mic_${_activePhoneNumber ?? ''}',
+            );
             _setStatus(
               (speaker.success && mic.success)
                   ? 'Kontrol size bırakıldı; hoparlör açık ve mikrofon sizde.'
@@ -574,7 +622,7 @@ class NovaCallCompanionRuntimeService {
             if (askReply.trimmedText.isNotEmpty &&
                 askReply.authorityResponse?.hasAuthoritativeBrainProof ==
                     true) {
-              await ttsService.speak(
+              await ttsService.emitAuthorized(
                 askReply.trimmedText,
                 mode: NovaTtsMode.neuralLocal,
                 interruptCurrentSpeech: true,
@@ -681,7 +729,7 @@ class NovaCallCompanionRuntimeService {
             latencyScore: 0.86,
           ),
         );
-        await ttsService.speak(
+        await ttsService.emitAuthorized(
           safeReply,
           mode: NovaTtsMode.neuralLocal,
           interruptCurrentSpeech: true,
@@ -765,7 +813,7 @@ class NovaCallCompanionRuntimeService {
 
     final safeReply = reply.trimmedText;
     if (safeReply.isNotEmpty) {
-      await ttsService.speak(
+      await ttsService.emitAuthorized(
         safeReply,
         mode: NovaTtsMode.neuralLocal,
         interruptCurrentSpeech: true,
@@ -949,12 +997,20 @@ class NovaCallCompanionRuntimeService {
     }
 
     if (wantsSpeakerAssist) {
-      await callControlService.routeToSpeaker(true);
+      await verifiedCallActionService.executeCompanion(
+        action: 'speaker_on',
+        immutableEventText: 'hoparlörü aç',
+        evidenceId: 'companion_quick_route_speaker_${_activePhoneNumber ?? ''}',
+      );
     }
 
     if (wantsNovaSpeak) {
       await takeBackControl();
-      await callControlService.routeToSpeaker(true);
+      await verifiedCallActionService.executeCompanion(
+        action: 'speaker_on',
+        immutableEventText: 'hoparlörü aç',
+        evidenceId: 'companion_nova_speak_speaker_${_activePhoneNumber ?? ''}',
+      );
       _awaitingUserReplyInstruction = true;
       // No static operational clarification may speak without SingleBrain/Gemma proof.
       // The runtime stays in awaiting instruction mode and listens instead.

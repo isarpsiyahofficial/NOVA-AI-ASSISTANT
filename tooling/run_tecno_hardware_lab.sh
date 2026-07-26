@@ -266,6 +266,7 @@ collect_metrics
 write_evidence
 
 NOVA_REAL_DEVICE_EVIDENCE="$OUT_DIR/NOVA_TECNO_DEVICE_EVIDENCE.json" \
+NOVA_EXPECTED_APK_SHA256="$(sha256sum "$APK_PATH" | awk '{print $1}')" \
   python3 tooling/verify_nova_acceptance.py --strict --require-hardware
 
 echo "NOVA real TECNO hardware lab passed."

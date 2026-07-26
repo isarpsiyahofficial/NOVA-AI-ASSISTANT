@@ -33,17 +33,25 @@ object NovaNativeActionAuthorization {
         }
 
         if (companionAction) {
-            val configured = context.getSharedPreferences(
-                "nova_companion_native_authority",
-                Context.MODE_PRIVATE,
-            ).getBoolean("enabled", false)
-            if (configured) {
+            val activeNumber = (NovaCallStateBridge.getState()["number"] as? String)
+                .orEmpty()
+                .trim()
+            val companionDecision = NovaCallAuthorityGuard.canCompanionCallControl(
+                context,
+                activeNumber,
+            )
+            if (companionDecision.allowed) {
                 return Decision(
                     allowed = true,
                     mode = "configured_companion_scope",
-                    message = "Yerel olarak yapılandırılmış companion kapsamı doğrulandı.",
+                    message = "Yönetilen kişi ve çağrı kapsamı yerel olarak doğrulandı.",
                 )
             }
+            return Decision(
+                allowed = false,
+                mode = "companion_scope_blocked",
+                message = companionDecision.reason,
+            )
         }
 
         return Decision(

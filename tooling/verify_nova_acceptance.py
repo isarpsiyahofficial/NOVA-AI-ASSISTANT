@@ -37,6 +37,15 @@ def contains(path: str, *needles: str) -> tuple[bool, list[str]]:
     return not missing, [f"{path}:{needle}" for needle in needles if needle in text]
 
 
+def excludes(path: str, *needles: str) -> tuple[bool, list[str]]:
+    target = ROOT / path
+    if not target.is_file():
+        return False, []
+    text = target.read_text(encoding="utf-8", errors="replace")
+    present = [needle for needle in needles if needle in text]
+    return not present, [f"{path}:absent:{needle}" for needle in needles if needle not in text]
+
+
 def combine(gate: str, checks: list[tuple[bool, list[str]]], message: str) -> GateResult:
     passed = all(result for result, _ in checks)
     evidence = [item for _, items in checks for item in items]
@@ -79,12 +88,43 @@ def gate_single_brain() -> GateResult:
     return combine(
         "single_brain",
         [
-            contains("lib/core/turn/nova_core_turn_controller.dart", "NovaSingleBrainAuthorityService.instance.handleInput", "usedSharedNovaAiService"),
-            contains("lib/services/api/api_service.dart", "await actionExecutor.execute", "nativeSideEffectCompletedBeforeFinalAnswer", "unsafe_action_summary_blocked"),
-            contains("lib/core/actions/nova_device_action.dart", "execute_phone_action", "additionalProperties"),
-            exists("test/runtime/nova_verified_device_action_contract_test.dart"),
+            contains(
+                "lib/ui/launch/nova_launch_gate_page.dart",
+                "import '../dashboard/dashboard_page.dart';",
+                "return DashboardPage(",
+            ),
+            contains(
+                "lib/ui/dashboard/dashboard_page.dart",
+                "NovaTurnLeaseController.instance.begin(",
+                "_typedAuthorityForPrompt(",
+                "authority: turnAuthority",
+                "lease: turnLease",
+                "widget.sttService.transcribe(",
+            ),
+            contains(
+                "lib/services/runtime/nova_hotpath_owner_service.dart",
+                "authority: aiRequest.authority",
+                "lease: aiRequest.lease",
+                "allowLegacyRuntimeBroker",
+            ),
+            contains(
+                "lib/services/api/api_service.dart",
+                "await actionExecutor.execute",
+                "nativeSideEffectCompletedBeforeFinalAnswer",
+                "unsafe_action_summary_blocked",
+            ),
+            contains(
+                "lib/services/actions/nova_verified_call_action_service.dart",
+                "NovaDeviceActionExecutorService",
+                "NovaTurnAuthority.companion(",
+                "NovaTurnLeaseController.instance.begin(",
+            ),
+            exists(
+                "test/runtime/nova_runtime_integrity_contract_test.dart",
+                "test/runtime/nova_verified_device_action_contract_test.dart",
+            ),
         ],
-        "SingleBrain provider tool loop and no false success",
+        "Active dashboard, SingleBrain and verified native action path",
     )
 
 
@@ -174,10 +214,21 @@ def gate_carrier_bridge() -> GateResult:
             contains("infra/call-bridge/asterisk/config/extensions.conf", "AudioSocket", "from-nova-carrier", "nova-outbound"),
             contains("infra/call-bridge/media_gateway/service.py", "transcribe_8k_pcm", "AiDecisionEngine", "synthesize_8k_pcm", "SessionReport"),
             contains("infra/call-bridge/media_gateway/launcher.py", "VerifiedSherpaSpeechEngine", "service.main"),
-            contains("infra/call-bridge/run_e2e.sh", "python /app/launcher.py synthesize", "assert-latest", "inspect-wav"),
-            contains(".github/workflows/nova-call-bridge-e2e.yml", "Run real AudioSocket call", "Upload bidirectional call evidence"),
+            contains(
+                "infra/call-bridge/run_e2e.sh",
+                "python /app/launcher.py synthesize",
+                "--expect-text",
+                "--min-word-coverage",
+                "--min-similarity",
+                "inspect-wav",
+            ),
+            contains(
+                ".github/workflows/nova-call-bridge-e2e.yml",
+                "deterministic mock AI",
+                "Upload bidirectional call evidence",
+            ),
         ],
-        "Real two-way PSTN/SIP PCM bridge with STT, AI and TTS",
+        "Real two-way PSTN/SIP PCM transport with Whisper and Piper; AI stage explicitly mocked in CI",
     )
 
 
@@ -193,39 +244,90 @@ def gate_contacts() -> GateResult:
     )
 
 
-def gate_companion() -> GateResult:
+def gate_companion_security() -> GateResult:
     return combine(
-        "companion",
+        "companion_security",
         [
             contains(
-                "android/app/src/main/kotlin/com/example/nova/NovaCallControlBridgePlugin.kt",
-                "NovaNativeActionAuthorization.authorize",
-                "actionToken",
-                "companionAction",
-                "carrier_ai_audio_transport_unavailable",
-                "carrierDownlinkCaptureReady",
-                "carrierUplinkInjectionReady",
-                "external_asterisk_audiosocket",
+                "lib/services/call_companion/nova_call_companion_service.dart",
+                "NovaTurnLeaseController.instance.begin(",
+                "NovaTurnAuthority.companion(",
+                "authority: turnAuthority",
+                "lease: turnLease",
             ),
             contains(
-                "lib/core/ai/ai_request.dart",
-                "call_companion_authorized_voice",
-                "NovaTurnAuthority",
-                "companionAuthorized",
+                "lib/services/call_companion/nova_call_companion_runtime_service.dart",
+                "_ensureCarrierConversationTransportReady",
+                "carrierAiConversationReady",
+                "verifiedCallActionService.executeCompanion(",
+                "call_companion_carrier_transport_unavailable",
             ),
             contains(
-                "lib/services/actions/nova_device_action_executor_service.dart",
-                "companionAction",
-                "explicitlyAllowedContact",
-                "isAuthorizedManagedNumber",
+                "lib/services/system/nova_continuous_listening_runtime_service.dart",
+                "fail_closed_before_answer",
+                "startForCurrentCall(",
+            ),
+            excludes(
+                "lib/services/call/nova_call_control_bridge_service.dart",
+                "localUiAction || userInitiated",
             ),
             contains(
-                "lib/services/runtime/nova_decision_context_composer_service.dart",
-                "NOVA DECISION CONTEXT (advisory only)",
-                "cannot grant owner status",
+                "android/app/src/main/kotlin/com/example/nova/NovaNativeActionAuthorization.kt",
+                "NovaCallStateBridge.getState()",
+                "NovaCallAuthorityGuard.canCompanionCallControl(",
+            ),
+            excludes(
+                "android/app/src/main/kotlin/com/example/nova/NovaNativeActionAuthorization.kt",
+                "nova_companion_native_authority",
             ),
         ],
-        "Typed companion authority, contact permission and carrier-media boundary",
+        "Companion security is typed and local audio hacks fail closed before answer",
+    )
+
+
+def gate_companion_transport() -> GateResult:
+    evidence = os.getenv("NOVA_REAL_COMPANION_EVIDENCE", "").strip()
+    if not evidence:
+        return GateResult(
+            "companion_transport",
+            False,
+            [
+                "infra/call-bridge/run_e2e.sh",
+                "lib/services/call/nova_carrier_media_bridge_service.dart",
+            ],
+            "WAITING_FOR_REAL_CARRIER_TO_APP_COMPANION_EVIDENCE",
+        )
+    target = Path(evidence)
+    if not target.is_file():
+        return GateResult(
+            "companion_transport",
+            False,
+            [],
+            f"Companion evidence file not found: {evidence}",
+        )
+    try:
+        data = json.loads(target.read_text(encoding="utf-8"))
+    except Exception as error:
+        return GateResult(
+            "companion_transport",
+            False,
+            [],
+            f"Invalid companion evidence JSON: {error}",
+        )
+    required_true = [
+        "authorized_contact_only",
+        "bidirectional_media_passed",
+        "handover_to_user_passed",
+        "postcondition_verified",
+    ]
+    passed = all(data.get(key) is True for key in required_true)
+    return GateResult(
+        "companion_transport",
+        passed,
+        [str(target)],
+        "Real carrier-to-app companion evidence accepted"
+        if passed
+        else "Companion evidence did not satisfy all real media postconditions",
     )
 
 
@@ -338,18 +440,33 @@ def gate_release() -> GateResult:
     return combine(
         "release",
         [
-            contains(".github/workflows/nova-tecno-arm64-apk.yml", "NOVA-TECNO-ARM64-RELEASE", "sha256sum", "apk_bytes"),
+            contains(
+                ".github/workflows/nova-tecno-arm64-apk.yml",
+                "NOVA-TECNO-ARM64-INTERNAL-TEST",
+                "flutter build apk --debug",
+                "sha256sum",
+                "apk_bytes",
+            ),
+            excludes(
+                ".github/workflows/nova-tecno-arm64-apk.yml",
+                "NOVA-TECNO-ARM64-RELEASE",
+                "flutter build apk --release",
+            ),
+            excludes(
+                "android/app/build.gradle.kts",
+                'signingConfig = signingConfigs.getByName("debug")',
+            ),
             exists("NOVA_FINAL_VERIFICATION_REPORT.md"),
             contains("tooling/nova_acceptance_catalog.py", "NOVA-{number:03d}", "hardware"),
         ],
-        "Release artifact identity, checksums and acceptance traceability",
+        "Internal-test APK is labelled honestly; production signing cannot fall back to debug",
     )
 
 
 def gate_device() -> GateResult:
     path = os.getenv("NOVA_REAL_DEVICE_EVIDENCE", "").strip()
     if not path:
-        return GateResult("device", False, [], "WAITING_FOR_SIGNED_TECNO_DEVICE_EVIDENCE")
+        return GateResult("device", False, [], "WAITING_FOR_REAL_TECNO_DEVICE_EVIDENCE")
     target = Path(path)
     if not target.is_file():
         return GateResult("device", False, [], f"Device evidence file not found: {path}")
@@ -357,29 +474,79 @@ def gate_device() -> GateResult:
         data = json.loads(target.read_text(encoding="utf-8"))
     except Exception as error:
         return GateResult("device", False, [], f"Invalid device evidence JSON: {error}")
+
     required = [
         "commit_sha",
+        "apk_sha256",
         "device_model",
+        "device_manufacturer",
         "android_version",
+        "android_sdk",
         "sim_call_passed",
         "sip_media_passed",
         "screen_lock_passed",
         "background_30m_passed",
         "metrics",
+        "created_at_epoch",
+        "evidence_files",
     ]
     missing = [key for key in required if key not in data]
-    booleans_ok = all(data.get(key) is True for key in [
+    errors: list[str] = []
+    if missing:
+        errors.append(f"missing={missing}")
+
+    for key in [
         "sim_call_passed",
         "sip_media_passed",
         "screen_lock_passed",
         "background_30m_passed",
-    ])
-    passed = not missing and booleans_ok
+    ]:
+        if data.get(key) is not True:
+            errors.append(f"{key}=false")
+
+    commit_sha = str(data.get("commit_sha", "")).strip().lower()
+    apk_sha = str(data.get("apk_sha256", "")).strip().lower()
+    manufacturer = str(data.get("device_manufacturer", "")).strip()
+    model = str(data.get("device_model", "")).strip()
+    if len(commit_sha) != 40 or any(ch not in "0123456789abcdef" for ch in commit_sha):
+        errors.append("invalid_commit_sha")
+    expected_commit = os.getenv("GITHUB_SHA", "").strip().lower()
+    if expected_commit and commit_sha != expected_commit:
+        errors.append("commit_sha_mismatch")
+    if len(apk_sha) != 64 or any(ch not in "0123456789abcdef" for ch in apk_sha):
+        errors.append("invalid_apk_sha256")
+    expected_apk = os.getenv("NOVA_EXPECTED_APK_SHA256", "").strip().lower()
+    if expected_apk and apk_sha != expected_apk:
+        errors.append("apk_sha256_mismatch")
+    if "tecno" not in manufacturer.casefold():
+        errors.append("manufacturer_is_not_tecno")
+    if not model:
+        errors.append("device_model_empty")
+
+    metrics = data.get("metrics") if isinstance(data.get("metrics"), dict) else {}
+    try:
+        background_seconds = int(metrics.get("background_seconds", 0))
+    except (TypeError, ValueError):
+        background_seconds = 0
+    if background_seconds < 1800:
+        errors.append("background_duration_below_1800_seconds")
+    try:
+        total_pss_kb = int(str(metrics.get("total_pss_kb", "0")).strip() or "0")
+    except (TypeError, ValueError):
+        total_pss_kb = 0
+    if total_pss_kb <= 0:
+        errors.append("invalid_total_pss_kb")
+
+    evidence_files = data.get("evidence_files")
+    if not isinstance(evidence_files, list) or len(evidence_files) < 8:
+        errors.append("insufficient_evidence_files")
+
+    passed = not errors
     return GateResult(
         "device",
         passed,
-        [str(target), f"commit:{data.get('commit_sha', '')}", f"device:{data.get('device_model', '')}"],
-        "Signed real TECNO device evidence accepted" if passed else f"Device evidence incomplete: missing={missing}",
+        [str(target), f"commit:{commit_sha}", f"apk:{apk_sha}", f"device:{manufacturer} {model}"],
+        "Real TECNO device evidence accepted" if passed else f"Device evidence rejected: {'; '.join(errors)}",
     )
 
 
@@ -393,7 +560,8 @@ GATES: dict[str, Callable[[], GateResult]] = {
     "telecom": gate_telecom,
     "carrier_bridge": gate_carrier_bridge,
     "contacts": gate_contacts,
-    "companion": gate_companion,
+    "companion_security": gate_companion_security,
+    "companion_transport": gate_companion_transport,
     "media": gate_media,
     "reminders": gate_reminders,
     "memory": gate_memory,
@@ -409,7 +577,7 @@ GATES: dict[str, Callable[[], GateResult]] = {
 
 def write_junit(path: Path, item_results: list[dict[str, object]]) -> None:
     suite = ET.Element("testsuite")
-    suite.set("name", "NOVA 250+ Acceptance")
+    suite.set("name", "NOVA 314 Acceptance")
     suite.set("tests", str(len(item_results)))
     failures = sum(1 for item in item_results if item["status"] == "failed")
     skipped = sum(1 for item in item_results if item["status"] == "waiting_hardware")
@@ -477,7 +645,7 @@ def main() -> int:
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     markdown = [
-        "# NOVA 250+ Acceptance Report",
+        "# NOVA 314 Acceptance Report",
         "",
         f"- Total: **{len(item_results)}**",
         f"- Passed: **{passed}**",

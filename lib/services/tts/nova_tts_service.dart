@@ -67,6 +67,28 @@ class NovaTtsService {
     this.streamingAsrBridgeService = const NovaStreamingAsrBridgeService(),
   });
 
+  Future<void> emitAuthorized(
+    String text, {
+    String localeCode = 'tr-TR',
+    NovaTtsMode mode = NovaTtsMode.neuralLocal,
+    bool interruptCurrentSpeech = true,
+    String authoritySource = 'legacy_direct_tts',
+    AiResponse? authorityResponse,
+    bool allowOperationalSpeech = false,
+    bool singleBrainApproved = false,
+  }) {
+    return speak(
+      text,
+      localeCode: localeCode,
+      mode: mode,
+      interruptCurrentSpeech: interruptCurrentSpeech,
+      authoritySource: authoritySource,
+      authorityResponse: authorityResponse,
+      allowOperationalSpeech: allowOperationalSpeech,
+      singleBrainApproved: singleBrainApproved,
+    );
+  }
+
   Future<void> speak(
     String text, {
     String localeCode = 'tr-TR',

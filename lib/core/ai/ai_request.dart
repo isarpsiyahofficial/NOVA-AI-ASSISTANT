@@ -93,6 +93,14 @@ class AiRequest {
           authority.ownerVoiceVerified;
     }
     if (systemOrigins.contains(normalized)) {
+      if (normalized == 'background_authorized_voice' &&
+          userInitiated &&
+          hasCurrentLease) {
+        // Conversation may continue for a locally captured, current background
+        // voice turn even when it has no native-action scope. Device tools still
+        // remain blocked by typed authority.
+        return true;
+      }
       return authority.companionAuthorized ||
           authority.kind == NovaTurnAuthorityKind.reminder ||
           authority.ownerVoiceVerified;

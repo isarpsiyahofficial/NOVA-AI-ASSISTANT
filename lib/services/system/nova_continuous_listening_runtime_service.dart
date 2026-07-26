@@ -81,6 +81,7 @@ class NovaContinuousListeningRuntimeService {
   String _lastAuthorizedVoiceId = '';
   String _lastRecognizedSpeakerName = '';
   String _lastRelationshipLabel = '';
+  String _lastNativeActionToken = '';
   DateTime? _lastNativeSessionHealthCheckAt;
   DateTime? _lastSpeakerContinuityRefreshAt;
   StreamSubscription<NovaStreamingAsrEvent>? _streamingAsrSubscription;
@@ -141,6 +142,9 @@ class NovaContinuousListeningRuntimeService {
         'relationshipLabel': _lastRelationshipLabel.trim(),
         'voiceAccessLevel': _lastAuthorizedLevel?.name ?? '',
         'ownerConfidence': _ownerConfidenceForLevel(_lastAuthorizedLevel),
+        'nativeActionToken': _lastNativeActionToken,
+        'voiceIdentityChecked': _lastAuthorizedLevel != null,
+        'ownerMatched': _lastAuthorizedLevel == VoiceAccessLevel.owner,
         'heardAt': _lastHeardAt?.toIso8601String() ?? '',
         'streamingAsrRoute': _recentStreamingFinalRoute.trim().isNotEmpty
             ? _recentStreamingFinalRoute
@@ -396,44 +400,23 @@ class NovaContinuousListeningRuntimeService {
                   onUnauthorizedOrStatus,
                 );
               }
-              final answered = await callControlService!.answerRingingCall();
-              if (answered.success) {
-                await callControlService!.handOverToNova(
-                  trustedSource: 'shutdown_registered_call',
+              final started = companionRuntime != null &&
+                  await companionRuntime!.startForCurrentCall(
+                    allowShutdownBypass: true,
+                  );
+              if (!started) {
+                await NovaRuntimeSignalService.instance.record(
+                  kind: NovaRuntimeSignalKind.callCompanion,
+                  level: NovaRuntimeSignalLevel.warning,
+                  code: 'shutdown_call_companion_transport_unavailable',
+                  message: companionRuntime?.lastStatusMessage.trim().isNotEmpty ==
+                          true
+                      ? companionRuntime!.lastStatusMessage.trim()
+                      : 'Tam kapalı modda güvenli çift yönlü çağrı taşıması hazır olmadığı için çağrı cevaplanmadı.',
+                  technicalDetails:
+                      'fail_closed_before_answer activeNumber=$activeNumber',
+                  diagnosticCandidate: true,
                 );
-                await callControlService!.routeToSpeaker(
-                  true,
-                  trustedSource: 'shutdown_registered_call',
-                );
-                await callControlService!.setMuted(
-                  true,
-                  trustedSource: 'shutdown_registered_call',
-                );
-                if (companionRuntime != null) {
-                  bool started = false;
-                  for (var retry = 0; retry < 5; retry++) {
-                    await Future<void>.delayed(
-                      Duration(milliseconds: 180 + (retry * 120)),
-                    );
-                    started = await companionRuntime!.startForCurrentCall(
-                      allowShutdownBypass: true,
-                    );
-                    if (started) break;
-                  }
-                  if (!started) {
-                    await NovaRuntimeSignalService.instance.record(
-                      kind: NovaRuntimeSignalKind.callCompanion,
-                      level: NovaRuntimeSignalLevel.warning,
-                      code: 'shutdown_call_companion_start_failed',
-                      message:
-                          companionRuntime!.lastStatusMessage.trim().isEmpty
-                              ? 'Tam kapalı modda companion başlatılamadı.'
-                              : companionRuntime!.lastStatusMessage.trim(),
-                      technicalDetails: 'shutdown authorized call start failed',
-                      diagnosticCandidate: true,
-                    );
-                  }
-                }
               }
               await Future<void>.delayed(const Duration(milliseconds: 1000));
               continue;
@@ -568,55 +551,29 @@ class NovaContinuousListeningRuntimeService {
               callControlService != null &&
               callSnapshot?.canAnswer == true) {
             final opening =
-                '${identityRuntimeService.currentDisplayName} konuşuyor. $callerName için gece modu otomatik çağrı sistemi devrede. İbrahim şu an uygun değil; acilse söyleyebilirsiniz, not alabilirim.';
+                '${identityRuntimeService.currentDisplayName} konuşuyor. $callerName için gece modu çağrı uygunluğu güvenli biçimde kontrol ediliyor. Taşıma ve yetki doğrulanmadan çağrı cevaplanmayacaktır.';
             if (onUnauthorizedOrStatus != null) {
               await _emitStatusIfChanged(opening, onUnauthorizedOrStatus);
             }
-            final answered = await callControlService!.answerRingingCall(
-              trustedSource: 'night_auto_call',
+            final started = companionRuntime != null &&
+                await companionRuntime!.startForCurrentCall();
+            await NovaRuntimeSignalService.instance.record(
+              kind: NovaRuntimeSignalKind.callCompanion,
+              level: started
+                  ? NovaRuntimeSignalLevel.info
+                  : NovaRuntimeSignalLevel.warning,
+              code: started
+                  ? 'night_auto_call_companion_started'
+                  : 'night_auto_call_transport_unavailable',
+              message: started
+                  ? 'Gece modu çağrısı doğrulanmış companion taşımasına aktarıldı.'
+                  : (companionRuntime?.lastStatusMessage.trim().isNotEmpty == true
+                      ? companionRuntime!.lastStatusMessage.trim()
+                      : 'Güvenli çift yönlü çağrı taşıması hazır olmadığı için gece çağrısı cevaplanmadı.'),
+              technicalDetails:
+                  'fail_closed_before_answer activeNumber=$activeNumber',
+              diagnosticCandidate: !started,
             );
-            if (!answered.success) {
-              await NovaRuntimeSignalService.instance.record(
-                kind: NovaRuntimeSignalKind.call,
-                level: NovaRuntimeSignalLevel.error,
-                code: 'night_auto_call_answer_failed',
-                message: answered.message.trim().isEmpty
-                    ? 'Gece modu otomatik çağrısı cevaplanamadı.'
-                    : answered.message.trim(),
-                technicalDetails:
-                    'answerRingingCall failed in passiveSleep without companion',
-                diagnosticCandidate: true,
-              );
-            } else {
-              final handoff = await callControlService!.handOverToNova(
-                trustedSource: 'night_auto_call',
-              );
-              final speaker = await callControlService!.routeToSpeaker(
-                true,
-                trustedSource: 'night_auto_call',
-              );
-              final mute = await callControlService!.setMuted(
-                true,
-                trustedSource: 'night_auto_call',
-              );
-              final routeReady =
-                  handoff.success && speaker.success && mute.success;
-              await NovaRuntimeSignalService.instance.record(
-                kind: NovaRuntimeSignalKind.call,
-                level: routeReady
-                    ? NovaRuntimeSignalLevel.info
-                    : NovaRuntimeSignalLevel.warning,
-                code: routeReady
-                    ? 'night_auto_call_route_ready'
-                    : 'night_auto_call_route_degraded',
-                message: routeReady
-                    ? 'Gece modu otomatik çağrı sistemi Companion olmadan Nova konuşma hattına alındı.'
-                    : 'Gece modu otomatik çağrı cevaplandı fakat ses route/mute/handoff zincirinde eksik var.',
-                technicalDetails:
-                    'handoff=${handoff.success} speaker=${speaker.success} muted=${mute.success}',
-                diagnosticCandidate: !routeReady,
-              );
-            }
             await Future<void>.delayed(const Duration(milliseconds: 1200));
             continue;
           }
@@ -1038,6 +995,7 @@ class NovaContinuousListeningRuntimeService {
             _lastAuthorizedVoiceId = '';
             _lastRecognizedSpeakerName = '';
             _lastRelationshipLabel = '';
+            _lastNativeActionToken = '';
           }
           await _ensureStreamingGateRunning();
           await backgroundBridgeService.showOverlayIdle();
@@ -1065,6 +1023,11 @@ class NovaContinuousListeningRuntimeService {
             recentTrustedSpeaker?.level ??
             _lastAuthorizedLevel ??
             VoiceAccessLevel.owner;
+        _lastNativeActionToken = inspection != null &&
+                inspection.captureSucceeded &&
+                inspection.decision.level == VoiceAccessLevel.owner
+            ? inspection.nativeActionToken.trim()
+            : '';
         if (inspection != null &&
             inspection.recognizedVoiceId.trim().isNotEmpty) {
           _lastAuthorizedVoiceId = inspection.recognizedVoiceId.trim();
@@ -1138,6 +1101,7 @@ class NovaContinuousListeningRuntimeService {
           ),
         );
         await onAuthorizedPrompt(prompt);
+        _lastNativeActionToken = '';
         await _ensureStreamingGateRunning();
         await backgroundBridgeService.showOverlayIdle();
         presenceService.setStateSafe(NovaPresenceState.idle);

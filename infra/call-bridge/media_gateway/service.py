@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import asyncio
 import audioop
 import json
@@ -565,13 +566,47 @@ def inspect_wav(directory: Path, pattern: str, min_duration: float, min_rms: flo
     return 0 if result["passed"] else 1
 
 
-def assert_latest(report_dir: Path, tokens: list[str], min_incoming: int, min_outgoing: int, min_rms: float) -> int:
+def assert_latest(
+    report_dir: Path,
+    tokens: list[str],
+    expected_text: str,
+    min_word_coverage: float,
+    min_similarity: float,
+    min_incoming: int,
+    min_outgoing: int,
+    min_rms: float,
+) -> int:
     reports = sorted(report_dir.glob("*.json"), key=lambda path: path.stat().st_mtime)
     if not reports:
         raise SystemExit(f"No session report found in {report_dir}")
     data = json.loads(reports[-1].read_text(encoding="utf-8"))
     transcript = safe_token(str(data.get("transcript") or ""))
     token_checks = {token: safe_token(token) in transcript for token in tokens}
+
+    normalized_expected = safe_token(expected_text)
+    expected_words = [word for word in normalized_expected.split() if word]
+    transcript_words = [word for word in transcript.split() if word]
+    matched_words: dict[str, dict[str, object]] = {}
+    for expected_word in expected_words:
+        best_word = ""
+        best_ratio = 0.0
+        for actual_word in transcript_words:
+            ratio = difflib.SequenceMatcher(None, expected_word, actual_word).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_word = actual_word
+        matched_words[expected_word] = {
+            "actual": best_word,
+            "similarity": round(best_ratio, 4),
+            "matched": best_ratio >= 0.72,
+        }
+    matched_count = sum(1 for value in matched_words.values() if value["matched"])
+    word_coverage = matched_count / len(expected_words) if expected_words else 1.0
+    sequence_similarity = difflib.SequenceMatcher(
+        None, normalized_expected, transcript
+    ).ratio() if normalized_expected else 1.0
+
+    provider = str((data.get("metadata") or {}).get("provider") or "").strip().lower()
     passed = (
         data.get("success") is True
         and int(data.get("incoming_bytes") or 0) >= min_incoming
@@ -579,8 +614,23 @@ def assert_latest(report_dir: Path, tokens: list[str], min_incoming: int, min_ou
         and float(data.get("incoming_rms") or 0.0) >= min_rms
         and float(data.get("outgoing_rms") or 0.0) >= min_rms
         and all(token_checks.values())
+        and word_coverage >= min_word_coverage
+        and sequence_similarity >= min_similarity
+        and provider in {"mock", "openai", "gemini", "qwen", "generic"}
     )
-    result = {"passed": passed, "report": data, "token_checks": token_checks}
+    result = {
+        "passed": passed,
+        "report": data,
+        "provider": provider,
+        "token_checks": token_checks,
+        "expected_text": expected_text,
+        "normalized_transcript": transcript,
+        "matched_words": matched_words,
+        "word_coverage": round(word_coverage, 4),
+        "min_word_coverage": min_word_coverage,
+        "sequence_similarity": round(sequence_similarity, 4),
+        "min_similarity": min_similarity,
+    }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if passed else 1
 
@@ -639,6 +689,9 @@ def main() -> int:
     assertion = sub.add_parser("assert-latest")
     assertion.add_argument("--report-dir", type=Path, required=True)
     assertion.add_argument("--expect-token", action="append", default=[])
+    assertion.add_argument("--expect-text", default="")
+    assertion.add_argument("--min-word-coverage", type=float, default=0.5)
+    assertion.add_argument("--min-similarity", type=float, default=0.62)
     assertion.add_argument("--min-incoming-bytes", type=int, default=6000)
     assertion.add_argument("--min-outgoing-bytes", type=int, default=6000)
     assertion.add_argument("--min-rms", type=float, default=30.0)
@@ -657,6 +710,9 @@ def main() -> int:
         return assert_latest(
             args.report_dir,
             args.expect_token,
+            args.expect_text,
+            args.min_word_coverage,
+            args.min_similarity,
             args.min_incoming_bytes,
             args.min_outgoing_bytes,
             args.min_rms,

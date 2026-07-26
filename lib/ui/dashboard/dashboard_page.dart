@@ -23,6 +23,8 @@ import '../../core/security/nova_security_incident.dart';
 import '../../core/security/nova_native_security_snapshot.dart';
 import '../../core/settings/nova_settings.dart';
 import '../../core/speech/nova_final_text_contract.dart';
+import '../../core/turn/nova_turn_authority.dart';
+import '../../core/turn/nova_turn_lease.dart';
 import '../../services/api/api_service.dart';
 import '../../services/asr/nova_streaming_asr_bridge_service.dart';
 import '../../services/behavior_control/behavior_override_service.dart';
@@ -1723,6 +1725,37 @@ class _DashboardPageState extends State<DashboardPage> {
     return true;
   }
 
+  NovaTurnAuthority _typedAuthorityForPrompt({
+    required bool fromVoice,
+    required Map<String, dynamic> promptMetadata,
+  }) {
+    if (!fromVoice) {
+      return NovaTurnAuthority.localUser(
+        evidenceId: 'dashboard_ui_${DateTime.now().microsecondsSinceEpoch}',
+      );
+    }
+    final level = promptMetadata['voiceAccessLevel']?.toString().trim() ?? '';
+    final voiceId = promptMetadata['speakerVoiceId']?.toString().trim() ?? '';
+    final token = promptMetadata['nativeActionToken']?.toString().trim() ?? '';
+    final evidenceId = promptMetadata['identityAudioPath']?.toString().trim() ?? '';
+    final confidence =
+        (promptMetadata['ownerConfidence'] as num?)?.toDouble() ?? 0.0;
+    if (level == VoiceAccessLevel.owner.name &&
+        voiceId.isNotEmpty &&
+        token.isNotEmpty &&
+        confidence >= 0.64) {
+      return NovaTurnAuthority.ownerVoice(
+        ownerVoiceId: voiceId,
+        confidence: confidence,
+        nativeActionToken: token,
+        evidenceId: evidenceId.isEmpty
+            ? 'dashboard_voice_${DateTime.now().microsecondsSinceEpoch}'
+            : evidenceId,
+      );
+    }
+    return const NovaTurnAuthority.unverified();
+  }
+
   Future<void> _processPrompt({
     required String prompt,
     required bool fromVoice,
@@ -1901,10 +1934,19 @@ class _DashboardPageState extends State<DashboardPage> {
       mediaMode: _isLikelyMediaRequest(raw),
     );
 
+    final turnLease = NovaTurnLeaseController.instance.begin(
+      sessionId: 'dashboard_active_session',
+    );
+    final turnAuthority = _typedAuthorityForPrompt(
+      fromVoice: fromVoice,
+      promptMetadata: promptMetadata,
+    );
+
     final AiRequest request = AiRequest(
       prompt: allowSystemExecution
           ? raw
           : 'Bu kişi komut çalıştıramaz; sadece doğal sohbete cevap ver. Komut veya cihaz kontrolü istemi varsa nazikçe reddet. Kullanıcı sözü: $raw',
+      originalUserText: raw,
       mode: _novaSettings.apiBrainEnabled ? AiMode.apiOnly : _selectedMode,
       internetAllowed:
           _novaSettings.apiBrainEnabled && _internetAllowedForThisRequest,
@@ -1916,9 +1958,20 @@ class _DashboardPageState extends State<DashboardPage> {
           _novaSettings.apiBrainEnabled && _userApprovedApiUsageForThisRequest,
       activeProviderKey: _novaSettings.activeAiProvider.key,
       activeModelId: _novaSettings.activeApiModel,
-      requestedByVoice: true,
+      requestedByVoice: fromVoice,
       requestOrigin: requestOrigin,
-      metadata: adaptiveMetadata,
+      userInitiated: true,
+      userConfirmedThisAction:
+          allowSystemExecution && turnAuthority.canRequestNativeAction,
+      authority: turnAuthority,
+      lease: turnLease,
+      metadata: <String, dynamic>{
+        ...adaptiveMetadata,
+        'turnLease': turnLease.toAuditMap(),
+        'typedAuthority': turnAuthority.toAuditMap(),
+        'disableDeviceTools': !allowSystemExecution,
+        'usedActiveDashboardLease': true,
+      },
     );
 
     final dashboardPromptSource = adaptiveMetadata['source']?.toString() ?? '';
@@ -1952,6 +2005,7 @@ class _DashboardPageState extends State<DashboardPage> {
       raw: raw,
       allowSystemExecution: allowSystemExecution,
       hotpathHandledRuntime: hotpathResult.handledByRuntime,
+      parentRequest: request,
     );
     if (specializedHandled) {
       return;
@@ -2052,7 +2106,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!speechAllowed) {
         return;
       }
-      await widget.ttsService.speak(
+      await widget.ttsService.emitAuthorized(
         finalText,
         mode: _preferredConversationTtsMode(),
         authoritySource: 'dashboard_final',
@@ -2125,6 +2179,7 @@ class _DashboardPageState extends State<DashboardPage> {
     required String raw,
     required bool allowSystemExecution,
     required bool hotpathHandledRuntime,
+    required AiRequest parentRequest,
   }) async {
     if (!allowSystemExecution || hotpathHandledRuntime) {
       return false;
@@ -2136,7 +2191,8 @@ class _DashboardPageState extends State<DashboardPage> {
       return true;
     }
 
-    final aiSelectedCapability = await _resolveAiDelegatedCapability(raw);
+    final aiSelectedCapability =
+        await _resolveAiDelegatedCapability(raw, parentRequest);
     if (aiSelectedCapability.isEmpty || aiSelectedCapability == 'none') {
       return false;
     }
@@ -2243,27 +2299,27 @@ class _DashboardPageState extends State<DashboardPage> {
     await _speakDashboardMessage(text);
   }
 
-  Future<String> _resolveAiDelegatedCapability(String raw) async {
+  Future<String> _resolveAiDelegatedCapability(
+    String raw,
+    AiRequest parentRequest,
+  ) async {
     final normalized = raw.trim();
     if (normalized.isEmpty) return 'none';
     try {
-      final capabilityRequest = AiRequest(
+      final capabilityRequest = parentRequest.copyWith(
         prompt:
             'Kullanıcı sözü için hangi yerel davranış modülü çalışmalı? Yalnız şu anahtarlardan birini üret: memory, translator, language_pack, call_instruction, personality, media, adaptive_teaching, none. Açıklama yazma. Kullanıcı sözü: "$normalized"',
         mode: AiMode.apiOnly,
-        internetAllowed: true,
-        requestedByVoice: true,
-        isFastResponsePriority: true,
-        requestOrigin: 'user_voice',
-        userInitiated: true,
-        userConfirmedThisAction: true,
+        userConfirmedThisAction: false,
         metadata: <String, dynamic>{
+          ...parentRequest.metadata,
           'source': 'dashboard_delegated_capability_gate',
           'systemExecutionAllowed': false,
           'aiChainAuthorityGate': true,
           'allowedCapabilities':
               'memory|translator|language_pack|call_instruction|personality|media|adaptive_teaching|none',
           'decisionOnlyClassifier': true,
+          'disableDeviceTools': true,
         },
       );
       final capabilityDecision =
@@ -2272,6 +2328,11 @@ class _DashboardPageState extends State<DashboardPage> {
           text: normalized,
           source: 'dashboard_delegated_capability_gate',
           mode: 'decisionOnlyClassifier',
+          speakerVoiceId: parentRequest.authority.ownerVoiceId,
+          relationshipLabel: parentRequest.authority.kind.name,
+          ownerConfidence: parentRequest.authority.ownerConfidence,
+          authority: parentRequest.authority,
+          lease: parentRequest.lease,
           primaryTurn: false,
           allowFallbackSpeech: false,
           requiresLocalModel: false,
@@ -2756,32 +2817,17 @@ class _DashboardPageState extends State<DashboardPage> {
     _presenceService.setStateSafe(NovaPresenceState.listening);
     await _backgroundBridgeService.showOverlayListening();
 
-    final authorized = await _authorizeCurrentSpeakerBeforeCommand();
-
-    if (!mounted) return;
-
-    if (!authorized) {
-      _safeSetState(() {
-        _voiceFlowRunning = false;
-        _isLoading = false;
-      });
-
-      _presenceService.setStateSafe(
-        _lifecycleService.isSleeping
-            ? NovaPresenceState.sleeping
-            : NovaPresenceState.idle,
-      );
-      await _backgroundBridgeService.showOverlayIdle();
-      return;
-    }
-
     await widget.ttsService.stop();
-    final recognizedPrompt =
-        (await _listenVoiceFlowFromStreaming())?.trim() ?? '';
+    final sttResult = await widget.sttService.transcribe(
+      mode: NovaSttMode.enhanced,
+      targetDescription: 'Nova dashboard sahip komutu',
+      preferExtendedConversationWindow: true,
+    );
+    final recognizedPrompt = sttResult.recognizedText.trim();
 
     if (!mounted) return;
 
-    if (recognizedPrompt.isEmpty) {
+    if (!sttResult.success || recognizedPrompt.isEmpty) {
       _safeSetState(() {
         _voiceFlowRunning = false;
         _isLoading = false;
@@ -2807,7 +2853,20 @@ class _DashboardPageState extends State<DashboardPage> {
     await _processPrompt(
       prompt: recognizedPrompt,
       fromVoice: true,
-      requestOrigin: 'user_voice',
+      promptMetadata: <String, dynamic>{
+        'speakerVoiceId': sttResult.speakerVoiceId,
+        'speakerName': sttResult.speakerName,
+        'relationshipLabel': sttResult.relationshipLabel,
+        'voiceAccessLevel': sttResult.ownerMatched
+            ? VoiceAccessLevel.owner.name
+            : VoiceAccessLevel.denied.name,
+        'ownerConfidence': sttResult.ownerConfidence,
+        'voiceIdentityChecked': sttResult.voiceIdentityChecked,
+        'ownerMatched': sttResult.ownerMatched,
+        'identityAudioPath': sttResult.identityAudioPath,
+        'nativeActionToken': sttResult.nativeActionToken,
+      },
+      requestOrigin: 'dashboard_stt',
     );
   }
 

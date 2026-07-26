@@ -79,7 +79,7 @@ cat runtime/logs/control-health.json
 
 "${compose[@]}" exec -T media-gateway \
   python /app/launcher.py synthesize \
-    --text "Nova gerçek çift yönlü çağrı testini doğrula" \
+    --text "Merhaba Nova bugün nasılsın" \
     --output /shared/sounds/nova-test-command-source.wav \
   2>&1 | tee runtime/logs/fixture-generation.json
 
@@ -239,7 +239,10 @@ PY
 "${compose[@]}" exec -T media-gateway \
   python /app/service.py assert-latest \
     --report-dir /reports \
-    --expect-token "çift" \
+    --expect-token "merhaba" \
+    --expect-text "Merhaba Nova bugün nasılsın" \
+    --min-word-coverage 0.50 \
+    --min-similarity 0.62 \
     --min-incoming-bytes 6000 \
     --min-outgoing-bytes 6000 \
     --min-rms 30 \
@@ -269,7 +272,8 @@ summary = {
     'stt_ms': session.get('stt_ms'),
     'ai_ms': session.get('ai_ms'),
     'tts_ms': session.get('tts_ms'),
-    'proof': 'Asterisk AudioSocket caller PCM -> Whisper -> AI decision -> Piper TTS -> same caller channel',
+    'provider': (session.get('metadata') or {}).get('provider'),
+    'proof': 'Asterisk AudioSocket caller PCM -> Whisper -> deterministic mock decision -> Piper TTS -> same caller channel',
 }
 Path('runtime/NOVA_CALL_BRIDGE_E2E_RESULT.json').write_text(
     json.dumps(summary, ensure_ascii=False, indent=2),

@@ -17,6 +17,7 @@ class VoiceAuthorizationRuntimeInspectionResult {
   final String recognizedDisplayName;
   final double similarity;
   final bool captureSucceeded;
+  final String nativeActionToken;
 
   const VoiceAuthorizationRuntimeInspectionResult({
     required this.decision,
@@ -24,6 +25,7 @@ class VoiceAuthorizationRuntimeInspectionResult {
     this.recognizedDisplayName = '',
     this.similarity = 0,
     this.captureSucceeded = false,
+    this.nativeActionToken = '',
   });
 }
 
@@ -138,6 +140,7 @@ class VoiceAuthorizationRuntimeService {
         recognizedDisplayName: identify.displayName.trim(),
         similarity: identify.similarity,
         captureSucceeded: true,
+        nativeActionToken: identify.nativeActionToken.trim(),
       );
     }
 
@@ -148,6 +151,7 @@ class VoiceAuthorizationRuntimeService {
       recognizedDisplayName: identify.displayName.trim(),
       similarity: identify.similarity,
       captureSucceeded: true,
+      nativeActionToken: identify.nativeActionToken.trim(),
     );
   }
 

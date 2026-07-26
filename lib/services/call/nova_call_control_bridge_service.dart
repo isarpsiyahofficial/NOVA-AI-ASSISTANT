@@ -18,7 +18,7 @@ class NovaCallControlBridgeService {
         'answerRingingCall',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -34,7 +34,7 @@ class NovaCallControlBridgeService {
         'rejectRingingCall',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -50,7 +50,7 @@ class NovaCallControlBridgeService {
         'disconnectCurrentCall',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -68,7 +68,7 @@ class NovaCallControlBridgeService {
         'muted': value,
         ..._authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -86,7 +86,7 @@ class NovaCallControlBridgeService {
         'speakerOn': value,
         ..._authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -102,7 +102,7 @@ class NovaCallControlBridgeService {
         'toggleMuted',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -118,7 +118,7 @@ class NovaCallControlBridgeService {
         'toggleSpeaker',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -134,7 +134,7 @@ class NovaCallControlBridgeService {
         'toggleHold',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -153,7 +153,7 @@ class NovaCallControlBridgeService {
         'handOverToNova',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),
@@ -169,7 +169,7 @@ class NovaCallControlBridgeService {
         'handOverToUser',
         _authority(
           actionToken: actionToken,
-          localUiAction: localUiAction || userInitiated,
+          localUiAction: localUiAction,
           companionAction:
               companionAction || trustedSource.trim() == 'companion',
         ),

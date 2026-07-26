@@ -63,7 +63,7 @@ void main() {
         'android/app/src/main/kotlin/com/example/nova/asr/NovaStreamingAsrBridgePlugin.kt',
       );
       final stt = _read('lib/services/stt/nova_speech_to_text_service.dart');
-      final dashboard = _read('lib/ui/nova/nova_dashboard_page.dart');
+      final dashboard = _read('lib/ui/dashboard/dashboard_page.dart');
 
       expect(engine, contains('NovaAsrSegmentWavStore.write('));
       expect(engine, contains('samples = samples'));
@@ -74,7 +74,7 @@ void main() {
       expect(stt, contains('ownerConfidence: matchedOwner ? identity.similarity : 0'));
       expect(stt, contains('nativeActionToken: matchedOwner'));
       expect(dashboard, contains('NovaTurnAuthority.ownerVoice('));
-      expect(dashboard, contains('nativeActionToken: sttResult.nativeActionToken'));
+      expect(dashboard, contains("'nativeActionToken': sttResult.nativeActionToken"));
     });
 
     test('synthetic owner IDs and legacy dashboard setup cannot grant authority', () {
@@ -82,7 +82,7 @@ void main() {
         'lib/services/identity/device_owner_identity_service.dart',
       );
       final launch = _read('lib/ui/launch/nova_launch_gate_page.dart');
-      final dashboard = _read('lib/ui/nova/nova_dashboard_page.dart');
+      final dashboard = _read('lib/ui/dashboard/dashboard_page.dart');
 
       expect(owner, contains("value.startsWith('owner_')"));
       expect(owner, contains("value.startsWith('nova_manual_owner_')"));
@@ -158,6 +158,40 @@ void main() {
         plugin,
         isNot(contains('Kontrol Nova tarafına geçti. Seçili kişi için dijital insan çağrı düzeni aktif.')),
       );
+    });
+
+
+    test('runtime call controls use typed verified action routing', () {
+      final router = _read(
+        'lib/services/actions/nova_verified_call_action_service.dart',
+      );
+      final companion = _read(
+        'lib/services/call_companion/nova_call_companion_runtime_service.dart',
+      );
+      final continuous = _read(
+        'lib/services/system/nova_continuous_listening_runtime_service.dart',
+      );
+      final bridge = _read(
+        'lib/services/call/nova_call_control_bridge_service.dart',
+      );
+
+      expect(router, contains('NovaDeviceActionExecutorService'));
+      expect(router, contains('NovaTurnAuthority.companion('));
+      expect(router, contains('NovaTurnLeaseController.instance.begin('));
+      expect(companion, contains('verifiedCallActionService.executeCompanion('));
+      expect(continuous, contains('fail_closed_before_answer'));
+      expect(continuous, contains('companionRuntime!.startForCurrentCall('));
+      expect(bridge, isNot(contains('localUiAction || userInitiated')));
+    });
+
+    test('native companion authorization is bound to managed active contacts', () {
+      final native = _read(
+        'android/app/src/main/kotlin/com/example/nova/NovaNativeActionAuthorization.kt',
+      );
+
+      expect(native, contains('NovaCallStateBridge.getState()'));
+      expect(native, contains('NovaCallAuthorityGuard.canCompanionCallControl('));
+      expect(native, isNot(contains('nova_companion_native_authority')));
     });
   });
 }

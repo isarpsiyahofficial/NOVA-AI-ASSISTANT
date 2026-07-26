@@ -89,7 +89,8 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            // Production release signing must be supplied by the release pipeline.
+            // Never silently publish a build signed with the shared debug key.
         }
     }
 }
