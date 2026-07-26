@@ -131,7 +131,70 @@ void main() {
       );
 
       expect(decision.allowed, isFalse);
-      expect(decision.failureCode, 'typed_authority_missing');
+      expect(decision.failureCode, 'typed_authority_scope_blocked');
+    });
+
+    test('companion authority may control the current call', () {
+      final lease = NovaTurnLeaseController.instance.begin(
+        sessionId: 'guard_companion_call',
+      );
+      final decision = NovaActionIntentGuardService.instance.authorize(
+        call: const NovaDeviceActionCall(
+          action: 'hang_up',
+          providerCallId: 'call_companion_hangup_1',
+        ),
+        request: _request(
+          text: 'Aramayı bitir',
+          lease: lease,
+          authority: NovaTurnAuthority.companion(
+            evidenceId: 'configured_call_companion',
+          ),
+        ),
+      );
+
+      expect(decision.allowed, isTrue);
+    });
+
+    test('companion authority cannot place calls or control the device', () {
+      final placeCallLease = NovaTurnLeaseController.instance.begin(
+        sessionId: 'guard_companion_place_call',
+      );
+      final placeCallDecision = NovaActionIntentGuardService.instance.authorize(
+        call: const NovaDeviceActionCall(
+          action: 'place_call',
+          value: 'Ayşe',
+          providerCallId: 'call_companion_place_1',
+        ),
+        request: _request(
+          text: 'Ayşe\'yi ara',
+          lease: placeCallLease,
+          authority: NovaTurnAuthority.companion(
+            evidenceId: 'configured_call_companion',
+          ),
+        ),
+      );
+
+      final homeLease = NovaTurnLeaseController.instance.begin(
+        sessionId: 'guard_companion_home',
+      );
+      final homeDecision = NovaActionIntentGuardService.instance.authorize(
+        call: const NovaDeviceActionCall(
+          action: 'home',
+          providerCallId: 'call_companion_home_1',
+        ),
+        request: _request(
+          text: 'Ana ekrana dön',
+          lease: homeLease,
+          authority: NovaTurnAuthority.companion(
+            evidenceId: 'configured_call_companion',
+          ),
+        ),
+      );
+
+      expect(placeCallDecision.allowed, isFalse);
+      expect(placeCallDecision.failureCode, 'typed_authority_scope_blocked');
+      expect(homeDecision.allowed, isFalse);
+      expect(homeDecision.failureCode, 'typed_authority_scope_blocked');
     });
   });
 }
