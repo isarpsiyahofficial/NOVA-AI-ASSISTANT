@@ -9,3 +9,16 @@ if text.count(old) != 1:
     raise SystemExit('Transformer helper shape changed unexpectedly.')
 path.write_text(text.replace(old, new, 1), encoding='utf-8')
 runpy.run_path(str(path), run_name='__main__')
+
+dashboard_path = Path('lib/ui/dashboard/dashboard_page.dart')
+dashboard = dashboard_path.read_text(encoding='utf-8')
+unused_parameter = '    bool throughOwner = true,\n'
+if dashboard.count(unused_parameter) != 1:
+    raise SystemExit(
+        'dashboard_page.dart: expected exactly one unused throughOwner parameter'
+    )
+dashboard_path.write_text(
+    dashboard.replace(unused_parameter, '', 1),
+    encoding='utf-8',
+)
+print('Removed the obsolete dashboard throughOwner parameter.')
