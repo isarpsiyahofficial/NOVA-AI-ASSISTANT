@@ -43,18 +43,14 @@ jobs:
           parts = sorted(Path('tooling/.nova_runtime_fix_chunks').glob('part-*'))
           if [p.name for p in parts] != [f'part-{i:03d}' for i in range(10)]:
               raise SystemExit(f'Unexpected repair parts: {[p.name for p in parts]}')
-
           encoded = b''.join(p.read_bytes() for p in parts)
           if len(encoded) != 28736:
               raise SystemExit(f'Runtime repair encoded length mismatch: {len(encoded)}')
           if hashlib.sha256(encoded).hexdigest() != '650a67d773d62803e738276c8206d24e78a2dd9728508d5819965b34ee398896':
               raise SystemExit('Runtime repair encoded SHA-256 mismatch.')
-
-          compressed = base64.b64decode(encoded, validate=True)
-          patch = gzip.decompress(compressed)
+          patch = gzip.decompress(base64.b64decode(encoded, validate=True))
           if hashlib.sha256(patch).hexdigest() != '6c44127ce01b7b9ca7331bb2ca67c9894644145617ac6bcd3fea460185566f1d':
               raise SystemExit('Runtime repair patch SHA-256 mismatch.')
-
           Path('/tmp/nova-runtime-fixes.patch').write_bytes(patch)
           print(f'Verified runtime repair: {len(patch)} bytes')
           PY
@@ -72,7 +68,7 @@ jobs:
           git show 2de6abce06945073b20a4ecf35c131a78fc7346b:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
           git diff --check
 
-      - name: Validate corrected source tree
+      - name: Compile corrected Python infrastructure
         shell: bash
         run: |
           set -euo pipefail
@@ -84,12 +80,26 @@ jobs:
             tooling/nova_acceptance_catalog.py \
             infra/call-bridge/media_gateway/service.py \
             infra/call-bridge/control_gateway/service.py
+
+      - name: Validate corrected shell infrastructure
+        shell: bash
+        run: |
+          set -euo pipefail
           bash -n tooling/run_android_telecom_emulator_e2e.sh
           bash -n tooling/run_tecno_hardware_lab.sh
           bash -n infra/call-bridge/run_e2e.sh
-          python tooling/classify_quarantined_decision_files.py --strict
-          python tooling/audit_decision_graph_full.py --strict
-          git diff --check
+
+      - name: Classify corrected decision files
+        shell: bash
+        run: python tooling/classify_quarantined_decision_files.py --strict
+
+      - name: Audit corrected decision graph
+        shell: bash
+        run: python tooling/audit_decision_graph_full.py --strict
+
+      - name: Validate corrected Git diff
+        shell: bash
+        run: git diff --check
 
       - name: Commit repaired runtime source
         id: source_commit
