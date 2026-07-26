@@ -30,6 +30,7 @@ jobs:
         with:
           ref: agent/single-brain-low-latency-runtime
           fetch-depth: 0
+          show-progress: false
 
       - name: Detect staged integration
         id: staged
@@ -42,22 +43,41 @@ jobs:
           fi
 
       - name: Apply verified source transformations
+        id: transform
         if: steps.staged.outputs.apply == 'true'
-        run: python tooling/.nova_runtime_integration/apply.py
+        continue-on-error: true
+        shell: bash
+        run: python tooling/.nova_runtime_integration/apply.py > nova-runtime-transform.log 2>&1
+
+      - name: Upload transformation evidence
+        if: steps.staged.outputs.apply == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-RUNTIME-TRANSFORM-LOG
+          path: nova-runtime-transform.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce source transformation
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome != 'success'
+        shell: bash
+        run: |
+          cat nova-runtime-transform.log
+          exit 1
 
       - name: Set up Flutter
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Install dependencies
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: flutter pub get
 
       - name: Format hardened runtime files
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: >-
           dart format
           lib/core/api/nova_secure_token_store.dart
@@ -70,14 +90,14 @@ jobs:
           test/runtime/nova_background_authority_contract_test.dart
 
       - name: Run background authority contracts
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: >-
           flutter test
           test/runtime/nova_background_authority_contract_test.dart
           test/runtime/nova_runtime_integrity_contract_test.dart
 
       - name: Analyze activated runtime entry points
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: >-
           flutter analyze
           lib/main.dart
@@ -90,11 +110,11 @@ jobs:
           lib/ui/launch/nova_launch_gate_page.dart
 
       - name: Build hardened debug APK
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         run: flutter build apk --debug --no-pub
 
       - name: Remove one-shot staging and workflow code
-        if: steps.staged.outputs.apply == 'true'
+        if: steps.staged.outputs.apply == 'true' && steps.transform.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
