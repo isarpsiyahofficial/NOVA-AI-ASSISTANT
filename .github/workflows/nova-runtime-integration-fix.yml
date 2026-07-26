@@ -46,6 +46,7 @@ jobs:
       - name: Format hardened runtime files
         run: >-
           dart format
+          lib/core/api/nova_secure_token_store.dart
           lib/services/identity/voice_authorization_runtime_service.dart
           lib/services/system/nova_continuous_listening_runtime_service.dart
           lib/services/api/api_service.dart
@@ -63,6 +64,7 @@ jobs:
         run: >-
           flutter analyze
           lib/main.dart
+          lib/core/api/nova_secure_token_store.dart
           lib/services/identity/voice_authorization_runtime_service.dart
           lib/services/system/nova_continuous_listening_runtime_service.dart
           lib/services/api/api_service.dart
