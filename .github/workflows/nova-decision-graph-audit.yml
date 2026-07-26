@@ -30,23 +30,33 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Decode and verify runtime repair patch
+      - name: Reassemble and verify runtime repair
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import base64, gzip, hashlib
+          import base64
+          import gzip
+          import hashlib
           from pathlib import Path
-          source = Path('tooling/.nova_runtime_fixes.patch.gz.b64')
-          encoded = source.read_text(encoding='ascii').strip()
-          if hashlib.sha256(encoded.encode('ascii')).hexdigest() != '650a67d773d62803e738276c8206d24e78a2dd9728508d5819965b34ee398896':
-              raise SystemExit('Runtime repair base64 SHA-256 mismatch.')
+
+          parts = sorted(Path('tooling/.nova_runtime_fix_chunks').glob('part-*'))
+          if [p.name for p in parts] != [f'part-{i:03d}' for i in range(10)]:
+              raise SystemExit(f'Unexpected repair parts: {[p.name for p in parts]}')
+
+          encoded = b''.join(p.read_bytes() for p in parts)
+          if len(encoded) != 28736:
+              raise SystemExit(f'Runtime repair encoded length mismatch: {len(encoded)}')
+          if hashlib.sha256(encoded).hexdigest() != '650a67d773d62803e738276c8206d24e78a2dd9728508d5819965b34ee398896':
+              raise SystemExit('Runtime repair encoded SHA-256 mismatch.')
+
           compressed = base64.b64decode(encoded, validate=True)
           patch = gzip.decompress(compressed)
           if hashlib.sha256(patch).hexdigest() != '6c44127ce01b7b9ca7331bb2ca67c9894644145617ac6bcd3fea460185566f1d':
               raise SystemExit('Runtime repair patch SHA-256 mismatch.')
+
           Path('/tmp/nova-runtime-fixes.patch').write_bytes(patch)
-          print(f'Verified runtime repair patch: {len(patch)} bytes')
+          print(f'Verified runtime repair: {len(patch)} bytes')
           PY
           git apply --check --whitespace=error-all /tmp/nova-runtime-fixes.patch
 
@@ -57,8 +67,9 @@ jobs:
           git apply --whitespace=error-all /tmp/nova-runtime-fixes.patch
           rm -f /tmp/nova-runtime-fixes.patch
           rm -f tooling/.nova_runtime_fixes.patch.gz.b64
+          rm -rf tooling/.nova_runtime_fix_chunks
           rm -f .github/workflows/nova-apply-runtime-fixes.yml
-          git show HEAD^:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
+          git show 2de6abce06945073b20a4ecf35c131a78fc7346b:.github/workflows/nova-decision-graph-audit.yml > .github/workflows/nova-decision-graph-audit.yml
           git diff --check
 
       - name: Validate corrected source tree
@@ -71,7 +82,8 @@ jobs:
             tooling/classify_quarantined_decision_files.py \
             tooling/verify_nova_acceptance.py \
             tooling/nova_acceptance_catalog.py \
-            infra/call-bridge/media_gateway/service.py
+            infra/call-bridge/media_gateway/service.py \
+            infra/call-bridge/control_gateway/service.py
           bash -n tooling/run_android_telecom_emulator_e2e.sh
           bash -n tooling/run_tecno_hardware_lab.sh
           bash -n infra/call-bridge/run_e2e.sh
@@ -84,10 +96,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet && git diff --cached --quiet; then
-            echo 'created=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
