@@ -1,0 +1,214 @@
+name: Nova Runtime Integrity
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
+jobs:
+  runtime-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap verified Gradle wrapper
+        shell: bash
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh
+          tooling/bootstrap_gradle_wrapper.sh
+
+      - name: Restore verified voice model cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision official sherpa voice assets
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format changed runtime files in CI workspace
+        run: >-
+          dart format
+          lib/main.dart
+          lib/core/ai/ai_request.dart
+          lib/core/turn/nova_core_turn_controller.dart
+          lib/services/actions/nova_verified_call_action_service.dart
+          lib/services/asr/nova_streaming_asr_runtime_service.dart
+          lib/services/asr/nova_streaming_transcript_router_service.dart
+          lib/services/audio_runtime/nova_playback_echo_filter_service.dart
+          lib/services/call/nova_call_control_bridge_service.dart
+          lib/services/call_companion/nova_call_companion_runtime_service.dart
+          lib/services/call_companion/nova_call_companion_service.dart
+          lib/services/identity/nova_voice_identity_bridge_service.dart
+          lib/services/identity/voice_authorization_runtime_service.dart
+          lib/services/runtime/nova_hotpath_owner_service.dart
+          lib/services/runtime/nova_runtime_graph_service.dart
+          lib/services/runtime/nova_runtime_orchestrator_service.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          lib/services/system/nova_continuous_listening_runtime_service.dart
+          lib/services/tts/nova_tts_service.dart
+          lib/ui/dashboard/dashboard_page.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/onboarding/nova_first_run_setup_v2_page.dart
+          test/runtime/nova_runtime_integrity_contract_test.dart
+          test/runtime/nova_verified_device_action_contract_test.dart
+
+      - name: Run runtime integrity contracts
+        run: flutter test test/runtime/nova_runtime_integrity_contract_test.dart
+
+      - name: Analyze runtime entry points
+        id: analyze
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          flutter analyze \
+          lib/main.dart \
+          lib/core/ai/ai_request.dart \
+          lib/core/turn/nova_core_turn_controller.dart \
+          lib/services/actions/nova_verified_call_action_service.dart \
+          lib/services/asr/nova_streaming_asr_runtime_service.dart \
+          lib/services/asr/nova_streaming_transcript_router_service.dart \
+          lib/services/audio_runtime/nova_playback_echo_filter_service.dart \
+          lib/services/call/nova_call_control_bridge_service.dart \
+          lib/services/call_companion/nova_call_companion_runtime_service.dart \
+          lib/services/call_companion/nova_call_companion_service.dart \
+          lib/services/identity/nova_voice_identity_bridge_service.dart \
+          lib/services/identity/voice_authorization_runtime_service.dart \
+          lib/services/runtime/nova_hotpath_owner_service.dart \
+          lib/services/runtime/nova_runtime_graph_service.dart \
+          lib/services/runtime/nova_runtime_orchestrator_service.dart \
+          lib/services/stt/nova_speech_to_text_service.dart \
+          lib/services/system/nova_continuous_listening_runtime_service.dart \
+          lib/services/tts/nova_tts_service.dart \
+          lib/ui/dashboard/dashboard_page.dart \
+          lib/ui/launch/nova_launch_gate_page.dart \
+          lib/ui/onboarding/nova_first_run_setup_v2_page.dart 2>&1 | tee nova-analyze.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload runtime analyze log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-runtime-analyze-log
+          path: nova-analyze.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce runtime analyze
+        shell: bash
+        run: |
+          if [[ "${{ steps.analyze.outputs.exit_code }}" != "0" ]]; then
+            echo "Runtime analyze failed. Read nova-runtime-analyze-log artifact."
+            exit 1
+          fi
+      - name: Audit packaged native voice stack
+        run: |
+          chmod +x tooling/audit_native_voice_stack.sh
+          tooling/audit_native_voice_stack.sh
+
+      - name: Compile native Kotlin
+        id: kotlin_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          cd android
+          ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon 2>&1 | tee ../nova-kotlin-compile.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload native Kotlin compile log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-kotlin-compile-log
+          path: nova-kotlin-compile.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce native Kotlin compile
+        shell: bash
+        run: |
+          if [[ "${{ steps.kotlin_compile.outputs.exit_code }}" != "0" ]]; then
+            echo "Native Kotlin compile failed. Read nova-kotlin-compile-log artifact."
+            exit 1
+          fi
+
+      - name: Compile debug APK with native models
+        id: debug_build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          flutter build apk --debug --no-pub 2>&1 | tee nova-debug-build.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload debug build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-debug-build-log
+          path: nova-debug-build.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce debug APK build
+        shell: bash
+        run: |
+          if [[ "${{ steps.debug_build.outputs.exit_code }}" != "0" ]]; then
+            echo "Debug APK failed. Read nova-debug-build-log artifact."
+            exit 1
+          fi
+
+      - name: Upload test APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-native-voice-internal-test-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

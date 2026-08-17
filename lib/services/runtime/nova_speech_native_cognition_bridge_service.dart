@@ -1,11 +1,13 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
-// NOVA_ABSOLUTE_FINAL_CLEANUP_V1
+// NOVA_TYPED_SPEECH_NATIVE_COGNITION_V2
+import '../../core/turn/nova_turn_authority.dart';
 class NovaSpeechNativeCognitionBridgeService {
   const NovaSpeechNativeCognitionBridgeService();
 
   Map<String, dynamic> resolve({
     required Map<String, dynamic> metadata,
     required String latestPrompt,
+    required NovaTurnAuthority authority,
   }) {
     final mode = (metadata['inputMode']?.toString() ?? 'voice').trim();
     final streaming = (metadata['streamingAsrActive'] as bool?) ?? true;
@@ -18,10 +20,8 @@ class NovaSpeechNativeCognitionBridgeService {
         .where((e) => e.isNotEmpty)
         .length;
     final normalizedPrompt = latestPrompt.toLowerCase().trim();
-    final voiceIdentityLocked =
-        (metadata['voiceIdentityLocked'] as bool?) ?? false;
-    final ownerConfidence =
-        (metadata['ownerConfidence'] as num?)?.toDouble() ?? 0.0;
+    final voiceIdentityLocked = authority.ownerVoiceVerified;
+    final ownerConfidence = authority.ownerConfidence.clamp(0.0, 1.0);
     final inCall = (metadata['inCall'] as bool?) ?? false;
     final ttsActive = (metadata['ttsActive'] as bool?) ?? false;
     final farField = (metadata['farField'] as bool?) ?? true;

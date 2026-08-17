@@ -69,6 +69,8 @@ import '../../services/runtime/runtime_efficiency_analyzer.dart';
 import '../../services/runtime/post_task_reflection_service.dart';
 import '../../services/runtime/memory_commit_gate.dart';
 import '../../services/runtime/nova_post_turn_reflection_service.dart';
+import '../../services/runtime/nova_post_turn_transaction_service.dart';
+import '../../services/runtime/nova_decision_context_composer_service.dart';
 import '../../services/runtime/nova_relationship_dramaturgy_service.dart';
 import '../../services/runtime/nova_relationship_constitution_service.dart';
 import '../../services/runtime/nova_anticipatory_companionship_service.dart';
@@ -158,6 +160,7 @@ import '../../services/runtime/nova_real_time_behavior_reasoner_service.dart';
 import '../../services/runtime/nova_voice_metrics_collector_service.dart';
 import '../../services/runtime/nova_ai_turn_queue_service.dart';
 import '../../services/runtime/nova_single_brain_authority_service.dart';
+import '../turn/nova_turn_lease.dart';
 import 'ai_mode.dart';
 import 'ai_request.dart';
 import 'ai_response.dart';
@@ -171,6 +174,8 @@ class NovaAiService {
 
   final NovaVoiceInteractionPolicyService _voicePolicyService =
       const NovaVoiceInteractionPolicyService();
+  final NovaDecisionContextComposerService _decisionContextComposerService =
+      const NovaDecisionContextComposerService();
   final NovaTurkishHumanGuideService _turkishHumanGuideService =
       const NovaTurkishHumanGuideService();
   final NovaOfflineKnowledgeLibraryService _offlineKnowledgeLibraryService =
@@ -495,8 +500,9 @@ class NovaAiService {
     final source = request.requestOrigin.trim().isEmpty
         ? 'user_voice'
         : request.requestOrigin.trim();
-    final ownerConfidence =
-        request.metadata['ownerConfidence']?.toString() ?? '';
+    final ownerConfidence = request.authority.ownerConfidence > 0
+        ? request.authority.ownerConfidence.toStringAsFixed(3)
+        : '';
     return <String>[
       'Kaynak: $source.',
       if (ownerConfidence.isNotEmpty) 'Owner güven sinyali: $ownerConfidence.',
@@ -656,9 +662,9 @@ class NovaAiService {
             speakerName: request.metadata['speakerName']?.toString() ?? '',
             relationshipLabel:
                 request.metadata['relationshipLabel']?.toString() ?? '',
-            ownerConfidence: _deriveOwnerConfidence(request.metadata),
+            ownerConfidence: _deriveOwnerConfidence(request),
           );
-      final ownerConfidence = _deriveOwnerConfidence(request.metadata);
+      final ownerConfidence = _deriveOwnerConfidence(request);
       final topicKey = _conversationSessionService.deriveTopicKey(
         normalizedPrompt,
       );
@@ -666,7 +672,7 @@ class NovaAiService {
       final contextMode = _socialBoundaryService.resolveContextMode(
         roomPresenceOpportunity: multiIntent.roomPresenceOpportunity,
         socialMode: multiIntent.socialMode,
-        ownerConfidence: _deriveOwnerConfidence(request.metadata),
+        ownerConfidence: _deriveOwnerConfidence(request),
         metadata: request.metadata,
       );
       final NovaRelationshipDramaturgy relationshipDramaturgy =
@@ -685,7 +691,7 @@ class NovaAiService {
       final NovaAffectGovernorState affectGovernor = _novaAffectGovernorService
           .resolve(
             prompt: normalizedPrompt,
-            ownerConfidence: _deriveOwnerConfidence(request.metadata),
+            ownerConfidence: _deriveOwnerConfidence(request),
             contextMode: contextMode,
             dominantEmotion: emotion.dominantEmotion,
           );
@@ -783,7 +789,7 @@ class NovaAiService {
         speakerName: request.metadata['speakerName']?.toString() ?? '',
         relationshipLabel:
             request.metadata['relationshipLabel']?.toString() ?? '',
-        ownerConfidence: _deriveOwnerConfidence(request.metadata),
+        ownerConfidence: _deriveOwnerConfidence(request),
         socialMode: multiIntent.socialMode,
         proactiveAllowed: ownerProfile?.proactiveChatAllowed ?? false,
         roomPresenceOpportunity: multiIntent.roomPresenceOpportunity,
@@ -806,7 +812,7 @@ class NovaAiService {
             contextMode: contextMode,
             proactiveAllowed: ownerProfile?.proactiveChatAllowed ?? false,
             roomPresenceOpportunity: multiIntent.roomPresenceOpportunity,
-            ownerConfidence: _deriveOwnerConfidence(request.metadata),
+            ownerConfidence: _deriveOwnerConfidence(request),
             recentResponseCount: recentResponses.length,
             socialEnergyRatio: _socialEnergyService.talkRatio(
               socialEnergySnapshot,
@@ -825,6 +831,7 @@ class NovaAiService {
       final speechNativeBridge = _speechNativeCognitionBridgeService.resolve(
         metadata: request.metadata,
         latestPrompt: normalizedPrompt,
+        authority: request.authority,
       );
       final speechNativeContext = _speechNativeCognitionBridgeService
           .buildPromptSection(speechNativeBridge);
@@ -1153,7 +1160,7 @@ class NovaAiService {
         thinkingIntent: thinking.intent.name,
         understanding: understanding,
       );
-      final ownerSignal = _deriveOwnerSignal(request.metadata);
+      final ownerSignal = _deriveOwnerSignal(request);
       final memorySources = _deriveMemorySources(
         memoriesCount: memories.length,
         semanticCount: filteredSemanticMatches.length,
@@ -1169,18 +1176,39 @@ class NovaAiService {
         maxChars: request.isFastResponsePriority ? 320 : 480,
       );
 
+      final decisionContext = _decisionContextComposerService.compose(
+        memoryContext: memoryContext,
+        relationshipContext: relationshipProfileContext,
+        emotionContext:
+            'dominant=${emotion.dominantEmotion}; empathy=${emotion.empathyNeed}; urgency=${emotion.urgency}; momentum=$emotionalMomentumContext',
+        behaviorContext: behaviorDecisionContext,
+        authority: request.authority,
+      );
+
       final localSystemPrompt = <String>[
         'Sen Nova adli telefonda calisan ses odakli asistansin.',
         'Sadece kullanicinin duyacagi nihai Turkce cevabi yaz.',
         'Sistem, debug, prompt, metadata, model, kaynak dosya veya ic mimari anlatma.',
         'Kullanicinin niyetini ve baglami dikkate al; kisa ve dogal cevap ver.',
+        decisionContext.promptSection,
         _fitPromptSection(memoryContext, 180, 'ilgili hafiza'),
         _fitPromptSection(conversationContext, 150, 'sohbet baglami'),
         _fitPromptSection(relationshipProfileContext, 150, 'iliski tonu'),
       ].where((e) => e.trim().isNotEmpty).join('\n');
 
       if (request.shouldUseApi && request.isUserApprovedApiUsage) {
-        final AiResponse apiResponse = await apiService.send(request);
+        final apiRequest = request.copyWith(
+          prompt: <String>[
+            decisionContext.promptSection,
+            'Kullanıcı sözü:',
+            normalizedPrompt,
+          ].join('\n\n'),
+          metadata: <String, dynamic>{
+            ...request.metadata,
+            'decisionContextAudit': decisionContext.audit,
+          },
+        );
+        final AiResponse apiResponse = await apiService.send(apiRequest);
         if (!apiResponse.isError) {
           final apiText = _normalizeFinalText(apiResponse.displayText);
           final enrichedApiText = apiText;
@@ -1197,6 +1225,7 @@ class NovaAiService {
                 talkRatio: _socialEnergyService.talkRatio(socialEnergySnapshot),
               );
           await _rememberSuccessfulReply(
+            lease: request.lease,
             prompt: normalizedPrompt,
             reply: enrichedApiText,
             topicKey: topicKey,
@@ -1344,6 +1373,7 @@ class NovaAiService {
                     ),
                   );
               await _rememberSuccessfulReply(
+                lease: request.lease,
                 prompt: normalizedPrompt,
                 reply: finalLocalText,
                 topicKey: topicKey,
@@ -1624,6 +1654,48 @@ class NovaAiService {
   }
 
   Future<void> _rememberSuccessfulReply({
+    required NovaTurnLease? lease,
+    required String prompt,
+    required String reply,
+    required String topicKey,
+    required Map<String, dynamic> learningAnalysis,
+    required Map<String, dynamic> understanding,
+    required NovaPostTurnReflection turnReflection,
+    required NovaStyleProfile styleProfile,
+    required String relationshipLabel,
+    required String speakerName,
+    required double ownerConfidence,
+    required double durationSeconds,
+    required String route,
+    required String contextMode,
+    required double talkRatio,
+    required String socialMode,
+    NovaEmotionState? emotion,
+  }) async {
+    await NovaPostTurnTransactionService.instance.run(
+      lease: lease,
+      transaction: () => _rememberSuccessfulReplyTransactionBody(
+        prompt: prompt,
+        reply: reply,
+        topicKey: topicKey,
+        learningAnalysis: learningAnalysis,
+        understanding: understanding,
+        turnReflection: turnReflection,
+        styleProfile: styleProfile,
+        relationshipLabel: relationshipLabel,
+        speakerName: speakerName,
+        ownerConfidence: ownerConfidence,
+        durationSeconds: durationSeconds,
+        route: route,
+        contextMode: contextMode,
+        talkRatio: talkRatio,
+        socialMode: socialMode,
+        emotion: emotion,
+      ),
+    );
+  }
+
+  Future<void> _rememberSuccessfulReplyTransactionBody({
     required String prompt,
     required String reply,
     required String topicKey,
@@ -1872,37 +1944,18 @@ class NovaAiService {
     return 'conversation';
   }
 
-  double _deriveOwnerConfidence(Map<String, dynamic> metadata) {
-    final raw = metadata['ownerConfidence'];
-    if (raw is num) return raw.toDouble().clamp(0.0, 1.0);
-    final level = (metadata['voiceAccessLevel']?.toString() ?? '')
-        .trim()
-        .toLowerCase();
-    switch (level) {
-      case 'owner':
-        return 0.98;
-      case 'authorizedguest':
-      case 'authorized_guest':
-        return 0.82;
-      case 'familiar':
-        return 0.64;
-      case 'knownbutunauthorized':
-      case 'known_but_unauthorized':
-        return 0.36;
-      case 'denied':
-        return 0.12;
-      default:
-        return 0.50;
-    }
+  double _deriveOwnerConfidence(AiRequest request) {
+    if (!request.authority.isVerified) return 0.0;
+    return request.authority.ownerConfidence.clamp(0.0, 1.0);
   }
 
-  String _deriveOwnerSignal(Map<String, dynamic> metadata) {
-    final level = (metadata['voiceAccessLevel']?.toString() ?? '').trim();
-    final speaker = (metadata['speakerName']?.toString() ?? '').trim();
-    if (speaker.isNotEmpty && level.isNotEmpty) return '$level:$speaker';
-    if (level.isNotEmpty) return level;
-    if (speaker.isNotEmpty) return speaker;
-    return 'unknown';
+  String _deriveOwnerSignal(AiRequest request) {
+    final authority = request.authority;
+    if (!authority.isVerified) return 'unverified';
+    final voiceId = authority.ownerVoiceId.trim();
+    return voiceId.isEmpty
+        ? authority.kind.name
+        : '${authority.kind.name}:$voiceId';
   }
 
   List<String> _deriveMemorySources({

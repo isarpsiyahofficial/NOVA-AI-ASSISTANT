@@ -8,6 +8,8 @@ import '../../core/ai/ai_response.dart';
 import '../../core/ai/nova_ai_service.dart';
 import '../../core/call_companion/nova_call_companion_request.dart';
 import '../../core/reminder/nova_reminder.dart';
+import '../../core/turn/nova_turn_authority.dart';
+import '../../core/turn/nova_turn_lease.dart';
 import '../call/urgent_call_memory_service.dart';
 import '../call_notes/call_note_service.dart';
 import '../reminder/nova_reminder_service.dart';
@@ -156,8 +158,18 @@ class NovaCallCompanionService {
               );
 
       await identityRuntimeService.ensureLoaded();
+      final turnLease = NovaTurnLeaseController.instance.begin(
+        sessionId: 'call_companion_ai',
+        lifetime: const Duration(seconds: 45),
+      );
+      final turnAuthority = NovaTurnAuthority.companion(
+        evidenceId:
+            'call_companion_${request.phoneNumber}_${DateTime.now().microsecondsSinceEpoch}',
+        lifetime: const Duration(seconds: 45),
+      );
       final aiRequest = AiRequest(
         prompt: prompt,
+        originalUserText: request.liveConversation.trim(),
         mode: AiMode.apiOnly,
         internetAllowed: true,
         isResearchRequest: false,
@@ -167,10 +179,17 @@ class NovaCallCompanionService {
         isBehaviorTeachingRequest: false,
         isScreenLocked: false,
         requestedByVoice: request.requestedByVoice,
-        requestOrigin: 'background_authorized_voice',
+        requestOrigin: 'call_companion_authorized_voice',
         userInitiated: request.isUserInitiated,
         userConfirmedThisAction: request.isUserApproved,
-        metadata: adaptiveMetadata,
+        authority: turnAuthority,
+        lease: turnLease,
+        metadata: <String, dynamic>{
+          ...adaptiveMetadata,
+          'turnLease': turnLease.toAuditMap(),
+          'typedAuthority': turnAuthority.toAuditMap(),
+          'disableDeviceTools': true,
+        },
       );
       final decision = await NovaSingleBrainAuthorityService.instance
           .handleInput(
@@ -184,6 +203,8 @@ class NovaCallCompanionService {
                   : 'call:${request.phoneNumber.trim()}',
               relationshipLabel: relation.isEmpty ? 'çağrı kişisi' : relation,
               ownerConfidence: contact != null ? 0.72 : 0.44,
+              authority: turnAuthority,
+              lease: turnLease,
               primaryTurn: false,
               allowFallbackSpeech: false,
               requiresLocalModel: false,

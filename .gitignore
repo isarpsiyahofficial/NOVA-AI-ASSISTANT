@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated native voice runtime cache and large model assets.
+# They are downloaded from official sherpa-onnx releases by
+# tooling/prepare_native_voice_assets.sh and checksum-verified in CI.
+/.cache/nova-native-voice/
+/android/app/src/main/assets/sherpa_asr/*.onnx
+/android/app/src/main/assets/sherpa_vad/
+/android/app/src/main/assets/speaker_id/
+/android/app/src/main/assets/sherpa_tts/
+/android/app/src/main/assets/nova_voice_manifest/

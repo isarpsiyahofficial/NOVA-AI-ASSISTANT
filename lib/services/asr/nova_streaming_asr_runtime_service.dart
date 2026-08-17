@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals_to_create_immutables, duplicate_ignore, prefer_const_constructors
 // NOVA_ABSOLUTE_FINAL_CLEANUP_V1
-// NOVA_ASR_SINGLE_SESSION_OWNER_GUARD_V3
+// NOVA_ASR_SINGLE_SESSION_OWNER_GUARD_V4_EXPLICIT_TRANSFER
 // NOVA_ASR_STT_AUTHORITY_MARKER: speakerVoiceId ownerConfidence relationshipLabel routed_to_SingleBrainAuthority deterministic_bridge_dto_only.
 import 'dart:async';
 
@@ -14,6 +14,22 @@ import '../self_repair/nova_repair_runtime_policy_enforcer_service.dart';
 import 'nova_asr_health_service.dart';
 import 'nova_streaming_asr_bridge_service.dart';
 import 'nova_streaming_transcript_router_service.dart';
+
+class NovaAsrPlaybackLease {
+  final String owner;
+  final int sessionToken;
+  final bool wasStarted;
+  final int issuedAtEpochMs;
+
+  const NovaAsrPlaybackLease({
+    required this.owner,
+    required this.sessionToken,
+    required this.wasStarted,
+    required this.issuedAtEpochMs,
+  });
+
+  bool get isUsable => wasStarted && owner != 'none';
+}
 
 class NovaStreamingAsrRuntimeService {
   final NovaStreamingAsrBridgeService bridgeService;
@@ -29,6 +45,8 @@ class NovaStreamingAsrRuntimeService {
   static bool _transitionInFlight = false;
   static int _sessionToken = 0;
   static String _owner = 'none';
+  static final List<String> _recentFinalFingerprints = <String>[];
+  static const int _maxFinalFingerprints = 48;
 
   NovaStreamingAsrRuntimeService({
     NovaStreamingAsrBridgeService? bridgeService,
@@ -55,19 +73,19 @@ class NovaStreamingAsrRuntimeService {
   Future<bool> start({String owner = 'runtime', bool force = false}) async {
     final normalizedOwner = owner.trim().isEmpty ? 'runtime' : owner.trim();
 
-    if (_started && !force && _owner == normalizedOwner) {
-      await ensureInitialized();
+    if (_started && _owner == normalizedOwner) {
+      final initialized = await ensureInitialized();
       _latestState = await bridgeService.getState();
       debugPrint(
         'NOVA_STREAMING_ASR_START_IDEMPOTENT owner=$_owner '
-        'running=${_latestState.running} '
+        'initialized=$initialized running=${_latestState.running} '
         'foreground=${_latestState.foregroundServiceRunning}',
       );
       await _recordHealth();
-      return true;
+      return initialized && _latestState.running;
     }
 
-    if (_started && !force && _owner != 'none' && _owner != normalizedOwner) {
+    if (_started && _owner != 'none' && _owner != normalizedOwner && !force) {
       debugPrint(
         'NOVA_STREAMING_ASR_OWNER_REJECTED current=$_owner '
         'requested=$normalizedOwner running=${_latestState.running}',
@@ -87,10 +105,35 @@ class NovaStreamingAsrRuntimeService {
 
     _transitionInFlight = true;
     final token = ++_sessionToken;
-    _owner = normalizedOwner;
+    _recentFinalFingerprints.clear();
+    final previousOwner = _owner;
 
     try {
-      await ensureInitialized();
+      if (_started && previousOwner != 'none' && previousOwner != normalizedOwner) {
+        // A force transfer is a controlled handoff, not a second recognizer.
+        // Stop the native engine and detach the old event subscription before
+        // assigning the new owner, otherwise two logical surfaces can consume
+        // the same microphone/ring buffer concurrently.
+        await _subscription?.cancel();
+        _subscription = null;
+        await bridgeService.stop();
+        _latestState = await bridgeService.getState();
+        _started = false;
+        await _recordOwnerTransferred(
+          previousOwner: previousOwner,
+          nextOwner: normalizedOwner,
+        );
+      }
+
+      _owner = normalizedOwner;
+      final initialized = await ensureInitialized();
+      if (!initialized || token != _sessionToken) {
+        _started = false;
+        _owner = 'none';
+        await _recordHealth();
+        return false;
+      }
+
       await _subscription?.cancel();
       _subscription = null;
 
@@ -112,25 +155,25 @@ class NovaStreamingAsrRuntimeService {
 
       final ok = await bridgeService.start();
       _latestState = await bridgeService.getState();
-      _started = ok;
+      _started = ok && token == _sessionToken;
 
-      if (!ok || token != _sessionToken) {
+      if (!_started) {
         await earlySubscription.cancel();
         if (_subscription == earlySubscription) {
           _subscription = null;
         }
-        if (!ok) _owner = 'none';
+        _owner = 'none';
       }
 
       debugPrint(
-        'NOVA_STREAMING_ASR_START_RESULT owner=$_owner ok=$ok token=$token '
+        'NOVA_STREAMING_ASR_START_RESULT owner=$_owner ok=$_started token=$token '
         'running=${_latestState.running} '
         'foreground=${_latestState.foregroundServiceRunning} '
         'partial=${_latestState.partialCount} final=${_latestState.finalCount} '
         'message=${_latestState.message}',
       );
       await _recordHealth();
-      return ok;
+      return _started;
     } catch (error, stackTrace) {
       debugPrint(
         'NOVA_STREAMING_ASR_START_ERROR owner=$_owner '
@@ -141,12 +184,47 @@ class NovaStreamingAsrRuntimeService {
       _owner = 'none';
       await _subscription?.cancel();
       _subscription = null;
+      try {
+        await bridgeService.stop();
+      } catch (_) {}
       _latestState = await bridgeService.getState();
       await _recordHealth();
       return false;
     } finally {
       _transitionInFlight = false;
     }
+  }
+
+  static Future<NovaAsrPlaybackLease> pauseForPlayback(
+    NovaStreamingAsrBridgeService bridgeService,
+  ) async {
+    final lease = NovaAsrPlaybackLease(
+      owner: _owner,
+      sessionToken: _sessionToken,
+      wasStarted: _started,
+      issuedAtEpochMs: DateTime.now().millisecondsSinceEpoch,
+    );
+    if (!lease.isUsable) return lease;
+    await bridgeService.pause();
+    return lease;
+  }
+
+  static Future<bool> resumeAfterPlayback(
+    NovaStreamingAsrBridgeService bridgeService,
+    NovaAsrPlaybackLease lease,
+  ) async {
+    final sameSession = lease.sessionToken == _sessionToken;
+    final sameOwner = lease.owner == _owner;
+    if (!lease.isUsable || !_started || !sameSession || !sameOwner) {
+      debugPrint(
+        'NOVA_ASR_PLAYBACK_RESUME_REJECTED '
+        'leaseOwner=${lease.owner} currentOwner=$_owner '
+        'leaseSession=${lease.sessionToken} currentSession=$_sessionToken '
+        'started=$_started',
+      );
+      return false;
+    }
+    return await bridgeService.resume();
   }
 
   Future<void> pause() async {
@@ -183,6 +261,7 @@ class NovaStreamingAsrRuntimeService {
 
     _transitionInFlight = true;
     ++_sessionToken;
+    _recentFinalFingerprints.clear();
 
     try {
       _started = false;
@@ -200,15 +279,29 @@ class NovaStreamingAsrRuntimeService {
   Future<void> flush() => bridgeService.flush();
 
   void _handleEvent(NovaStreamingAsrEvent event) {
+    if (event.isFinal && _isDuplicateFinalEvent(event)) {
+      debugPrint(
+        'NOVA_STREAMING_ASR_FINAL_DEDUPED owner=$_owner '
+        'session=$_sessionToken segment=${event.transcript.segmentId}',
+      );
+      return;
+    }
     final routeDecision = transcriptRouterService.decide(event);
     final policyEnforcer = NovaRepairRuntimePolicyEnforcerService.instance;
+    final forceEligibleRoute =
+        routeDecision.route == 'conversation' ||
+        routeDecision.route == 'command' ||
+        routeDecision.route == 'teaching' ||
+        routeDecision.route == 'reminder' ||
+        routeDecision.route == 'call';
     final effectiveRoute =
         event.isFinal &&
             routeDecision.normalizedText.trim().isNotEmpty &&
             policyEnforcer.forceAsrTranscriptToSingleBrain &&
-            routeDecision.route != 'ignore'
+            forceEligibleRoute
         ? 'conversation'
         : routeDecision.route;
+
     if (event.isFinal && routeDecision.normalizedText.trim().isNotEmpty) {
       final routedToBrain =
           effectiveRoute == 'conversation' ||
@@ -240,11 +333,13 @@ class NovaStreamingAsrRuntimeService {
             'effectiveRoute': effectiveRoute,
             'forceSingleBrainPolicy':
                 policyEnforcer.forceAsrTranscriptToSingleBrain,
+            'forceEligibleRoute': forceEligibleRoute,
             'isFinal': event.isFinal,
           },
         ),
       );
     }
+
     if (event.isError) {
       _latestState = NovaStreamingAsrState(
         initialized: _latestState.initialized,
@@ -269,6 +364,30 @@ class NovaStreamingAsrRuntimeService {
     _events.add(event);
   }
 
+  bool _isDuplicateFinalEvent(NovaStreamingAsrEvent event) {
+    final transcript = event.transcript;
+    final normalizedText = transcript.text
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .toLowerCase();
+    if (normalizedText.isEmpty) return false;
+    final fingerprint = <Object>[
+      _sessionToken,
+      transcript.segmentId,
+      transcript.identityAudioPath.trim(),
+      normalizedText,
+    ].join('|');
+    if (_recentFinalFingerprints.contains(fingerprint)) return true;
+    _recentFinalFingerprints.add(fingerprint);
+    if (_recentFinalFingerprints.length > _maxFinalFingerprints) {
+      _recentFinalFingerprints.removeRange(
+        0,
+        _recentFinalFingerprints.length - _maxFinalFingerprints,
+      );
+    }
+    return false;
+  }
+
   Future<void> _recordOwnerRejected(String requestedOwner) async {
     await NovaRuntimeSignalService.instance.record(
       kind: NovaRuntimeSignalKind.stt,
@@ -278,6 +397,26 @@ class NovaStreamingAsrRuntimeService {
           'NOVA_STREAMING_ASR_OWNER_REJECTED current=$_owner requested=$requestedOwner',
       technicalDetails: latestState.toMap().toString(),
       diagnosticCandidate: true,
+    );
+  }
+
+  Future<void> _recordOwnerTransferred({
+    required String previousOwner,
+    required String nextOwner,
+  }) async {
+    await NovaRuntimeSignalService.instance.record(
+      kind: NovaRuntimeSignalKind.stt,
+      level: NovaRuntimeSignalLevel.info,
+      code: 'streaming_asr_owner_transferred',
+      message:
+          'Streaming ASR oturumu tek sahip kuralıyla devredildi: $previousOwner -> $nextOwner',
+      technicalDetails: latestState.toMap().toString(),
+      diagnosticCandidate: false,
+      metadata: <String, dynamic>{
+        'previousOwner': previousOwner,
+        'nextOwner': nextOwner,
+        'nativeStoppedBeforeTransfer': true,
+      },
     );
   }
 
@@ -296,9 +435,6 @@ class NovaStreamingAsrRuntimeService {
   }
 
   Future<void> dispose() async {
-    await _subscription?.cancel();
-    _subscription = null;
-    _started = false;
-    _owner = 'none';
+    await stop(force: true);
   }
 }

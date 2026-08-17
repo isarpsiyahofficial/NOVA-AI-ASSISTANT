@@ -1,0 +1,124 @@
+name: Nova TECNO ARM64 Internal Test APK
+
+on:
+  push:
+    branches:
+      - agent/single-brain-low-latency-runtime
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-tecno-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
+jobs:
+  build-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap verified Gradle wrapper
+        shell: bash
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh
+          tooling/bootstrap_gradle_wrapper.sh
+
+      - name: Restore verified voice model cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision official native voice assets
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify action and runtime contracts
+        id: contract_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          : > nova-contract-tests.log
+          code=0
+          for test_file in \
+            test/runtime/nova_runtime_integrity_contract_test.dart \
+            test/runtime/nova_verified_device_action_contract_test.dart \
+            test/runtime/nova_contact_call_target_resolver_test.dart; do
+            echo "=== $test_file ===" | tee -a nova-contract-tests.log
+            flutter test "$test_file" 2>&1 | tee -a nova-contract-tests.log
+            test_code=${PIPESTATUS[0]}
+            if [[ "$test_code" != "0" ]]; then
+              code="$test_code"
+            fi
+          done
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload contract test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-contract-test-log
+          path: nova-contract-tests.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce action and runtime contracts
+        shell: bash
+        run: |
+          if [[ "${{ steps.contract_tests.outputs.exit_code }}" != "0" ]]; then
+            echo "Contract tests failed. Read nova-contract-test-log artifact."
+            exit 1
+          fi
+
+      - name: Build TECNO ARM64 internal-test APK
+        shell: bash
+        run: |
+          flutter build apk --debug --target-platform android-arm64 --no-pub
+          cp build/app/outputs/flutter-apk/app-debug.apk NOVA-TECNO-ARM64-INTERNAL-TEST.apk
+          sha256sum NOVA-TECNO-ARM64-INTERNAL-TEST.apk | tee NOVA-TECNO-ARM64-INTERNAL-TEST.sha256
+          stat -c 'apk_bytes=%s' NOVA-TECNO-ARM64-INTERNAL-TEST.apk | tee NOVA-TECNO-ARM64-INTERNAL-TEST.size.txt
+
+      - name: Upload TECNO ARM64 internal-test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-TECNO-ARM64-INTERNAL-TEST
+          path: |
+            NOVA-TECNO-ARM64-INTERNAL-TEST.apk
+            NOVA-TECNO-ARM64-INTERNAL-TEST.sha256
+            NOVA-TECNO-ARM64-INTERNAL-TEST.size.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

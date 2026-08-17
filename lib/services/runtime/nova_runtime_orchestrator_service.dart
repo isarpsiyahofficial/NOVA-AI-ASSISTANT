@@ -30,7 +30,7 @@ class NovaRuntimeOrchestratorResult {
     String spokenText = '',
     Map<String, dynamic>? actionSummaryJson,
     required this.match,
-  }) : spokenText = '',
+  }) : spokenText = spokenText,
        actionSummaryJson = Map<String, dynamic>.unmodifiable(
          actionSummaryJson ??
              <String, dynamic>{
@@ -359,13 +359,18 @@ class NovaRuntimeOrchestratorService {
   Future<NovaRuntimeOrchestratorResult> _answerCall(
     NovaRuntimeIntentMatch match,
   ) async {
-    final result = await callControlService.answerRingingCall(
-      userInitiated: true,
-    );
     return NovaRuntimeOrchestratorResult(
       handled: true,
-      success: result.success,
+      success: false,
       spokenText: '',
+      actionSummaryJson: <String, dynamic>{
+        'handled': true,
+        'success': false,
+        'actionType': 'answer_call',
+        'errorDetail':
+            'Legacy runtime interpreter has no typed turn authority. Use the verified device action executor.',
+        'safeToSummarizeToUser': true,
+      },
       match: match,
     );
   }
@@ -373,13 +378,18 @@ class NovaRuntimeOrchestratorService {
   Future<NovaRuntimeOrchestratorResult> _rejectCall(
     NovaRuntimeIntentMatch match,
   ) async {
-    final result = await callControlService.rejectRingingCall(
-      userInitiated: true,
-    );
     return NovaRuntimeOrchestratorResult(
       handled: true,
-      success: result.success,
+      success: false,
       spokenText: '',
+      actionSummaryJson: <String, dynamic>{
+        'handled': true,
+        'success': false,
+        'actionType': 'reject_call',
+        'errorDetail':
+            'Legacy runtime interpreter has no typed turn authority. Use the verified device action executor.',
+        'safeToSummarizeToUser': true,
+      },
       match: match,
     );
   }

@@ -1,15 +1,16 @@
-// ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
-// NOVA_ABSOLUTE_FINAL_CLEANUP_V1
-// NOVA_ASR_STT_AUTHORITY_MARKER: speakerVoiceId ownerConfidence relationshipLabel routed_to_SingleBrainAuthority deterministic_bridge_dto_only.
+// NOVA_STREAMING_ASR_NO_FALLBACK_V1
+// NOVA_STT_SAME_SEGMENT_TITANET_AUTHORITY_V1
+// ACCEPTANCE_CONTRACT: Platform SpeechRecognizer fallback is prohibited.
+// ACCEPTANCE_CONTRACT: Whisper transcript and TitaNet use the same PCM segment.
 import 'dart:async';
 
-import '../../core/audio_runtime/audio_capture_request.dart';
-import '../../core/audio_runtime/nova_listening_mode.dart';
 import '../../core/audio_runtime/nova_stt_result.dart';
 import '../asr/nova_streaming_asr_runtime_service.dart';
 import '../audio_runtime/nova_audio_input_policy_service.dart';
 import '../audio_runtime/nova_native_audio_bridge_service.dart';
 import '../audio_runtime/nova_playback_echo_filter_service.dart';
+import '../identity/device_owner_identity_service.dart';
+import '../identity/nova_voice_identity_bridge_service.dart';
 import '../runtime/nova_identity_runtime_service.dart';
 
 enum NovaSttMode { light, enhanced }
@@ -19,6 +20,8 @@ class NovaSpeechToTextService {
   final NovaStreamingAsrRuntimeService streamingAsrRuntimeService;
   final NovaAudioInputPolicyService audioInputPolicyService;
   final NovaPlaybackEchoFilterService playbackGuardService;
+  final NovaVoiceIdentityBridgeService voiceIdentityBridgeService;
+  final DeviceOwnerIdentityService ownerIdentityService;
   final NovaIdentityRuntimeService identityRuntimeService =
       const NovaIdentityRuntimeService();
 
@@ -27,14 +30,14 @@ class NovaSpeechToTextService {
     NovaStreamingAsrRuntimeService? streamingAsrRuntimeService,
     NovaAudioInputPolicyService? audioInputPolicyService,
     NovaPlaybackEchoFilterService? playbackGuardService,
-  }) : streamingAsrRuntimeService =
-           streamingAsrRuntimeService ?? NovaStreamingAsrRuntimeService(),
-       audioInputPolicyService =
-           audioInputPolicyService ??
-           NovaAudioInputPolicyService(nativeBridge: nativeBridge),
-       playbackGuardService =
-           playbackGuardService ??
-           const NovaPlaybackEchoFilterService();
+    this.voiceIdentityBridgeService = const NovaVoiceIdentityBridgeService(),
+    this.ownerIdentityService = const DeviceOwnerIdentityService(),
+  })  : streamingAsrRuntimeService =
+            streamingAsrRuntimeService ?? NovaStreamingAsrRuntimeService(),
+        audioInputPolicyService = audioInputPolicyService ??
+            NovaAudioInputPolicyService(nativeBridge: nativeBridge),
+        playbackGuardService = playbackGuardService ??
+            const NovaPlaybackEchoFilterService();
 
   Future<NovaSttResult> transcribe({
     NovaSttMode mode = NovaSttMode.light,
@@ -46,7 +49,7 @@ class NovaSpeechToTextService {
   }) async {
     if (rejectSyntheticPlayback) {
       final released = await playbackGuardService.waitUntilPlaybackInactive(
-        timeout: const Duration(milliseconds: 2200),
+        timeout: const Duration(milliseconds: 900),
       );
       if (!released) {
         await playbackGuardService.registerEchoAttempt();
@@ -55,7 +58,7 @@ class NovaSpeechToTextService {
           recognizedText: '',
           detectedLocale: 'tr-TR',
           message:
-              '${identityRuntimeService.currentDisplayName} kendi konuşmasını yeniden duymamak için kısa bir an bekliyor.',
+              '${identityRuntimeService.currentDisplayName} kendi konuşmasını komut sanmamak için dinlemeyi kısa süreli erteledi.',
         );
       }
     }
@@ -70,8 +73,7 @@ class NovaSpeechToTextService {
       final resolvedTargetDescription = targetDescription.trim().isEmpty
           ? '${identityRuntimeService.currentDisplayName} günlük komutu'
           : identityRuntimeService.replaceAssistantLabel(targetDescription);
-
-      final primary = await _transcribeInternal(
+      final primary = await _transcribeStreamingOnly(
         mode: mode,
         targetDescription: resolvedTargetDescription,
         preferExtendedConversationWindow: preferExtendedConversationWindow,
@@ -81,20 +83,24 @@ class NovaSpeechToTextService {
         final ownSpeech = await playbackGuardService.isLikelyOwnSpeech(
           primary.recognizedText,
         );
-        if (!ownSpeech) {
-          return primary;
-        }
+        if (!ownSpeech) return primary;
         if (rejectSyntheticPlayback) {
           return NovaSttResult(
             success: false,
             recognizedText: '',
             detectedLocale: 'tr-TR',
             message:
-                '${identityRuntimeService.currentDisplayName} kendi son konuşmasını komut sanmadı; dinlemeye devam ediyor.',
+                '${identityRuntimeService.currentDisplayName} kendi son konuşmasını kullanıcı komutu olarak kabul etmedi.',
+            voiceIdentityChecked: primary.voiceIdentityChecked,
+            ownerMatched: false,
+            speakerVoiceId: primary.speakerVoiceId,
+            speakerName: primary.speakerName,
+            ownerConfidence: 0,
+            relationshipLabel: 'synthetic_playback',
+            identityAudioPath: primary.identityAudioPath,
           );
         }
       }
-
       return primary;
     } finally {
       if (useCallCompanionAudioPolicy) {
@@ -105,26 +111,38 @@ class NovaSpeechToTextService {
     }
   }
 
-  Future<NovaSttResult> _transcribeInternal({
+  Future<NovaSttResult> _transcribeStreamingOnly({
     required NovaSttMode mode,
     required String targetDescription,
     required bool preferExtendedConversationWindow,
   }) async {
     final waitSeconds = switch (mode) {
-      NovaSttMode.light => preferExtendedConversationWindow ? 18 : 12,
-      NovaSttMode.enhanced => preferExtendedConversationWindow ? 26 : 18,
+      NovaSttMode.light => preferExtendedConversationWindow ? 12 : 7,
+      NovaSttMode.enhanced => preferExtendedConversationWindow ? 20 : 12,
     };
 
-    await streamingAsrRuntimeService.ensureInitialized();
+    final initialized = await streamingAsrRuntimeService.ensureInitialized();
+    if (!initialized) {
+      return const NovaSttResult(
+        success: false,
+        recognizedText: '',
+        detectedLocale: 'tr-TR',
+        message:
+            'Embedded streaming ASR hazırlanamadı. Platform veya snapshot fallback kullanılmadı.',
+      );
+    }
+
     if (!streamingAsrRuntimeService.isStarted) {
-      final started = await streamingAsrRuntimeService.start();
+      final started = await streamingAsrRuntimeService.start(
+        owner: 'nova_stt_transcribe',
+      );
       if (!started) {
-        return nativeBridge.decodeStreamingSnapshot(
-          AudioCaptureRequest(
-            mode: NovaListeningMode.normalCommandListening,
-            maxDurationSeconds: waitSeconds.clamp(6, 18).toInt(),
-            targetDescription: targetDescription,
-          ),
+        return const NovaSttResult(
+          success: false,
+          recognizedText: '',
+          detectedLocale: 'tr-TR',
+          message:
+              'Streaming ASR oturumu başlatılamadı. Başka bir ASR sahibi varsa oturum zorla devralınmadı.',
         );
       }
     }
@@ -132,6 +150,8 @@ class NovaSpeechToTextService {
     final completer = Completer<NovaSttResult>();
     StreamSubscription? sub;
     Timer? timer;
+    String lastPartial = '';
+    DateTime? lastPartialAt;
 
     Future<void> finish(NovaSttResult result) async {
       if (completer.isCompleted) return;
@@ -143,77 +163,128 @@ class NovaSpeechToTextService {
     sub = streamingAsrRuntimeService.events.listen((event) async {
       final text = event.transcript.text.trim();
       if (text.isEmpty) return;
-      if (event.isFinal ||
-          (mode == NovaSttMode.enhanced &&
-              event.isPartial &&
-              text.length >= 12)) {
-        await finish(
-          NovaSttResult(
-            success: true,
-            recognizedText: text,
-            detectedLocale: event.transcript.detectedLocale.trim().isEmpty
-                ? 'tr-TR'
-                : event.transcript.detectedLocale.trim(),
-            message: 'Streaming Sherpa transcript alındı: $targetDescription',
-          ),
+
+      if (event.isPartial) {
+        lastPartial = text;
+        lastPartialAt = DateTime.now();
+        return;
+      }
+
+      if (event.isFinal) {
+        final result = await _attachOwnerIdentity(
+          recognizedText: text,
+          detectedLocale:
+              event.transcript.detectedLocale.trim().isEmpty
+                  ? 'tr-TR'
+                  : event.transcript.detectedLocale.trim(),
+          identityAudioPath: event.transcript.identityAudioPath,
+          message: 'Embedded streaming ASR final transcript: $targetDescription',
         );
+        await finish(result);
       }
     });
 
     timer = Timer(Duration(seconds: waitSeconds), () async {
-      try {
-        // Event akışı gelmezse snapshot sadece playback kesin pasifse denenir.
-        // Bu fallback, Nova'nın kendi TTS sesini veya eski ring-buffer kalıntısını
-        // kullanıcı komutu sanmamak için güvenli kapıdan geçmek zorunda.
-        final playbackReleased = await playbackGuardService.waitUntilPlaybackInactive(
-          timeout: const Duration(milliseconds: 350),
-        );
-        if (!playbackReleased) {
-          await playbackGuardService.registerEchoAttempt();
-          await finish(
-            NovaSttResult(
-              success: false,
-              recognizedText: '',
-              detectedLocale: 'tr-TR',
-              message:
-                  '${identityRuntimeService.currentDisplayName} snapshot ASR denemesini playback echo riski nedeniyle engelledi.',
-            ),
-          );
-          return;
-        }
-        final snapshot = await nativeBridge.decodeStreamingSnapshot(
-          AudioCaptureRequest(
-            mode: NovaListeningMode.normalCommandListening,
-            maxDurationSeconds: waitSeconds.clamp(4, 10).toInt(),
-            targetDescription: targetDescription,
-          ),
-        );
-        if (snapshot.success && snapshot.recognizedText.trim().length >= 2) {
-          await finish(snapshot);
-          return;
-        }
+      final partialAge = lastPartialAt == null
+          ? null
+          : DateTime.now().difference(lastPartialAt!);
+      final canUseStableEnhancedPartial =
+          mode == NovaSttMode.enhanced &&
+              lastPartial.trim().length >= 12 &&
+              partialAge != null &&
+              partialAge >= const Duration(milliseconds: 650);
+
+      if (canUseStableEnhancedPartial) {
         await finish(
           NovaSttResult(
-            success: false,
-            recognizedText: '',
+            success: true,
+            recognizedText: lastPartial.trim(),
             detectedLocale: 'tr-TR',
             message:
-                '${identityRuntimeService.currentDisplayName} streaming ASR zincirinden taze konuşma alamadı. Snapshot fallback: ${snapshot.message}',
+                'Kararlı partial transcript kullanıldı; final PCM kanıtı olmadığı için sahip yetkisi verilmedi: $targetDescription',
+            voiceIdentityChecked: false,
+            ownerMatched: false,
+            ownerConfidence: 0,
+            relationshipLabel: 'unverified_partial',
           ),
         );
-      } catch (error) {
-        await finish(
-          NovaSttResult(
-            success: false,
-            recognizedText: '',
-            detectedLocale: 'tr-TR',
-            message:
-                '${identityRuntimeService.currentDisplayName} streaming ASR snapshot fallback sırasında hata aldı: $error',
-          ),
-        );
+        return;
       }
+
+      await finish(
+        const NovaSttResult(
+          success: false,
+          recognizedText: '',
+          detectedLocale: 'tr-TR',
+          message:
+              'Streaming ASR zaman penceresinde taze final konuşma üretmedi. Snapshot ve platform fallback devre dışı.',
+        ),
+      );
     });
 
     return completer.future;
+  }
+
+  Future<NovaSttResult> _attachOwnerIdentity({
+    required String recognizedText,
+    required String detectedLocale,
+    required String identityAudioPath,
+    required String message,
+  }) async {
+    final audioPath = identityAudioPath.trim();
+    if (audioPath.isEmpty) {
+      return NovaSttResult(
+        success: true,
+        recognizedText: recognizedText,
+        detectedLocale: detectedLocale,
+        message: '$message TitaNet kanıt dosyası bulunmadı; telefon eylemi yetkisi verilmedi.',
+        voiceIdentityChecked: false,
+        ownerMatched: false,
+        ownerConfidence: 0,
+        relationshipLabel: 'unverified',
+      );
+    }
+
+    final owner = await ownerIdentityService.loadOwner();
+    if (owner == null ||
+        !ownerIdentityService.isVerifiedVoiceprintId(owner.ownerVoiceId)) {
+      return NovaSttResult(
+        success: true,
+        recognizedText: recognizedText,
+        detectedLocale: detectedLocale,
+        message: '$message Doğrulanmış sahip profili bulunmadı.',
+        voiceIdentityChecked: false,
+        ownerMatched: false,
+        ownerConfidence: 0,
+        relationshipLabel: 'unconfigured_owner',
+        identityAudioPath: audioPath,
+      );
+    }
+
+    final identity = await voiceIdentityBridgeService.identifyVoiceFromFile(
+      audioPath: audioPath,
+      minSimilarity: 0.64,
+    );
+    final matchedOwner = identity.success &&
+        identity.matched &&
+        identity.voiceId.trim() == owner.ownerVoiceId.trim() &&
+        identity.similarity >= 0.64;
+
+    return NovaSttResult(
+      success: true,
+      recognizedText: recognizedText,
+      detectedLocale: detectedLocale,
+      message: matchedOwner
+          ? '$message Sahip sesi aynı PCM segmentinde TitaNet ile doğrulandı.'
+          : '$message Ses işlendi fakat kayıtlı sahip voiceprint’iyle eşleşmedi; telefon eylemi engellenecek.',
+      voiceIdentityChecked: identity.success,
+      ownerMatched: matchedOwner,
+      speakerVoiceId: identity.voiceId.trim(),
+      speakerName: identity.displayName.trim(),
+      ownerConfidence: matchedOwner ? identity.similarity : 0,
+      relationshipLabel: matchedOwner ? 'owner' : 'unknown',
+      identityAudioPath: audioPath,
+      nativeActionToken: matchedOwner ? identity.nativeActionToken : '',
+    );
   }
 }

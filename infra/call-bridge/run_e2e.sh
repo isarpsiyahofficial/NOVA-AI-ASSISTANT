@@ -1,0 +1,302 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LAB_DIR="$ROOT_DIR/infra/call-bridge"
+cd "$LAB_DIR"
+
+rm -rf runtime
+mkdir -p runtime/sounds runtime/recordings runtime/reports runtime/logs
+chmod -R 0777 runtime
+
+compose=(docker compose -f docker-compose.yml)
+
+cleanup() {
+  local exit_code=$?
+  "${compose[@]}" ps -a > runtime/logs/docker-compose-ps.log 2>&1 || true
+  "${compose[@]}" logs --no-color > runtime/logs/docker-compose.log 2>&1 || true
+  "${compose[@]}" exec -T asterisk asterisk -rx "core show channels verbose" > runtime/logs/asterisk-channels.log 2>&1 || true
+  "${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" > runtime/logs/asterisk-audiosocket-modules.log 2>&1 || true
+  "${compose[@]}" exec -T asterisk asterisk -rx "dialplan show nova-call-test" > runtime/logs/asterisk-dialplan.log 2>&1 || true
+  if [[ "${NOVA_KEEP_CALL_LAB:-false}" != "true" ]]; then
+    "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
+  fi
+  exit "$exit_code"
+}
+trap cleanup EXIT
+
+"${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
+build_ok=false
+: > runtime/logs/docker-compose-build.log
+for attempt in 1 2 3; do
+  echo "Docker Compose build attempt ${attempt}/3" | tee -a runtime/logs/docker-compose-build.log
+  if "${compose[@]}" --progress=plain build 2>&1 | tee -a runtime/logs/docker-compose-build.log; then
+    build_ok=true
+    break
+  fi
+  if [[ "$attempt" -lt 3 ]]; then
+    sleep "$((attempt * 10))"
+  fi
+done
+if [[ "$build_ok" != "true" ]]; then
+  echo "Docker Compose build failed after 3 attempts" >&2
+  exit 1
+fi
+"${compose[@]}" up -d 2>&1 | tee runtime/logs/docker-compose-up.log
+"${compose[@]}" ps -a | tee runtime/logs/docker-compose-ps-start.log
+
+media_ready=false
+for _ in $(seq 1 90); do
+  if curl -fsS http://127.0.0.1:18080/health > runtime/logs/media-health.json 2>/dev/null && \
+    grep -Eq '"ready"[[:space:]]*:[[:space:]]*true' runtime/logs/media-health.json; then
+    media_ready=true
+    break
+  fi
+  sleep 2
+done
+if [[ "$media_ready" != "true" ]]; then
+  echo "NOVA media gateway did not become ready" >&2
+  cat runtime/logs/media-health.json >&2 2>/dev/null || true
+  exit 1
+fi
+cat runtime/logs/media-health.json
+
+for _ in $(seq 1 60); do
+  if "${compose[@]}" exec -T asterisk asterisk -rx "core show uptime" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+"${compose[@]}" exec -T asterisk asterisk -rx "core show uptime" \
+  | tee runtime/logs/asterisk-uptime.log
+
+"${compose[@]}" exec -T asterisk asterisk -rx "module show like audiosocket" \
+  | tee runtime/logs/asterisk-audiosocket-modules.log
+grep -q 'app_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
+grep -q 'chan_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
+grep -q 'res_audiosocket.so' runtime/logs/asterisk-audiosocket-modules.log
+
+control_ready=false
+for _ in $(seq 1 60); do
+  if curl -fsS http://127.0.0.1:18090/health > runtime/logs/control-health.json 2>/dev/null && \
+    grep -Eq '"ready"[[:space:]]*:[[:space:]]*true' runtime/logs/control-health.json; then
+    control_ready=true
+    break
+  fi
+  sleep 1
+done
+if [[ "$control_ready" != "true" ]]; then
+  echo "NOVA call control did not become ready" >&2
+  cat runtime/logs/control-health.json >&2 2>/dev/null || true
+  exit 1
+fi
+cat runtime/logs/control-health.json
+
+"${compose[@]}" exec -T media-gateway \
+  python /app/launcher.py synthesize \
+    --text "Merhaba Nova bugün nasılsın" \
+    --output /shared/sounds/nova-test-command-source.wav \
+  2>&1 | tee runtime/logs/fixture-generation.json
+
+test -s runtime/sounds/nova-test-command-source.wav
+# Piper's Turkish model emits 22.05 kHz PCM. Asterisk Playback expects a
+# telephony-rate WAV for this deterministic Local-channel caller, so create an
+# explicit 8 kHz, mono, signed 16-bit fixture before reloading the dialplan.
+"${compose[@]}" exec -T asterisk \
+  sox /shared/sounds/nova-test-command-source.wav \
+    -r 8000 -c 1 -b 16 -e signed-integer \
+    /shared/sounds/nova-test-command.wav
+"${compose[@]}" exec -T asterisk \
+  soxi /shared/sounds/nova-test-command.wav \
+  | tee runtime/logs/fixture-format.log
+test -s runtime/sounds/nova-test-command.wav
+grep -q 'Sample Rate    : 8000' runtime/logs/fixture-format.log
+grep -q 'Channels       : 1' runtime/logs/fixture-format.log
+
+"${compose[@]}" exec -T asterisk asterisk -rx "dialplan reload" \
+  | tee runtime/logs/dialplan-reload.log
+"${compose[@]}" exec -T asterisk asterisk -rx "dialplan show nova-call-test" \
+  | tee runtime/logs/asterisk-dialplan.log
+grep -q 'AudioSocket' runtime/logs/asterisk-dialplan.log
+
+originate_output="$(
+  "${compose[@]}" exec -T asterisk \
+    asterisk -rx "channel originate Local/9000@nova-test-caller/n extension 7000@nova-call-test"
+)"
+printf '%s\n' "$originate_output" | tee runtime/logs/originate.log
+
+completed=false
+for _ in $(seq 1 90); do
+  if curl -fsS http://127.0.0.1:18080/sessions/latest > runtime/logs/latest-session.json 2>/dev/null; then
+    if python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('runtime/logs/latest-session.json')
+try:
+    data = json.loads(p.read_text())
+except Exception:
+    raise SystemExit(1)
+raise SystemExit(0 if data.get('completed_at', 0) and data.get('outgoing_bytes', 0) > 0 else 1)
+PY
+    then
+      completed=true
+      break
+    fi
+  fi
+  sleep 2
+done
+
+if [[ "$completed" != "true" ]]; then
+  echo "NOVA AudioSocket call session did not complete" >&2
+  exit 1
+fi
+
+python3 - <<'PY' | tee runtime/logs/assert-incoming-acoustic-proof.json
+from array import array
+import audioop
+import json
+import math
+import sys
+import wave
+from pathlib import Path
+
+session = json.loads(Path('runtime/logs/latest-session.json').read_text(encoding='utf-8'))
+session_id = str(session['session_id'])
+fixture_path = Path('runtime/sounds/nova-test-command.wav')
+incoming_path = Path('runtime/reports') / f'{session_id}-turn-1-in.wav'
+
+def read_pcm(path: Path) -> tuple[int, int, int, array]:
+    with wave.open(str(path), 'rb') as handle:
+        rate = handle.getframerate()
+        channels = handle.getnchannels()
+        width = handle.getsampwidth()
+        samples = array('h')
+        samples.frombytes(handle.readframes(handle.getnframes()))
+    if sys.byteorder != 'little':
+        samples.byteswap()
+    return rate, channels, width, samples
+
+def trim(samples: array, threshold: int = 50) -> array:
+    first = next((index for index, value in enumerate(samples) if abs(value) > threshold), None)
+    if first is None:
+        return array('h')
+    last = len(samples) - 1 - next(
+        index for index, value in enumerate(reversed(samples)) if abs(value) > threshold
+    )
+    return array('h', samples[first:last + 1])
+
+fixture_rate, fixture_channels, fixture_width, fixture = read_pcm(fixture_path)
+incoming_rate, incoming_channels, incoming_width, incoming = read_pcm(incoming_path)
+fixture_trimmed = trim(fixture)
+incoming_trimmed = trim(incoming)
+
+if len(fixture_trimmed) >= len(incoming_trimmed) and incoming_trimmed:
+    alignment_offset, fitted_gain = audioop.findfit(
+        fixture_trimmed.tobytes(), incoming_trimmed.tobytes()
+    )
+    aligned_fixture = fixture_trimmed[
+        alignment_offset:alignment_offset + len(incoming_trimmed)
+    ]
+    aligned_incoming = incoming_trimmed
+elif fixture_trimmed:
+    alignment_offset, inverse_gain = audioop.findfit(
+        incoming_trimmed.tobytes(), fixture_trimmed.tobytes()
+    )
+    aligned_fixture = fixture_trimmed
+    aligned_incoming = incoming_trimmed[
+        alignment_offset:alignment_offset + len(fixture_trimmed)
+    ]
+    fitted_gain = 1.0 / inverse_gain if inverse_gain else 0.0
+else:
+    alignment_offset = 0
+    fitted_gain = 0.0
+    aligned_fixture = array('h')
+    aligned_incoming = array('h')
+
+overlap = min(len(aligned_fixture), len(aligned_incoming))
+if overlap:
+    left = aligned_fixture[:overlap]
+    right = aligned_incoming[:overlap]
+    dot = sum(a * b for a, b in zip(left, right))
+    left_power = sum(a * a for a in left)
+    right_power = sum(b * b for b in right)
+    correlation = dot / math.sqrt(left_power * right_power) if left_power and right_power else 0.0
+else:
+    correlation = 0.0
+length_delta = abs(len(fixture_trimmed) - len(incoming_trimmed))
+passed = (
+    fixture_rate == incoming_rate == 8000
+    and fixture_channels == incoming_channels == 1
+    and fixture_width == incoming_width == 2
+    and overlap >= 6000
+    and alignment_offset <= 1600
+    and length_delta <= 1600
+    and 0.25 <= abs(fitted_gain) <= 4.0
+    and correlation >= 0.98
+)
+result = {
+    'passed': passed,
+    'fixture': str(fixture_path),
+    'incoming': str(incoming_path),
+    'sample_rate': incoming_rate,
+    'fixture_trimmed_samples': len(fixture_trimmed),
+    'incoming_trimmed_samples': len(incoming_trimmed),
+    'length_delta_samples': length_delta,
+    'alignment_offset_samples': alignment_offset,
+    'fitted_gain': fitted_gain,
+    'normalized_correlation': correlation,
+}
+print(json.dumps(result, ensure_ascii=False, indent=2))
+if not passed:
+    raise SystemExit(1)
+PY
+
+"${compose[@]}" exec -T media-gateway \
+  python /app/service.py assert-latest \
+    --report-dir /reports \
+    --expect-token "merhaba" \
+    --expect-text "Merhaba Nova bugün nasılsın" \
+    --min-word-coverage 0.50 \
+    --min-similarity 0.62 \
+    --min-incoming-bytes 6000 \
+    --min-outgoing-bytes 6000 \
+    --min-rms 30 \
+  | tee runtime/logs/assert-session.json
+
+"${compose[@]}" exec -T media-gateway \
+  python /app/service.py inspect-wav \
+    --directory /shared/recordings \
+    --pattern 'test-caller-*.wav' \
+    --min-duration 2.0 \
+    --min-rms 15 \
+  | tee runtime/logs/assert-caller-recording.json
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+session = json.loads(Path('runtime/logs/latest-session.json').read_text())
+summary = {
+    'success': bool(session.get('success')),
+    'session_id': session.get('session_id'),
+    'transcript': session.get('transcript'),
+    'reply': session.get('reply'),
+    'incoming_bytes': session.get('incoming_bytes'),
+    'outgoing_bytes': session.get('outgoing_bytes'),
+    'incoming_rms': session.get('incoming_rms'),
+    'outgoing_rms': session.get('outgoing_rms'),
+    'stt_ms': session.get('stt_ms'),
+    'ai_ms': session.get('ai_ms'),
+    'tts_ms': session.get('tts_ms'),
+    'provider': (session.get('metadata') or {}).get('provider'),
+    'proof': 'Asterisk AudioSocket caller PCM -> Whisper -> deterministic mock decision -> Piper TTS -> same caller channel',
+}
+Path('runtime/NOVA_CALL_BRIDGE_E2E_RESULT.json').write_text(
+    json.dumps(summary, ensure_ascii=False, indent=2),
+    encoding='utf-8',
+)
+print(json.dumps(summary, ensure_ascii=False, indent=2))
+if not summary['success']:
+    raise SystemExit(1)
+PY
+
+echo "NOVA bidirectional call bridge E2E passed."

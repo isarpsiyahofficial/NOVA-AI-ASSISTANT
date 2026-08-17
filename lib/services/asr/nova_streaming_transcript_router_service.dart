@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
 // NOVA_ABSOLUTE_FINAL_CLEANUP_V1
 // NOVA_ASR_STT_AUTHORITY_MARKER: speakerVoiceId ownerConfidence relationshipLabel routed_to_SingleBrainAuthority deterministic_bridge_dto_only.
+// NOVA_ADDRESS_FIRST_ROUTING_V1
 
 import '../runtime/nova_turkish_pragmatics_core_service.dart';
 import '../runtime/nova_turkish_pragmatics_engine_service.dart';
@@ -44,7 +45,36 @@ class NovaStreamingTranscriptRouterService {
         normalizedText: '',
       );
     }
-    if (_containsAny(folded, const [
+
+    final act = _actDetector.detect(text);
+    final pragmatics = _pragmatics.analyze(text);
+    _markers.parse(text);
+    _core.analyze(text);
+
+    final addressedToAssistant =
+        _identity.isAddressedToAssistant(normalized) ||
+        _identity.isAddressedToAssistant(folded) ||
+        _containsAny(folded, const <String>[
+          'nova',
+          'jarviz',
+          'carvis',
+          'fryday',
+        ]);
+    final repairCue =
+        act.isRepairCue || _looksLikeRepairOrRuntimeCommand(folded);
+
+    // Ambient speech must never become an action merely because it contains
+    // words such as "yarın", "ara", "telefon" or "hatırlat". The continuous
+    // runtime may still preserve a natural follow-up while an authorized
+    // conversation window is open, but a new command route requires address.
+    if (!addressedToAssistant) {
+      return NovaStreamingTranscriptRouteDecision(
+        route: 'ambient',
+        normalizedText: text,
+      );
+    }
+
+    if (_containsAny(folded, const <String>[
       'hatirlat',
       'hatirlatir misin',
       'yarin',
@@ -57,37 +87,22 @@ class NovaStreamingTranscriptRouterService {
         normalizedText: text,
       );
     }
-    final act = _actDetector.detect(text);
-    final pragmatics = _pragmatics.analyze(text);
-    _markers.parse(text);
-    _core.analyze(text);
-    final addressedToAssistant =
-        _identity.isAddressedToAssistant(normalized) ||
-        _identity.isAddressedToAssistant(folded) ||
-        _containsAny(folded, const [
-          'nova',
-          'jarviz',
-          'carvis',
-          'nova',
-          'fryday',
-          'efendim',
-        ]);
-    final repairCue =
-        act.isRepairCue || _looksLikeRepairOrRuntimeCommand(folded);
+
     if (repairCue) {
       return NovaStreamingTranscriptRouteDecision(
         route: 'command',
         normalizedText: text,
       );
     }
-    if (act.isCommandLike &&
-        (addressedToAssistant || pragmatics.hasIndirectRequest)) {
+
+    if (act.isCommandLike || pragmatics.hasIndirectRequest) {
       return NovaStreamingTranscriptRouteDecision(
         route: 'command',
         normalizedText: text,
       );
     }
-    if (_containsAny(folded, const [
+
+    if (_containsAny(folded, const <String>[
       'ogren',
       'bundan sonra',
       'bunu boyle yap',
@@ -98,7 +113,8 @@ class NovaStreamingTranscriptRouterService {
         normalizedText: text,
       );
     }
-    if (_containsAny(folded, const [
+
+    if (_containsAny(folded, const <String>[
       'ara ',
       ' ara',
       'telefon',
@@ -113,18 +129,19 @@ class NovaStreamingTranscriptRouterService {
         normalizedText: text,
       );
     }
-    if (addressedToAssistant &&
-        (act.expectsResponse ||
-            act.isSocialCue ||
-            act.isEmotionCue ||
-            repairCue)) {
+
+    if (act.expectsResponse ||
+        act.isSocialCue ||
+        act.isEmotionCue ||
+        repairCue) {
       return NovaStreamingTranscriptRouteDecision(
         route: 'conversation',
         normalizedText: text,
       );
     }
+
     return NovaStreamingTranscriptRouteDecision(
-      route: addressedToAssistant ? 'conversation' : 'ambient',
+      route: 'conversation',
       normalizedText: text,
     );
   }
@@ -132,8 +149,9 @@ class NovaStreamingTranscriptRouterService {
   bool _containsAny(String text, List<String> needles) {
     for (final needle in needles) {
       final normalizedNeedle = _asciiFold(needle);
-      if (normalizedNeedle.isNotEmpty && text.contains(normalizedNeedle))
+      if (normalizedNeedle.isNotEmpty && text.contains(normalizedNeedle)) {
         return true;
+      }
     }
     return false;
   }

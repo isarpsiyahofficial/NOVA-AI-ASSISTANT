@@ -21,11 +21,11 @@ class NovaHotpathOwnerResult {
   const NovaHotpathOwnerResult({
     required this.handledByRuntime,
     required this.handledByAi,
-    String spokenText = '',
+    this.spokenText = '',
     this.aiResponse,
     this.runtimeResult,
     this.actionSummary = '',
-  }) : spokenText = '';
+  });
 }
 
 class NovaHotpathOwnerService {
@@ -83,11 +83,11 @@ class NovaHotpathOwnerService {
         source: 'dashboard_voice',
         mode: 'fastVoice',
         speakerName: aiRequest.metadata['speakerName']?.toString() ?? '',
-        speakerVoiceId: aiRequest.metadata['speakerVoiceId']?.toString() ?? '',
-        relationshipLabel:
-            aiRequest.metadata['relationshipLabel']?.toString() ?? '',
-        ownerConfidence:
-            (aiRequest.metadata['ownerConfidence'] as num?)?.toDouble() ?? 0.0,
+        speakerVoiceId: aiRequest.authority.ownerVoiceId,
+        relationshipLabel: aiRequest.authority.kind.name,
+        ownerConfidence: aiRequest.authority.ownerConfidence,
+        authority: aiRequest.authority,
+        lease: aiRequest.lease,
         primaryTurn: true,
         allowFallbackSpeech: false,
         requiresLocalModel: false,
@@ -115,30 +115,19 @@ class NovaHotpathOwnerService {
     NovaRuntimeOrchestratorResult? runtimeResult;
     var actionSummary = '';
     var actionSummaryJson = const <String, dynamic>{};
-    final aiFirstText = aiResponse.displayText.trim();
+
+    // Native side effects are owned by ApiService ->
+    // NovaDeviceActionExecutorService. The historical text interpreter/runtime
+    // broker is fail-closed unless a migration-only caller explicitly opts in
+    // with a current lease and typed native authority.
+    final legacyBrokerEnabled =
+        aiRequest.metadata['allowLegacyRuntimeBroker'] == true &&
+        aiRequest.hasCurrentLease &&
+        aiRequest.authority.canRequestNativeAction &&
+        aiRequest.userConfirmedThisAction;
     final actionApprovedByAi =
         !strictCommand || _aiApprovesRuntimeAction(aiResponse);
-    if (strictCommand && actionApprovedByAi) {
-      final broker =
-          actionBrokerService ??
-          NovaOwnerActionBrokerService(
-            runtimeOrchestratorService: runtimeOrchestratorService,
-          );
-      final brokerResult = await broker.tryExecuteApprovedAction(
-        normalizedInput: normalized,
-        enabled: true,
-      );
-      if (brokerResult.handled) {
-        runtimeResult = brokerResult.runtimeResult;
-        actionSummary = brokerResult.actionSummary;
-        actionSummaryJson = brokerResult.actionSummaryJson;
-      }
-    }
-
-    if (!strictCommand &&
-        allowSystemExecution &&
-        runtimeResult == null &&
-        !_looksLikeHighRiskRuntimeAction(normalized)) {
+    if (legacyBrokerEnabled && actionApprovedByAi && allowSystemExecution) {
       final broker =
           actionBrokerService ??
           NovaOwnerActionBrokerService(
@@ -185,13 +174,11 @@ class NovaHotpathOwnerService {
           source: 'dashboard_voice_after_runtime',
           mode: 'fastVoice',
           speakerName: aiRequest.metadata['speakerName']?.toString() ?? '',
-          speakerVoiceId:
-              aiRequest.metadata['speakerVoiceId']?.toString() ?? '',
-          relationshipLabel:
-              aiRequest.metadata['relationshipLabel']?.toString() ?? '',
-          ownerConfidence:
-              (aiRequest.metadata['ownerConfidence'] as num?)?.toDouble() ??
-              0.0,
+          speakerVoiceId: aiRequest.authority.ownerVoiceId,
+          relationshipLabel: aiRequest.authority.kind.name,
+          ownerConfidence: aiRequest.authority.ownerConfidence,
+          authority: aiRequest.authority,
+          lease: aiRequest.lease,
           primaryTurn: true,
           allowFallbackSpeech: false,
           requiresLocalModel: false,
@@ -233,7 +220,7 @@ class NovaHotpathOwnerService {
       return NovaHotpathOwnerResult(
         handledByRuntime: true,
         handledByAi: true,
-        spokenText: '',
+        spokenText: spoken,
         aiResponse: finalAiResponse,
         runtimeResult: runtimeResult,
         actionSummary: actionSummary,
@@ -241,10 +228,11 @@ class NovaHotpathOwnerService {
     }
 
     final spoken = _stripControlMarkers(aiResponse.displayText.trim());
+    final apiActionHandled = aiResponse.metadata['deviceActionRequested'] == true;
     return NovaHotpathOwnerResult(
-      handledByRuntime: false,
-      handledByAi: true,
-      spokenText: '',
+      handledByRuntime: apiActionHandled,
+      handledByAi: !aiResponse.isError && firstDecision.allowedToSpeak,
+      spokenText: spoken,
       aiResponse: aiResponse,
       runtimeResult: runtimeResult,
       actionSummary: actionSummary,
@@ -439,6 +427,7 @@ class NovaHotpathOwnerService {
   }) {
     return AiRequest(
       prompt: prompt,
+      originalUserText: request.canonicalUserText,
       mode: request.mode,
       internetAllowed: request.internetAllowed,
       isResearchRequest: request.isResearchRequest,
@@ -452,6 +441,10 @@ class NovaHotpathOwnerService {
       requestOrigin: request.requestOrigin,
       userInitiated: request.userInitiated,
       userConfirmedThisAction: request.userConfirmedThisAction,
+      activeProviderKey: request.activeProviderKey,
+      activeModelId: request.activeModelId,
+      authority: request.authority,
+      lease: request.lease,
       metadata: metadata,
     );
   }

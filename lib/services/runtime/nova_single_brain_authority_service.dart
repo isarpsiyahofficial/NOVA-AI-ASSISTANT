@@ -4,6 +4,8 @@ import '../../core/ai/ai_mode.dart';
 import '../../core/ai/ai_request.dart';
 import '../../core/ai/ai_response.dart';
 import '../../core/runtime/freshness_controller.dart';
+import '../../core/turn/nova_turn_authority.dart';
+import '../../core/turn/nova_turn_lease.dart';
 import '../../core/speech/nova_final_text_contract.dart';
 
 class NovaBrainInput {
@@ -14,6 +16,8 @@ class NovaBrainInput {
   final String speakerVoiceId;
   final String relationshipLabel;
   final double ownerConfidence;
+  final NovaTurnAuthority authority;
+  final NovaTurnLease? lease;
   final bool primaryTurn;
   final bool allowFallbackSpeech;
   final bool requiresLocalModel;
@@ -27,6 +31,8 @@ class NovaBrainInput {
     this.speakerVoiceId = '',
     this.relationshipLabel = '',
     this.ownerConfidence = 0.0,
+    this.authority = const NovaTurnAuthority.unverified(),
+    this.lease,
     this.primaryTurn = true,
     this.allowFallbackSpeech = false,
     this.requiresLocalModel = false,
@@ -133,6 +139,16 @@ class NovaSingleBrainAuthorityService {
     registerSource(input.requiresLocalModel ? 'local_model' : 'api_brain');
     _ensureCoreProfile();
 
+    final inputLease = input.lease;
+    if (inputLease == null ||
+        !NovaTurnLeaseController.instance.isCurrent(inputLease)) {
+      return _blockedEnvelope(
+        source: input.source,
+        message: 'AI_REQUIRED_BLOCK: stale veya eksik turn lease.',
+        metadata: input.metadata,
+      );
+    }
+
     final normalizedText = _normalize(input.text);
     if (normalizedText.isEmpty) {
       return _blockedEnvelope(
@@ -170,6 +186,13 @@ class NovaSingleBrainAuthorityService {
     );
 
     final response = await runAi(request);
+    if (!NovaTurnLeaseController.instance.isCurrent(inputLease)) {
+      return _blockedEnvelope(
+        source: input.source,
+        message: 'AI_REQUIRED_BLOCK: model cevabı eski tura ait.',
+        metadata: input.metadata,
+      );
+    }
     final responseText = response.displayText.trim();
     final actionDecision = _deriveActionDecision(responseText);
     final modelUsed = !response.isError && response.hasAuthoritativeBrainProof;
@@ -258,6 +281,15 @@ class NovaSingleBrainAuthorityService {
     registerSource(input.source);
     registerSource(input.requiresLocalModel ? 'local_model' : 'api_brain');
     _ensureCoreProfile();
+    final inputLease = input.lease;
+    if (inputLease == null ||
+        !NovaTurnLeaseController.instance.isCurrent(inputLease)) {
+      return _blockedEnvelope(
+        source: input.source,
+        message: 'AI_REQUIRED_BLOCK: local model cevabı stale turn lease taşıyor.',
+        metadata: input.metadata,
+      );
+    }
 
     final responseText = response.displayText.trim();
     final actionDecision = _deriveActionDecision(responseText);
@@ -438,17 +470,21 @@ class NovaSingleBrainAuthorityService {
     if (baseRequest == null) {
       return AiRequest(
         prompt: prompt,
+        originalUserText: input.text,
         mode: mode,
         internetAllowed: true,
         isUserApprovedApiUsage: true,
         requestedByVoice: true,
         requestOrigin: _originForSource(input.source),
+        authority: input.authority,
+        lease: input.lease,
         metadata: metadata,
       );
     }
 
     return AiRequest(
       prompt: prompt,
+      originalUserText: baseRequest.canonicalUserText,
       mode: baseRequest.mode,
       internetAllowed: baseRequest.internetAllowed,
       isResearchRequest: baseRequest.isResearchRequest,
@@ -464,6 +500,8 @@ class NovaSingleBrainAuthorityService {
       userConfirmedThisAction: baseRequest.userConfirmedThisAction,
       activeProviderKey: baseRequest.activeProviderKey,
       activeModelId: baseRequest.activeModelId,
+      authority: baseRequest.authority,
+      lease: baseRequest.lease,
       metadata: metadata,
     );
   }
@@ -523,24 +561,20 @@ class NovaSingleBrainAuthorityService {
   }
 
   String _speakerPriority(NovaBrainInput input) {
-    final relation = input.relationshipLabel.toLowerCase();
-    final name = input.speakerName.toLowerCase();
-    final conf = input.ownerConfidence;
-    if (conf >= 0.86 ||
-        relation.contains('owner') ||
-        relation.contains('sahip') ||
-        name.contains('ibrahim') ||
-        name.contains('patron')) {
-      return 'device_owner';
+    final authority = input.authority;
+    if (!authority.isVerified) return 'unknown_person_no_command';
+    switch (authority.kind) {
+      case NovaTurnAuthorityKind.ownerVoice:
+        return 'device_owner';
+      case NovaTurnAuthorityKind.localUser:
+        return 'local_user';
+      case NovaTurnAuthorityKind.companion:
+        return 'authorized_companion';
+      case NovaTurnAuthorityKind.reminder:
+        return 'scheduled_reminder';
+      case NovaTurnAuthorityKind.unverified:
+        return 'unknown_person_no_command';
     }
-    if (relation.contains('authorized') || relation.contains('yetkili')) {
-      return 'authorized_user';
-    }
-    if (input.speakerVoiceId.trim().isNotEmpty ||
-        input.speakerName.trim().isNotEmpty) {
-      return 'known_person_chat_only';
-    }
-    return 'unknown_person_no_command';
   }
 
   NovaBrainDecisionEnvelope _blockedEnvelope({

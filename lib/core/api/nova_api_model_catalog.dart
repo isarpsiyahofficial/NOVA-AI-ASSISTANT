@@ -1,19 +1,24 @@
-// NOVA_API_MODEL_CATALOG_V1
+// NOVA_API_MODEL_CATALOG_V3_VERIFIED_IDS_AND_MIGRATION_2026_07
 import 'nova_ai_provider_type.dart';
 
 class NovaApiModelCatalog {
-  static const String geminiFreeTierStable = 'gemini-3.1-flash-lite';
-  static const String geminiFreeTierBalanced = 'gemini-3.5-flash';
+  static const String geminiFreeTierStable = 'gemini-3.5-flash-lite';
+  static const String geminiFreeTierBalanced = 'gemini-3.6-flash';
   static const String geminiStrongStable = 'gemini-3.5-flash';
+  static const String geminiFlashStable = 'gemini-3.6-flash';
+  static const String geminiLegacyFlashLite = 'gemini-3.1-flash-lite';
+
+  // Deserialization-only compatibility markers. Preview/live model IDs are not
+  // offered as production presets because providers can retire them quickly.
   static const String geminiLiveStable = 'gemini-3.1-flash-live-preview';
   static const String geminiLivePreview = 'gemini-2.5-flash-live-preview';
-  static const String geminiFlashStable = 'gemini-2.5-flash';
-  static const String geminiLegacyFlashLite = 'gemini-2.5-flash-lite';
-  static const String openAiLowCost = 'gpt-5.4-mini';
-  static const String openAiFlagship = 'gpt-5.5';
-  static const String qwenTrialFlash = 'qwen-flash';
-  static const String qwenTrialPlus = 'qwen-plus';
-  static const String qwenStrongMax = 'qwen-max';
+
+  static const String openAiLowCost = 'gpt-5-mini';
+  static const String openAiFlagship = 'gpt-5.1';
+
+  static const String qwenTrialFlash = 'qwen3.6-flash';
+  static const String qwenTrialPlus = 'qwen3.7-plus';
+  static const String qwenStrongMax = 'qwen3.7-max';
   static const String qwen35Flash = 'qwen3.5-flash';
   static const String qwen35Plus = 'qwen3.5-plus';
   static const String qwen3Max = 'qwen3-max';
@@ -35,9 +40,8 @@ class NovaApiModelCatalog {
         return const <String>[
           geminiFreeTierStable,
           geminiFreeTierBalanced,
-          geminiFlashStable,
+          geminiStrongStable,
           geminiLegacyFlashLite,
-          geminiLiveStable,
         ];
       case NovaAiProviderType.openai:
         return const <String>[openAiLowCost, openAiFlagship];
@@ -45,56 +49,90 @@ class NovaApiModelCatalog {
         return const <String>[
           qwenTrialFlash,
           qwenTrialPlus,
+          qwenStrongMax,
           qwen35Flash,
           qwen35Plus,
-          qwenStrongMax,
-          qwen3Max,
         ];
+    }
+  }
+
+  static bool isProductionPreset(
+    NovaAiProviderType provider,
+    String model,
+  ) => presetsFor(provider).contains(model.trim());
+
+  static String migrateSavedModelId(
+    NovaAiProviderType provider,
+    String rawModel,
+  ) {
+    final value = rawModel.trim();
+    if (value.isEmpty) return defaultModelFor(provider);
+
+    switch (provider) {
+      case NovaAiProviderType.openai:
+        switch (value) {
+          case 'gpt-5.4-mini':
+          case 'gpt-5-mini-2025-08-07':
+            return openAiLowCost;
+          case 'gpt-5.5':
+          case 'gpt-5':
+          case 'gpt-5-2025-08-07':
+            return openAiFlagship;
+          default:
+            return value;
+        }
+      case NovaAiProviderType.qwen:
+        switch (value) {
+          case 'qwen-flash':
+            return qwenTrialFlash;
+          case 'qwen-plus':
+            return qwenTrialPlus;
+          case 'qwen-max':
+          case 'qwen3-max':
+            return qwenStrongMax;
+          default:
+            return value;
+        }
+      case NovaAiProviderType.gemini:
+        switch (value) {
+          case 'gemini-3.1-flash-live-preview':
+          case 'gemini-2.5-flash-live-preview':
+          case 'gemini-2.0-flash':
+          case 'gemini-2.0-flash-lite':
+            return geminiFreeTierStable;
+          default:
+            return value;
+        }
     }
   }
 
   static String labelFor(String model) {
     final normalized = model.trim();
-    if (normalized == geminiFreeTierStable) {
-      return 'Gemini ücretsiz/düşük maliyet - 3.1 Flash-Lite';
+    switch (normalized) {
+      case geminiFreeTierStable:
+        return 'Gemini 3.5 Flash-Lite — düşük gecikme/düşük maliyet';
+      case geminiFreeTierBalanced:
+        return 'Gemini 3.6 Flash — güncel dengeli';
+      case geminiStrongStable:
+        return 'Gemini 3.5 Flash — güçlü stable';
+      case geminiLegacyFlashLite:
+        return 'Gemini 3.1 Flash-Lite — uyumluluk';
+      case openAiLowCost:
+        return 'OpenAI GPT-5 mini — hızlı ve ekonomik';
+      case openAiFlagship:
+        return 'OpenAI GPT-5.1 — güçlü agent modeli';
+      case qwenTrialFlash:
+        return 'Qwen 3.6 Flash — hızlı ve ekonomik';
+      case qwenTrialPlus:
+        return 'Qwen 3.7 Plus — dengeli';
+      case qwenStrongMax:
+        return 'Qwen 3.7 Max — güçlü';
+      case qwen35Flash:
+        return 'Qwen 3.5 Flash — uyumluluk';
+      case qwen35Plus:
+        return 'Qwen 3.5 Plus — uyumluluk';
+      default:
+        return normalized.isEmpty ? 'Model seçilmedi' : normalized;
     }
-    if (normalized == geminiFreeTierBalanced ||
-        normalized == geminiStrongStable) {
-      return 'Gemini ücretsiz/dengeli - 3.5 Flash';
-    }
-    if (normalized == geminiFlashStable) {
-      return 'Gemini 2.5 hızlı';
-    }
-    if (normalized == geminiLegacyFlashLite) {
-      return 'Gemini 2.5 düşük maliyet uyumluluk';
-    }
-    if (normalized == geminiLiveStable) {
-      return 'Gemini Live sesli önizleme';
-    }
-    if (normalized == openAiLowCost) {
-      return 'OpenAI düşük maliyet';
-    }
-    if (normalized == openAiFlagship) {
-      return 'OpenAI güçlü';
-    }
-    if (normalized == qwenTrialFlash) {
-      return 'Qwen deneme/düşük maliyet - Flash';
-    }
-    if (normalized == qwenTrialPlus) {
-      return 'Qwen deneme/dengeli - Plus';
-    }
-    if (normalized == qwen35Flash) {
-      return 'Qwen 3.5 Flash - hızlı/ucuz';
-    }
-    if (normalized == qwen35Plus) {
-      return 'Qwen 3.5 Plus - dengeli ücretli';
-    }
-    if (normalized == qwenStrongMax) {
-      return 'Qwen Max - güçlü ücretli';
-    }
-    if (normalized == qwen3Max) {
-      return 'Qwen3 Max - en güçlü ücretli';
-    }
-    return normalized.isEmpty ? 'Model seçilmedi' : normalized;
   }
 }

@@ -1,0 +1,146 @@
+name: Nova Verified Device Actions
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-device-actions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verified-device-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format verified action runtime in CI workspace
+        run: >-
+          dart format
+          lib/core/actions/nova_device_action.dart
+          lib/core/ai/ai_request.dart
+          lib/core/asr/nova_streaming_transcript.dart
+          lib/core/audio_runtime/nova_stt_result.dart
+          lib/core/turn/nova_core_turn_controller.dart
+          lib/services/actions/nova_phone_control_bridge_service.dart
+          lib/services/actions/nova_contact_call_target_resolver_service.dart
+          lib/services/actions/nova_device_action_executor_service.dart
+          lib/services/api/api_service.dart
+          lib/services/identity/device_owner_identity_service.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/nova/nova_dashboard_page.dart
+          test/runtime/nova_verified_device_action_contract_test.dart
+          test/runtime/nova_contact_call_target_resolver_test.dart
+
+      - name: Contract — provider phone tool parity
+        id: provider_tool
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "all API providers expose the same structured phone tool"
+
+      - name: Contract — native action precedes final answer
+        id: native_before_answer
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "native side effect finishes before the final provider answer"
+
+      - name: Contract — model cannot mint authority
+        id: authority
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "the model cannot mint device authority"
+
+      - name: Contract — shared Silero segment
+        id: silero_segment
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "same Silero segment feeds Whisper transcript and TitaNet identity"
+
+      - name: Contract — synthetic owner IDs blocked
+        id: synthetic_owner
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "synthetic owner IDs and legacy dashboard setup cannot grant authority"
+
+      - name: Contract — fresh Telecom verification
+        id: telecom_verification
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "call actions are verified against fresh Telecom state"
+
+      - name: Contract — authorized API routes
+        id: api_routes
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "API route names used by the core controller remain authorized"
+
+      - name: Contract — no false completion claims
+        id: completion_claims
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "unverified native commands cannot be described as completed"
+
+      - name: Contract — carrier control is not AI audio
+        id: carrier_boundary
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_verified_device_action_contract_test.dart --plain-name "carrier call control is not misreported as AI conversation"
+
+      - name: Contract — contact call resolver
+        id: contact_resolver
+        continue-on-error: true
+        run: flutter test --reporter expanded test/runtime/nova_contact_call_target_resolver_test.dart
+
+      - name: Enforce every verified action contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for result in \
+            "${{ steps.provider_tool.outcome }}" \
+            "${{ steps.native_before_answer.outcome }}" \
+            "${{ steps.authority.outcome }}" \
+            "${{ steps.silero_segment.outcome }}" \
+            "${{ steps.synthetic_owner.outcome }}" \
+            "${{ steps.telecom_verification.outcome }}" \
+            "${{ steps.api_routes.outcome }}" \
+            "${{ steps.completion_claims.outcome }}" \
+            "${{ steps.carrier_boundary.outcome }}" \
+            "${{ steps.contact_resolver.outcome }}"; do
+            if [[ "$result" != "success" ]]; then
+              failed=1
+            fi
+          done
+          if [[ "$failed" -ne 0 ]]; then
+            echo "At least one verified device action contract failed."
+            exit 1
+          fi
+
+      - name: Analyze verified action runtime
+        run: >-
+          flutter analyze
+          lib/core/actions/nova_device_action.dart
+          lib/core/ai/ai_request.dart
+          lib/core/asr/nova_streaming_transcript.dart
+          lib/core/audio_runtime/nova_stt_result.dart
+          lib/core/turn/nova_core_turn_controller.dart
+          lib/services/actions/nova_phone_control_bridge_service.dart
+          lib/services/actions/nova_contact_call_target_resolver_service.dart
+          lib/services/actions/nova_device_action_executor_service.dart
+          lib/services/api/api_service.dart
+          lib/services/identity/device_owner_identity_service.dart
+          lib/services/stt/nova_speech_to_text_service.dart
+          lib/ui/launch/nova_launch_gate_page.dart
+          lib/ui/nova/nova_dashboard_page.dart

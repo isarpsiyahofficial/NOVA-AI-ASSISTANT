@@ -1,0 +1,117 @@
+name: Nova Real TECNO Hardware Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      background_minutes:
+        description: Locked-screen background stability duration
+        required: true
+        default: '30'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-real-tecno-device
+  cancel-in-progress: false
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
+jobs:
+  real-device:
+    runs-on: [self-hosted, linux, android, tecno]
+    timeout-minutes: 120
+    environment: nova-real-device-lab
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify connected physical TECNO
+        shell: bash
+        env:
+          NOVA_TECNO_ADB_SERIAL: ${{ vars.NOVA_TECNO_ADB_SERIAL }}
+        run: |
+          set -euo pipefail
+          adb devices -l
+          test "$(adb devices | awk 'NR>1 && $2=="device" {count++} END {print count+0}')" -ge 1
+          adb_target=(adb)
+          if [[ -n "${NOVA_TECNO_ADB_SERIAL:-}" ]]; then
+            adb_target+=( -s "$NOVA_TECNO_ADB_SERIAL" )
+          fi
+          manufacturer="$("${adb_target[@]}" shell getprop ro.product.manufacturer | tr -d '\r')"
+          model="$("${adb_target[@]}" shell getprop ro.product.model | tr -d '\r')"
+          printf 'manufacturer=%s model=%s\n' "$manufacturer" "$model"
+          [[ "${manufacturer,,}" == *tecno* ]]
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap Gradle and provision verified models
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh tooling/prepare_native_voice_assets.sh
+          tooling/bootstrap_gradle_wrapper.sh
+          tooling/prepare_native_voice_assets.sh
+          flutter pub get
+
+      - name: Build debuggable ARM64 hardware-lab APK
+        run: flutter build apk --debug --target-platform android-arm64 --no-pub
+
+      - name: Run real SIM SIP lock-screen and performance suite
+        shell: bash
+        env:
+          NOVA_TECNO_ADB_SERIAL: ${{ vars.NOVA_TECNO_ADB_SERIAL }}
+          NOVA_TECNO_PHONE_NUMBER: ${{ secrets.NOVA_TECNO_PHONE_NUMBER }}
+          NOVA_REAL_CALL_TRIGGER_URL: ${{ secrets.NOVA_REAL_CALL_TRIGGER_URL }}
+          NOVA_REAL_CALL_TRIGGER_TOKEN: ${{ secrets.NOVA_REAL_CALL_TRIGGER_TOKEN }}
+          NOVA_SIP_DEVICE_TEST_TRIGGER_URL: ${{ secrets.NOVA_SIP_DEVICE_TEST_TRIGGER_URL }}
+          NOVA_SIP_DEVICE_TEST_TRIGGER_TOKEN: ${{ secrets.NOVA_SIP_DEVICE_TEST_TRIGGER_TOKEN }}
+          NOVA_CALL_BRIDGE_HEALTH_URL: ${{ vars.NOVA_CALL_BRIDGE_HEALTH_URL }}
+          NOVA_TECNO_BACKGROUND_MINUTES: ${{ inputs.background_minutes }}
+          NOVA_TECNO_LAB_OUT: build/tecno-device-lab
+        run: |
+          set -euo pipefail
+          [[ "$NOVA_TECNO_BACKGROUND_MINUTES" =~ ^[0-9]+$ ]]
+          export NOVA_TECNO_BACKGROUND_SECONDS="$((NOVA_TECNO_BACKGROUND_MINUTES * 60))"
+          chmod +x tooling/run_tecno_hardware_lab.sh
+          tooling/run_tecno_hardware_lab.sh build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Publish real-device acceptance summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -s build/tecno-device-lab/NOVA_TECNO_DEVICE_EVIDENCE.json ]]; then
+            echo '## Real TECNO evidence' >> "$GITHUB_STEP_SUMMARY"
+            cat build/tecno-device-lab/NOVA_TECNO_DEVICE_EVIDENCE.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ -s build/nova-acceptance/NOVA_ACCEPTANCE_REPORT.md ]]; then
+            cat build/nova-acceptance/NOVA_ACCEPTANCE_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload signed hardware evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-REAL-TECNO-HARDWARE-EVIDENCE
+          path: |
+            build/tecno-device-lab
+            build/nova-acceptance
+          if-no-files-found: warn
+          retention-days: 30

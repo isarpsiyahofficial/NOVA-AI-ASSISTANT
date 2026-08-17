@@ -13,15 +13,16 @@ repositories {
 dependencies {
     // API-first Nova detaches the heavy Gemma/LiteRT-LM local brain runtime.
     // Local ears/identity stay native: sherpa-onnx.aar is required for embedded
-    // sherpa_asr and nemo_en_titanet_small speaker verification. Place it under
-    // android/app/libs/sherpa-onnx.aar together with the existing JNI libs/models.
+    // ASR, Silero VAD, Turkish offline TTS and TitaNet speaker verification.
     implementation(files("libs/sherpa-onnx.aar"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 
 android {
     namespace = "com.example.nova"
-    compileSdk = 35
+    // Current Flutter Android plugins in this project require API 36 at compile
+    // time. This does not raise the minimum supported device version.
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
@@ -88,7 +89,8 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            // Production release signing must be supplied by the release pipeline.
+            // Never silently publish a build signed with the shared debug key.
         }
     }
 }

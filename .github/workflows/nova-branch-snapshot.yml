@@ -1,0 +1,46 @@
+name: NOVA branch snapshot
+
+on:
+  push:
+    branches:
+      - agent/single-brain-low-latency-runtime
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build auditable snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git bundle create nova-history.bundle --all
+          tar --exclude=.git -czf nova-working-tree.tgz .
+          sha256sum nova-history.bundle nova-working-tree.tgz > SHA256SUMS
+          git log --all --oneline --decorate --graph > git-history.txt
+          git log --all --name-status -- tooling/.nova_refactor_bundle > bundle-history.txt
+          git fsck --full --no-reflogs --unreachable > git-fsck.txt 2>&1 || true
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-branch-snapshot
+          path: |
+            nova-history.bundle
+            nova-working-tree.tgz
+            SHA256SUMS
+            git-history.txt
+            bundle-history.txt
+            git-fsck.txt
+          if-no-files-found: error
+          retention-days: 1

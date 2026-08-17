@@ -11,7 +11,8 @@ class NovaXttsBridgePlugin(
     private val context: Context
 ) : MethodChannel.MethodCallHandler {
 
-    private val engine = NovaXttsEngine(context)
+    private val engine = NovaXttsEngine(context.applicationContext)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val CHANNEL = "nova/xtts_bridge"
@@ -25,7 +26,7 @@ class NovaXttsBridgePlugin(
                 CHANNEL
             )
             channel.setMethodCallHandler(
-                NovaXttsBridgePlugin(context)
+                NovaXttsBridgePlugin(context.applicationContext)
             )
         }
     }
@@ -37,7 +38,17 @@ class NovaXttsBridgePlugin(
 
                 "warmupXtts" -> {
                     val preferredModelKey = call.argument<String>("preferredModelKey").orEmpty()
-                    result.success(engine.warmup(preferredModelKey))
+                    Thread {
+                        val success = try {
+                            engine.warmup(preferredModelKey)
+                        } catch (_: Throwable) {
+                            false
+                        }
+                        mainHandler.post { result.success(success) }
+                    }.apply {
+                        name = "NovaSherpaTtsWarmup"
+                        isDaemon = true
+                    }.start()
                 }
 
                 "getXttsCapabilities" -> result.success(engine.getCapabilities())
@@ -47,6 +58,7 @@ class NovaXttsBridgePlugin(
                     val language = call.argument<String>("language")?.trim().orEmpty()
                         .ifEmpty { "tr" }
                     val speakerPath = call.argument<String>("speakerPath")?.trim().orEmpty()
+                    val speed = (call.argument<Double>("speed") ?: 1.0).toFloat()
 
                     if (text.isEmpty()) {
                         result.success(false)
@@ -55,46 +67,29 @@ class NovaXttsBridgePlugin(
 
                     Thread {
                         val success = try {
-                            val languageLower = language.lowercase()
-                            if (languageLower.startsWith("tr")) {
-                                val neuralOk = engine.speak(
-                                    text = text,
-                                    language = language,
-                                    speakerPath = speakerPath
-                                )
-                                if (neuralOk) {
-                                    true
-                                } else {
-                                    NovaAndroidTtsMouthEngine.speak(
-                                        context = context,
-                                        text = text,
-                                        language = language,
-                                        preferFemale = true,
-                                        allowUnknownGenderTurkish = true,
-                                        waitForDone = true
-                                    )
-                                }
-                            } else {
-                                engine.speak(
-                                    text = text,
-                                    language = language,
-                                    speakerPath = speakerPath
-                                )
-                            }
+                            engine.speak(
+                                text = text,
+                                language = language,
+                                speakerPath = speakerPath,
+                                speed = speed,
+                            )
                         } catch (_: Throwable) {
                             false
                         }
-                        Handler(Looper.getMainLooper()).post {
-                            result.success(success)
-                        }
+                        mainHandler.post { result.success(success) }
                     }.apply {
-                        name = "NovaXttsSpeakAwaiter"
+                        name = "NovaSherpaOfflineTts"
                         isDaemon = true
                     }.start()
                 }
 
                 "stopXtts" -> {
                     engine.stop()
+                    result.success(true)
+                }
+
+                "releaseXtts" -> {
+                    engine.release()
                     result.success(true)
                 }
 
@@ -107,14 +102,16 @@ class NovaXttsBridgePlugin(
                 "getXttsCapabilities" -> result.success(
                     mapOf(
                         "ready" to false,
+                        "assetReady" to false,
                         "supportsSpeakerId" to false,
                         "supportsReferenceAudio" to false,
                         "availableModels" to emptyList<String>(),
-                        "message" to "XTTS capability bilgisi alınamadı."
+                        "engine" to "sherpa_onnx_offline_tts",
+                        "message" to "Sherpa offline TTS capability bilgisi alınamadı."
                     )
                 )
                 "speakWithXtts" -> result.success(false)
-                "stopXtts" -> result.success(false)
+                "stopXtts", "releaseXtts" -> result.success(false)
                 else -> result.notImplemented()
             }
         }

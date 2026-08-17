@@ -1,8 +1,6 @@
 package com.example.nova
 
 import android.content.Context
-import java.io.File
-import org.json.JSONObject
 
 class NovaCloneEngineAdapter(
     private val context: Context
@@ -44,27 +42,56 @@ class NovaCloneEngineAdapter(
                     "success" to false,
                     "message" to "Kaynak ses referansı uygulama alanı dışında olamaz."
                 )
-            val safeSourceReference = NovaAppSandboxGuard.toAppRelativeReference(context, resolvedSource)
+            if (!resolvedSource.exists() || !resolvedSource.isFile) {
+                return mapOf(
+                    "success" to false,
+                    "message" to "Kaynak ses dosyası bulunamadı."
+                )
+            }
 
-            val maybeModelBridgeResult = tryModelBridge(
+            val safeSourceReference = NovaAppSandboxGuard.toAppRelativeReference(context, resolvedSource)
+            val realCloneResult = tryModelBridge(
                 sourcePath = safeSourceReference,
                 suggestedName = normalizedName,
                 styleInstruction = normalizedStyle
             )
 
-            if (maybeModelBridgeResult != null) {
-                maybeModelBridgeResult
-            } else {
-                createReferenceFallback(
-                    sourcePath = safeSourceReference,
-                    suggestedName = normalizedName,
-                    styleInstruction = normalizedStyle
+            if (realCloneResult == null) {
+                return mapOf(
+                    "success" to false,
+                    "voiceId" to "",
+                    "message" to "Gerçek ses klonlama modeli veya native createVoiceClone motoru hazır değil. Referans dosyası kopyalanarak sahte klon başarısı üretilmedi.",
+                    "realCloneEngineRequired" to true,
+                    "referenceOnlyFallbackUsed" to false
                 )
             }
-        } catch (_: Throwable) {
+
+            val success = realCloneResult["success"] as? Boolean == true
+            val voiceId = realCloneResult["voiceId"]?.toString()?.trim().orEmpty()
+            if (!success || voiceId.isEmpty()) {
+                return realCloneResult + mapOf(
+                    "success" to false,
+                    "voiceId" to "",
+                    "realCloneEngineRequired" to true,
+                    "referenceOnlyFallbackUsed" to false,
+                    "message" to (realCloneResult["message"]?.toString()?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: "Gerçek klon motoru geçerli bir ses kimliği üretmedi.")
+                )
+            }
+
+            realCloneResult + mapOf(
+                "success" to true,
+                "referenceOnlyFallbackUsed" to false,
+                "realCloneEngineUsed" to true
+            )
+        } catch (t: Throwable) {
             mapOf(
                 "success" to false,
-                "message" to "Klon motoru çalıştırılamadı."
+                "voiceId" to "",
+                "message" to (t.message ?: "Gerçek klon motoru çalıştırılamadı."),
+                "realCloneEngineRequired" to true,
+                "referenceOnlyFallbackUsed" to false
             )
         }
     }
@@ -92,88 +119,5 @@ class NovaCloneEngineAdapter(
         } catch (_: Throwable) {
             null
         }
-    }
-
-    private fun createReferenceFallback(
-        sourcePath: String,
-        suggestedName: String,
-        styleInstruction: String
-    ): Map<String, Any?> {
-        val fallbackDecision = NovaSystemBoundaryGuard.canAccessFile(
-            context = context,
-            rawReference = sourcePath,
-            operation = "read",
-            source = "system_safe",
-            ownerApproved = false
-        )
-        if (!fallbackDecision.allowed) {
-            return mapOf(
-                "success" to false,
-                "message" to fallbackDecision.reason
-            )
-        }
-
-        val source = NovaAppSandboxGuard.resolveAppPrivateFileOrNull(context, sourcePath)
-            ?: return mapOf(
-                "success" to false,
-                "message" to "Kaynak ses dosyası uygulama alanı dışında olamaz."
-            )
-        if (!source.exists() || !source.isFile) {
-            return mapOf(
-                "success" to false,
-                "message" to "Kaynak ses dosyası bulunamadı."
-            )
-        }
-
-        val dir = File(context.filesDir, "nova_cloned_voice_refs")
-        if (!dir.exists()) {
-            dir.mkdirs()
-        }
-
-        val safeName = NovaAppSandboxGuard.sanitizeOutputName(suggestedName, "Klon_Ses")
-
-        val voiceId = "${safeName}_${System.currentTimeMillis()}"
-        val extension = source.extension.trim().ifBlank {
-            if (source.name.lowercase().endsWith(".wav")) "wav" else "m4a"
-        }
-
-        val copiedAudio = File(dir, "$voiceId.$extension")
-        val writeDecision = NovaSystemBoundaryGuard.canAccessFile(
-            context = context,
-            rawReference = NovaAppSandboxGuard.toAppRelativeReference(context, copiedAudio),
-            operation = "write",
-            source = "system_safe",
-            ownerApproved = false
-        )
-        if (!writeDecision.allowed) {
-            return mapOf(
-                "success" to false,
-                "message" to writeDecision.reason
-            )
-        }
-        source.copyTo(copiedAudio, overwrite = true)
-
-        val meta = File(dir, "$voiceId.json")
-        meta.writeText(
-            JSONObject(
-                mapOf(
-                    "voiceId" to voiceId,
-                    "voiceName" to suggestedName,
-                    "styleInstruction" to styleInstruction,
-                    "referenceAudio" to NovaAppSandboxGuard.toAppRelativeReference(context, copiedAudio),
-                    "sourceReference" to NovaAppSandboxGuard.toAppRelativeReference(context, copiedAudio)
-                )
-            ).toString()
-        )
-
-        return mapOf(
-            "success" to true,
-            "voiceId" to voiceId,
-            "voiceName" to suggestedName,
-            "styleInstruction" to styleInstruction,
-            "referenceAudio" to NovaAppSandboxGuard.toAppRelativeReference(context, copiedAudio),
-            "sourceReference" to NovaAppSandboxGuard.toAppRelativeReference(context, copiedAudio),
-            "message" to "Referans ses profili oluşturuldu."
-        )
     }
 }

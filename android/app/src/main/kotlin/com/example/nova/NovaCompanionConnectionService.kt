@@ -77,11 +77,21 @@ private class NovaManagedConnection(
     init {
         setAddress(address, TelecomManager.PRESENTATION_ALLOWED)
         setAudioModeIsVoip(true)
+        connectionCapabilities =
+            CAPABILITY_SUPPORT_HOLD or CAPABILITY_HOLD or CAPABILITY_MUTE
         setCallerDisplayName(address?.schemeSpecificPart ?: "Nova companion", TelecomManager.PRESENTATION_ALLOWED)
     }
 
     override fun onAnswer() {
-        super.onAnswer()
+        markAnswered()
+    }
+
+    override fun onAnswer(videoState: Int) {
+        markAnswered()
+    }
+
+    private fun markAnswered() {
+        if (state == STATE_ACTIVE) return
         setActive()
         NovaCallStateBridge.updateCall(
             number = address?.schemeSpecificPart,

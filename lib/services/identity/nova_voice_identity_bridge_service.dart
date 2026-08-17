@@ -34,6 +34,7 @@ class NovaVoiceIdentifyResult {
   final double similarity;
   final String message;
   final int embeddingSize;
+  final String nativeActionToken;
   const NovaVoiceIdentifyResult({
     required this.success,
     required this.matched,
@@ -42,6 +43,7 @@ class NovaVoiceIdentifyResult {
     required this.similarity,
     required this.message,
     required this.embeddingSize,
+    this.nativeActionToken = '',
   });
 }
 
@@ -49,7 +51,9 @@ class NovaVoiceIdentityBridgeService {
   static const MethodChannel _channel = MethodChannel(
     'nova/voice_identity_bridge',
   );
+
   const NovaVoiceIdentityBridgeService();
+
   Future<NovaVoiceIdentityWarmupResult> warmup() async {
     try {
       final raw = await _channel.invokeMethod<dynamic>('warmupVoiceIdentity');
@@ -76,12 +80,14 @@ class NovaVoiceIdentityBridgeService {
     required String audioPath,
   }) async {
     try {
-      final raw = await _channel
-          .invokeMethod<dynamic>('enrollVoiceprintFromFile', {
-            'voiceId': voiceId.trim(),
-            'displayName': displayName.trim(),
-            'audioPath': audioPath.trim(),
-          });
+      final raw = await _channel.invokeMethod<dynamic>(
+        'enrollVoiceprintFromFile',
+        <String, dynamic>{
+          'voiceId': voiceId.trim(),
+          'displayName': displayName.trim(),
+          'audioPath': audioPath.trim(),
+        },
+      );
       final map = raw is Map
           ? Map<String, dynamic>.from(raw)
           : const <String, dynamic>{};
@@ -110,7 +116,10 @@ class NovaVoiceIdentityBridgeService {
     try {
       final raw = await _channel.invokeMethod<dynamic>(
         'identifyVoiceFromFile',
-        {'audioPath': audioPath.trim(), 'minSimilarity': minSimilarity},
+        <String, dynamic>{
+          'audioPath': audioPath.trim(),
+          'minSimilarity': minSimilarity,
+        },
       );
       final map = raw is Map
           ? Map<String, dynamic>.from(raw)
@@ -123,6 +132,8 @@ class NovaVoiceIdentityBridgeService {
         similarity: (map['similarity'] as num?)?.toDouble() ?? 0,
         message: (map['message'] as String? ?? '').trim(),
         embeddingSize: (map['embeddingSize'] as num?)?.toInt() ?? 0,
+        nativeActionToken:
+            (map['nativeActionToken'] as String? ?? '').trim(),
       );
     } catch (_) {
       return const NovaVoiceIdentifyResult(
@@ -136,4 +147,85 @@ class NovaVoiceIdentityBridgeService {
       );
     }
   }
+
+  Future<bool> removeVoiceprint(String voiceId) async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'removeVoiceprint',
+        <String, dynamic>{'voiceId': voiceId.trim()},
+      );
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> clearAllVoiceprints() async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>('clearAllVoiceprints');
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> markVoiceprintAsOwner(String voiceId) async {
+    final safeVoiceId = voiceId.trim();
+    if (safeVoiceId.isEmpty) return false;
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'markVoiceprintAsOwner',
+        <String, dynamic>{'voiceId': safeVoiceId},
+      );
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> bindOwnerActionTokenToTurn({
+    required String token,
+    required String turnLeaseId,
+  }) async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'bindOwnerActionTokenToTurn',
+        <String, dynamic>{
+          'token': token.trim(),
+          'turnLeaseId': turnLeaseId.trim(),
+        },
+      );
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> activateOwnerActionTurn(String turnLeaseId) async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'activateOwnerActionTurn',
+        <String, dynamic>{'turnLeaseId': turnLeaseId.trim()},
+      );
+      final map = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : const <String, dynamic>{};
+      return map['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
 }
