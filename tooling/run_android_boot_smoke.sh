@@ -24,14 +24,17 @@ done
 # that the Flutter NOVA root opened. Always target MainActivity explicitly.
 adb shell am force-stop "$PACKAGE"
 adb logcat -c
-adb shell am start -W -n "$ACTIVITY" | tee "$OUT_DIR/launch.log"
-grep -q 'Status: ok' "$OUT_DIR/launch.log"
-grep -q "Activity: $ACTIVITY" "$OUT_DIR/launch.log"
+adb shell am start -W -n "$ACTIVITY" | tee "$OUT_DIR/launch.log" || true
 
-# Always retain what Android actually displayed immediately after launch, even
-# if focus verification later fails. This turns a boot failure into visual
-# evidence instead of an opaque CI failure.
+# Capture Android's real screen before interpreting am-start status. A slow
+# Flutter cold start can make `am start -W` report Status: timeout even when the
+# requested MainActivity/process exists. The visual evidence must survive that
+# condition so boot regressions are inspectable rather than opaque.
 adb exec-out screencap -p > "$OUT_DIR/nova-after-launch.png" || true
+
+# Verify the requested target rather than requiring ActivityManager's timing
+# status to be `ok`; foreground/process probes below are the actual boot proof.
+grep -q "Activity: $ACTIVITY" "$OUT_DIR/launch.log"
 
 focused=0
 pid=''
@@ -113,8 +116,9 @@ cat > "$OUT_DIR/NOVA_ANDROID_BOOT_SMOKE_RESULT.json" <<EOF
   "pid": "$live_pid",
   "stability_seconds": 12,
   "rendered_frames": "${frames:-unknown}",
+  "activity_manager_status": "$(awk -F': ' '/^Status:/ {print $2; exit}' "$OUT_DIR/launch.log")",
   "screenshots": ["nova-after-launch.png", "nova-main-initial.png", "nova-main-stable.png"],
-  "proof": "explicit MainActivity launch + foreground focus + live process + fatal-log scan + rendered-frame probe + real emulator screenshots"
+  "proof": "explicit MainActivity target + foreground focus + live process + fatal-log scan + rendered-frame probe + real emulator screenshots"
 }
 EOF
 
