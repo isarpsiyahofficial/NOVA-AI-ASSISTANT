@@ -10,6 +10,15 @@ mkdir -p "$OUT_DIR"
 adb wait-for-device
 adb install -r -t "$APK_PATH" | tee "$OUT_DIR/install.log"
 
+# Boot acceptance is about NOVA itself, not Android runtime-permission UI. Grant
+# the setup-essential runtime permissions before launch so PermissionController
+# cannot temporarily become the focused activity and create a false failure.
+for permission in \
+  android.permission.RECORD_AUDIO \
+  android.permission.POST_NOTIFICATIONS; do
+  adb shell pm grant "$PACKAGE" "$permission" >/dev/null 2>&1 || true
+done
+
 # The manifest intentionally contains additional launcher-facing activities for
 # phone/contacts surfaces. A package-only monkey launch is therefore not proof
 # that the Flutter NOVA root opened. Always target MainActivity explicitly.
@@ -18,6 +27,11 @@ adb logcat -c
 adb shell am start -W -n "$ACTIVITY" | tee "$OUT_DIR/launch.log"
 grep -q 'Status: ok' "$OUT_DIR/launch.log"
 grep -q "Activity: $ACTIVITY" "$OUT_DIR/launch.log"
+
+# Always retain what Android actually displayed immediately after launch, even
+# if focus verification later fails. This turns a boot failure into visual
+# evidence instead of an opaque CI failure.
+adb exec-out screencap -p > "$OUT_DIR/nova-after-launch.png" || true
 
 focused=0
 pid=''
@@ -37,6 +51,7 @@ if [[ "$focused" != "1" || -z "$pid" ]]; then
   echo 'NOVA MainActivity never became the focused live process.' >&2
   cat "$OUT_DIR/launch.log" >&2 || true
   cat "$OUT_DIR/window.txt" >&2 || true
+  adb exec-out screencap -p > "$OUT_DIR/nova-focus-failure.png" || true
   adb logcat -d -v threadtime > "$OUT_DIR/logcat-all.txt" || true
   exit 1
 fi
@@ -51,6 +66,7 @@ sleep 12
 live_pid="$(adb shell pidof "$PACKAGE" | tr -d '\r' | awk '{print $1}')"
 if [[ -z "$live_pid" ]]; then
   echo 'NOVA process died during the post-launch stability window.' >&2
+  adb exec-out screencap -p > "$OUT_DIR/nova-process-death.png" || true
   adb logcat -d -v threadtime > "$OUT_DIR/logcat-all.txt" || true
   exit 1
 fi
@@ -63,11 +79,13 @@ adb logcat -d -v threadtime > "$OUT_DIR/logcat-all.txt" || true
 
 if ! grep -Eq "mCurrentFocus=.*${PACKAGE}/\.MainActivity|mFocusedApp=.*${PACKAGE}/\.MainActivity" "$OUT_DIR/window-after-stability.txt"; then
   echo 'NOVA MainActivity lost foreground before boot acceptance completed.' >&2
+  adb exec-out screencap -p > "$OUT_DIR/nova-foreground-loss.png" || true
   exit 1
 fi
 
 if grep -Eq 'FATAL EXCEPTION|E/flutter.*Unhandled Exception|Dart Error|Lost connection to device' "$OUT_DIR/logcat-app.txt"; then
   echo 'NOVA emitted a fatal/unhandled runtime error during boot.' >&2
+  adb exec-out screencap -p > "$OUT_DIR/nova-runtime-failure.png" || true
   grep -E 'FATAL EXCEPTION|E/flutter.*Unhandled Exception|Dart Error|Lost connection to device' "$OUT_DIR/logcat-app.txt" >&2 || true
   exit 1
 fi
@@ -75,6 +93,7 @@ fi
 frames="$(awk -F': ' '/Total frames rendered:/ {gsub(/[^0-9]/, "", $2); print $2; exit}' "$OUT_DIR/gfxinfo.txt")"
 if [[ -n "$frames" ]] && [[ "$frames" =~ ^[0-9]+$ ]] && (( frames < 1 )); then
   echo 'NOVA Activity is alive but Android reports zero rendered frames.' >&2
+  adb exec-out screencap -p > "$OUT_DIR/nova-zero-frame.png" || true
   exit 1
 fi
 
@@ -94,7 +113,7 @@ cat > "$OUT_DIR/NOVA_ANDROID_BOOT_SMOKE_RESULT.json" <<EOF
   "pid": "$live_pid",
   "stability_seconds": 12,
   "rendered_frames": "${frames:-unknown}",
-  "screenshots": ["nova-main-initial.png", "nova-main-stable.png"],
+  "screenshots": ["nova-after-launch.png", "nova-main-initial.png", "nova-main-stable.png"],
   "proof": "explicit MainActivity launch + foreground focus + live process + fatal-log scan + rendered-frame probe + real emulator screenshots"
 }
 EOF
