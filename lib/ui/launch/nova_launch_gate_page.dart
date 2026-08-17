@@ -1,11 +1,13 @@
 // NOVA_LAUNCH_GATE_VERIFIED_SETUP_V2
 // NOVA_LAUNCH_GATE_VERIFIED_SETUP_V3_REAL_VOICEPRINT_ONLY
+// NOVA_LAUNCH_GATE_BOOT_TIMEOUT_RECOVERY_V1
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../core/behavior/nova_persona.dart';
 import '../../core/behavior/response_style.dart';
+import '../../core/settings/nova_settings.dart';
 import '../../services/api/api_service.dart';
 import '../../services/conversation/nova_conversation_session_service.dart';
 import '../../services/identity/device_owner_identity_service.dart';
@@ -82,24 +84,46 @@ class _NovaLaunchGatePageState extends State<NovaLaunchGatePage> {
   }
 
   Future<void> _resolveEntry() async {
-    final shouldOpenSetup = await _firstRunService.shouldOpenFirstRunSetup();
-    final settings = await _settingsService.load();
-    final owner = await _ownerService.loadOwner();
-    final ownerVoiceValid = owner != null &&
-        owner.ownerName.trim().isNotEmpty &&
-        _ownerService.isVerifiedVoiceprintId(owner.ownerVoiceId);
-    final activeVoiceValid =
-        _ownerService.isVerifiedVoiceprintId(settings.activeVoiceProfileId);
-    final sameVerifiedProfile = ownerVoiceValid &&
-        activeVoiceValid &&
-        owner!.ownerVoiceId.trim() == settings.activeVoiceProfileId.trim();
-    final apiReady =
-        settings.apiBrainEnabled && settings.apiKey.trim().isNotEmpty;
-    final shouldShowSetup =
-        shouldOpenSetup || !sameVerifiedProfile || !apiReady;
+    bool shouldShowSetup = true;
 
-    if (!sameVerifiedProfile && owner != null) {
-      await _ownerService.clearOwner();
+    try {
+      final shouldOpenSetup = await _firstRunService
+          .shouldOpenFirstRunSetup()
+          .timeout(
+            const Duration(seconds: 6),
+            onTimeout: () => true,
+          );
+      final settings = await _settingsService.load().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => const NovaSettings(),
+      );
+      final owner = await _ownerService.loadOwner().timeout(
+        const Duration(seconds: 6),
+        onTimeout: () => null,
+      );
+      final ownerVoiceValid = owner != null &&
+          owner.ownerName.trim().isNotEmpty &&
+          _ownerService.isVerifiedVoiceprintId(owner.ownerVoiceId);
+      final activeVoiceValid =
+          _ownerService.isVerifiedVoiceprintId(settings.activeVoiceProfileId);
+      final sameVerifiedProfile = ownerVoiceValid &&
+          activeVoiceValid &&
+          owner!.ownerVoiceId.trim() == settings.activeVoiceProfileId.trim();
+      final apiReady =
+          settings.apiBrainEnabled && settings.apiKey.trim().isNotEmpty;
+      shouldShowSetup = shouldOpenSetup || !sameVerifiedProfile || !apiReady;
+
+      if (!sameVerifiedProfile && owner != null) {
+        try {
+          await _ownerService.clearOwner().timeout(
+            const Duration(seconds: 4),
+          );
+        } catch (_) {}
+      }
+    } catch (_) {
+      // Entry resolution is recovery-biased. A storage/plugin failure must not
+      // strand NOVA forever on the launch spinner; setup is the safe surface.
+      shouldShowSetup = true;
     }
 
     if (!mounted) return;
