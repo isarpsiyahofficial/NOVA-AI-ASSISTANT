@@ -1,5 +1,5 @@
 // ignore_for_file: avoid_print, unnecessary_cast, prefer_initializing_formals, unused_local_variable, deprecated_member_use, prefer_final_fields, unused_element, prefer_interpolation_to_compose_strings, dead_code, unused_import, unused_field, curly_braces_in_flow_control_structures, unnecessary_import, prefer_spread_collections, unnecessary_this, prefer_collection_literals, duplicate_ignore, prefer_const_constructors, prefer_const_literals_to_create_immutables
-// NOVA_ABSOLUTE_FINAL_CLEANUP_V1
+// NOVA_BOOT_FIRST_VISIBLE_ROOT_V1
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'core/behavior/nova_persona.dart';
 import 'core/behavior/response_style.dart';
 import 'core/config/app_constants.dart';
+import 'core/settings/nova_settings.dart';
 import 'core/voice/voice_profile_service.dart';
 import 'services/api/api_service.dart';
 import 'services/audio_runtime/nova_native_audio_bridge_service.dart';
@@ -36,12 +37,51 @@ import 'services/voice_clone/voice_clone_runtime_control_service.dart';
 import 'services/voice_clone/voice_clone_service.dart';
 import 'ui/launch/nova_launch_gate_page.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
-    DeviceOrientation.portraitUp,
-  ]);
 
+  // Orientation is cosmetic. It must never be allowed to hold the first frame.
+  unawaited(
+    SystemChrome.setPreferredOrientations(<DeviceOrientation>[
+      DeviceOrientation.portraitUp,
+    ]).catchError((_) {}),
+  );
+
+  // The first Flutter frame is now unconditional. Runtime/bootstrap work happens
+  // behind a visible shell so a failed subsystem can no longer look like an app
+  // that simply refuses to open.
+  runApp(const NovaBootstrapRoot());
+}
+
+class _NovaBootstrapBundle {
+  final VoiceCloneService cloneService;
+  final VoiceCloneRuntimeControlService runtimeControl;
+  final NovaSpeechToTextService sttService;
+  final NovaTtsService ttsService;
+  final NovaReminderService reminderService;
+  final NovaReminderCommandService reminderCommandService;
+  final NovaReminderRuntimeService reminderRuntimeService;
+  final NovaConversationSessionService conversationSessionService;
+  final NovaConversationCleanupRuntimeService conversationCleanupRuntimeService;
+  final NovaVoiceIdentityBridgeService voiceIdentityBridgeService;
+  final ApiService apiService;
+
+  const _NovaBootstrapBundle({
+    required this.cloneService,
+    required this.runtimeControl,
+    required this.sttService,
+    required this.ttsService,
+    required this.reminderService,
+    required this.reminderCommandService,
+    required this.reminderRuntimeService,
+    required this.conversationSessionService,
+    required this.conversationCleanupRuntimeService,
+    required this.voiceIdentityBridgeService,
+    required this.apiService,
+  });
+}
+
+Future<_NovaBootstrapBundle> _bootstrapNova() async {
   final nativeBridge = NovaNativeAudioBridgeService();
   final overlayBridge = NovaOverlayBridgeService();
 
@@ -61,9 +101,17 @@ Future<void> main() async {
   final sttService = NovaSpeechToTextService(nativeBridge: nativeBridge);
 
   const settingsService = NovaSettingsService();
-  final settings = await settingsService.load();
-  final voiceProfileService = const VoiceProfileService();
+  NovaSettings settings;
+  try {
+    settings = await settingsService.load().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => const NovaSettings(),
+    );
+  } catch (_) {
+    settings = const NovaSettings();
+  }
 
+  final voiceProfileService = const VoiceProfileService();
   final apiConfigured =
       settings.apiBrainEnabled && settings.apiKey.trim().isNotEmpty;
   final apiService = ApiService(
@@ -74,20 +122,29 @@ Future<void> main() async {
     model: settings.activeApiModel,
   );
 
-  NovaRuntimeGraphService.instance.registerSharedAi(
-    owner: 'main_app_root',
-    service: NovaRuntimeGraphService.buildAiService(
-      localModelService: const LocalModelService(),
-      apiService: apiService,
-      persona: const NovaPersona(),
-      responseStyle: const ResponseStyle(),
-    ),
-  );
-  NovaRuntimeGraphService.instance.registerDelegate(
-    'main_core_turn_controller',
-    'single_ai_final_response_path',
-  );
-  NovaDecisionWrapperContractService.registerAll();
+  final runtimeGraph = NovaRuntimeGraphService.instance;
+  try {
+    if (!runtimeGraph.hasSharedAi) {
+      runtimeGraph.registerSharedAi(
+        owner: 'main_app_root',
+        service: NovaRuntimeGraphService.buildAiService(
+          localModelService: const LocalModelService(),
+          apiService: apiService,
+          persona: const NovaPersona(),
+          responseStyle: const ResponseStyle(),
+        ),
+      );
+    }
+    runtimeGraph.registerDelegate(
+      'main_core_turn_controller',
+      'single_ai_final_response_path',
+    );
+    NovaDecisionWrapperContractService.registerAll();
+  } catch (_) {
+    // If an optional duplicate-registration audit fails during recovery, keep
+    // the UI alive. Individual action paths remain fail-closed downstream.
+    if (!runtimeGraph.hasSharedAi) rethrow;
+  }
 
   final ttsRuntimeService = NovaTtsService(
     ttsService: TtsService(
@@ -97,9 +154,6 @@ Future<void> main() async {
     settingsService: settingsService,
   );
 
-  // Both mouths are prepared outside the awaited launch path. Sherpa gives a
-  // deterministic offline Turkish voice on every supported phone; a verified
-  // platform voice remains available as the explicit fallback.
   unawaited(() async {
     try {
       await Future.wait<bool>(<Future<bool>>[
@@ -113,43 +167,172 @@ Future<void> main() async {
 
   final reminderService = NovaReminderService();
   final reminderCommandService = NovaReminderCommandService();
-
   final reminderRuntimeService = NovaReminderRuntimeService(
     reminderService: reminderService,
     behaviorOverrideService: const BehaviorOverrideService(),
-  )..start();
+  );
+  try {
+    reminderRuntimeService.start();
+  } catch (_) {}
 
   const conversationSessionService = NovaConversationSessionService();
   final conversationCleanupRuntimeService =
       NovaConversationCleanupRuntimeService(
         sessionService: conversationSessionService,
-      )..start();
+      );
+  try {
+    conversationCleanupRuntimeService.start();
+  } catch (_) {}
 
   final callInstructionPhoneControlService = PhoneControlService();
-  await callInstructionPhoneControlService.restore();
+  try {
+    await callInstructionPhoneControlService.restore().timeout(
+      const Duration(seconds: 5),
+    );
+  } catch (_) {}
+
   final callInstructionRuntimeService = NovaCallInstructionRuntimeService(
     instructionService: const NovaCallInstructionService(),
     phoneControlService: callInstructionPhoneControlService,
     phoneBridgeService: const NovaPhoneControlNativeBridgeService(),
-  )..start();
+  );
+  try {
+    callInstructionRuntimeService.start();
+  } catch (_) {}
 
   const voiceIdentityBridgeService = NovaVoiceIdentityBridgeService();
 
-  runApp(
-    NovaApp(
-      cloneService: cloneService,
-      runtimeControl: runtimeControl,
-      sttService: sttService,
-      ttsService: ttsRuntimeService,
-      reminderService: reminderService,
-      reminderCommandService: reminderCommandService,
-      reminderRuntimeService: reminderRuntimeService,
-      conversationSessionService: conversationSessionService,
-      conversationCleanupRuntimeService: conversationCleanupRuntimeService,
-      voiceIdentityBridgeService: voiceIdentityBridgeService,
-      apiService: apiService,
-    ),
+  return _NovaBootstrapBundle(
+    cloneService: cloneService,
+    runtimeControl: runtimeControl,
+    sttService: sttService,
+    ttsService: ttsRuntimeService,
+    reminderService: reminderService,
+    reminderCommandService: reminderCommandService,
+    reminderRuntimeService: reminderRuntimeService,
+    conversationSessionService: conversationSessionService,
+    conversationCleanupRuntimeService: conversationCleanupRuntimeService,
+    voiceIdentityBridgeService: voiceIdentityBridgeService,
+    apiService: apiService,
   );
+}
+
+class NovaBootstrapRoot extends StatefulWidget {
+  const NovaBootstrapRoot({super.key});
+
+  @override
+  State<NovaBootstrapRoot> createState() => _NovaBootstrapRootState();
+}
+
+class _NovaBootstrapRootState extends State<NovaBootstrapRoot> {
+  late Future<_NovaBootstrapBundle> _bootstrapFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrapFuture = _bootstrapNova();
+  }
+
+  void _retry() {
+    setState(() {
+      _bootstrapFuture = _bootstrapNova();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_NovaBootstrapBundle>(
+      future: _bootstrapFuture,
+      builder: (context, snapshot) {
+        final bundle = snapshot.data;
+        if (bundle != null) {
+          return NovaApp(
+            cloneService: bundle.cloneService,
+            runtimeControl: bundle.runtimeControl,
+            sttService: bundle.sttService,
+            ttsService: bundle.ttsService,
+            reminderService: bundle.reminderService,
+            reminderCommandService: bundle.reminderCommandService,
+            reminderRuntimeService: bundle.reminderRuntimeService,
+            conversationSessionService: bundle.conversationSessionService,
+            conversationCleanupRuntimeService:
+                bundle.conversationCleanupRuntimeService,
+            voiceIdentityBridgeService: bundle.voiceIdentityBridgeService,
+            apiService: bundle.apiService,
+          );
+        }
+
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              backgroundColor: const Color(0xFF130405),
+              body: SafeArea(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          size: 42,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'NOVA başlatma katmanında bir sorun oluştu.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          snapshot.error.toString(),
+                          maxLines: 5,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: _retry,
+                          child: const Text('Tekrar dene'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            backgroundColor: Color(0xFF130405),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'NOVA başlatılıyor…',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class NovaApp extends StatelessWidget {
