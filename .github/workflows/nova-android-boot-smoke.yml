@@ -1,0 +1,115 @@
+name: Nova Android Boot Smoke
+
+on:
+  push:
+    branches:
+      - main
+      - agent/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-android-boot-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHERPA_ONNX_VERSION: '1.13.2'
+
+jobs:
+  boot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap Gradle wrapper
+        shell: bash
+        run: |
+          chmod +x tooling/bootstrap_gradle_wrapper.sh
+          tooling/bootstrap_gradle_wrapper.sh
+
+      - name: Restore native speech models
+        uses: actions/cache@v4
+        with:
+          path: .cache/nova-native-voice
+          key: nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-${{ hashFiles('tooling/prepare_native_voice_assets.sh') }}
+          restore-keys: |
+            nova-native-voice-${{ env.SHERPA_ONNX_VERSION }}-
+
+      - name: Provision verified native models
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x tooling/prepare_native_voice_assets.sh
+          tooling/prepare_native_voice_assets.sh
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos
+          flutter build apk --debug --no-pub
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Prove NOVA MainActivity boots and stays alive
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            chmod +x tooling/run_android_boot_smoke.sh
+            tooling/run_android_boot_smoke.sh build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Publish boot evidence
+        if: always()
+        shell: bash
+        run: |
+          if [[ -s build/boot-smoke/NOVA_ANDROID_BOOT_SMOKE_RESULT.json ]]; then
+            echo '## NOVA Android boot evidence' >> "$GITHUB_STEP_SUMMARY"
+            cat build/boot-smoke/NOVA_ANDROID_BOOT_SMOKE_RESULT.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'NOVA boot smoke did not produce a success result.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload boot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOVA-ANDROID-BOOT-SMOKE-EVIDENCE
+          path: build/boot-smoke
+          if-no-files-found: warn
+          retention-days: 14
