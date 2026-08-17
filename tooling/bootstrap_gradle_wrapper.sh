@@ -4,8 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANDROID_DIR="$ROOT_DIR/android"
 WRAPPER_DIR="$ANDROID_DIR/gradle/wrapper"
-GRADLE_TAG="v8.13.0"
-RAW_ROOT="https://raw.githubusercontent.com/gradle/gradle/${GRADLE_TAG}"
+# Keep the already-verified official Gradle 8.13 wrapper scripts/JAR, but make
+# them bootstrap the Gradle runtime required by current stable Flutter.
+WRAPPER_SOURCE_TAG="v8.13.0"
+GRADLE_DISTRIBUTION_VERSION="8.14.3"
+RAW_ROOT="https://raw.githubusercontent.com/gradle/gradle/${WRAPPER_SOURCE_TAG}"
 
 mkdir -p "$WRAPPER_DIR"
 
@@ -48,6 +51,8 @@ fetch_verified_blob() {
 }
 
 # These Git blob IDs are from the official gradle/gradle v8.13.0 tag.
+# The wrapper launcher is intentionally kept verified and stable while its
+# distribution target is upgraded independently below.
 fetch_verified_blob "gradlew" "$ANDROID_DIR/gradlew" \
   "d24fc200c47ebdfa6f663f088eb0530e401a47ae"
 fetch_verified_blob "gradlew.bat" "$ANDROID_DIR/gradlew.bat" \
@@ -59,8 +64,8 @@ fetch_verified_blob "gradle/wrapper/gradle-wrapper.jar" \
 cat > "$WRAPPER_DIR/gradle-wrapper.properties" <<'PROPERTIES'
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionSha256Sum=20f1b1176237254a6fc204d8434196fa11a4cfb387567519c61556e8710aed78
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-bin.zip
+distributionSha256Sum=bd71102213493060956ec229d946beee57158dbd89d0e62b91bca0fa2c5f3531
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-bin.zip
 networkTimeout=10000
 validateDistributionUrl=true
 zipStoreBase=GRADLE_USER_HOME
@@ -69,4 +74,4 @@ PROPERTIES
 
 chmod +x "$ANDROID_DIR/gradlew"
 
-echo "Gradle 8.13 wrapper is ready and pinned for AGP 8.11.1."
+echo "Verified Gradle wrapper is ready with Gradle ${GRADLE_DISTRIBUTION_VERSION} distribution for current Flutter."
