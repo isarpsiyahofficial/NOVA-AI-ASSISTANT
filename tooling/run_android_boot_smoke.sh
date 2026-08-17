@@ -41,6 +41,10 @@ if [[ "$focused" != "1" || -z "$pid" ]]; then
   exit 1
 fi
 
+# Capture the actual Flutter surface once MainActivity is demonstrably focused.
+adb exec-out screencap -p > "$OUT_DIR/nova-main-initial.png"
+test -s "$OUT_DIR/nova-main-initial.png"
+
 # Keep it alive long enough to catch bootstrap/plugin crashes that happen after
 # Android reports a successful Activity launch.
 sleep 12
@@ -74,6 +78,14 @@ if [[ -n "$frames" ]] && [[ "$frames" =~ ^[0-9]+$ ]] && (( frames < 1 )); then
   exit 1
 fi
 
+# Capture a second proof after the stability window. This is the preferred
+# screenshot for visual review because it is taken only after the process has
+# survived bootstrap and the fatal-log scan.
+adb exec-out screencap -p > "$OUT_DIR/nova-main-stable.png"
+test -s "$OUT_DIR/nova-main-stable.png"
+adb shell uiautomator dump /sdcard/nova-main-stable.xml >/dev/null 2>&1 || true
+adb pull /sdcard/nova-main-stable.xml "$OUT_DIR/nova-main-stable.xml" >/dev/null 2>&1 || true
+
 cat > "$OUT_DIR/NOVA_ANDROID_BOOT_SMOKE_RESULT.json" <<EOF
 {
   "success": true,
@@ -82,7 +94,8 @@ cat > "$OUT_DIR/NOVA_ANDROID_BOOT_SMOKE_RESULT.json" <<EOF
   "pid": "$live_pid",
   "stability_seconds": 12,
   "rendered_frames": "${frames:-unknown}",
-  "proof": "explicit MainActivity launch + foreground focus + live process + fatal-log scan + rendered-frame probe"
+  "screenshots": ["nova-main-initial.png", "nova-main-stable.png"],
+  "proof": "explicit MainActivity launch + foreground focus + live process + fatal-log scan + rendered-frame probe + real emulator screenshots"
 }
 EOF
 
